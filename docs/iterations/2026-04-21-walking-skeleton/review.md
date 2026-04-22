@@ -9,7 +9,7 @@
 |---|---|
 | 迭代代号 | walking-skeleton |
 | 日期 | 2026-04-21 |
-| 起止 commit | `46c10d8` (排除) → `5ccb990` (HEAD) |
+| 起止 commit | `46c10d8` (排除) → `5ccb990` (审查基线) |
 | 包含 commit 数 | 4 |
 | 总变更 | 55 files, +8003 lines, -0 lines |
 | 目标里程碑 | M0（基础设施就绪），先于 M1 |
@@ -46,6 +46,7 @@
 | 前端依赖安装 | `cd frontend && pnpm install` | 退出码 0 | ✓ Done in 4m 6.3s | [x] |
 | 前端类型检查 | `pnpm exec tsc --noEmit` | 无输出 | ✓ 无输出 | [x] |
 | 前端 lint | `pnpm lint` | 无错误 | ✓ 无错误 | [x] |
+| 前端生产构建 | `cd frontend && pnpm build` | 退出码 0 | 本轮未复核（`next/font/google` 构建阶段需访问 fonts.googleapis.com） | [ ] |
 | 前端 dev server | `pnpm dev` | Ready in <5s，3000 端口监听 | ✓ Ready in 862ms | [x] |
 | 前端 HTML 渲染 | `curl http://127.0.0.1:3000` | HTML 含 "氮淋失风险决策 Agent — Hello World" + "测试后端连接" | ✓ 含上述字符串 | [x] |
 | 端到端按钮调用 | 浏览器打开 :3000 → 点按钮 | 页面显示后端返回的 JSON | ✓ 用户已亲测，返回符合预期 JSON | [x] |

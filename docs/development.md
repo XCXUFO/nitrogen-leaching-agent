@@ -68,8 +68,8 @@ pnpm dev
 | 后端 FastAPI | 8000 |
 | 前端 Next.js | 3000 |
 
-后端 CORS 默认允许 `http://localhost:3000`。如需放开其它来源，修改根目录
-`.env` 中的 `CORS_ORIGINS`（逗号分隔）并重启后端。
+后端 CORS 默认允许 `http://localhost:3000`。如需放开其它来源，修改
+`backend/.env` 中的 `CORS_ORIGINS`（逗号分隔）并重启后端。
 
 ## 常用命令速查
 
@@ -84,7 +84,7 @@ uv add --dev <package>           # 添加开发依赖
 # 前端
 pnpm install                     # 安装依赖
 pnpm dev                         # 开发
-pnpm build && pnpm start         # 生产构建
+pnpm build && pnpm start         # 生产构建（build 阶段会访问 fonts.googleapis.com 下载字体；国内网络可能需要代理）
 pnpm lint                        # ESLint
 pnpm dlx shadcn@latest add <comp># 添加 shadcn 组件
 ```
