@@ -15,9 +15,12 @@ configure_logging(settings.log_level)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    if not settings.deepseek_api_key:
+        raise RuntimeError("DEEPSEEK_API_KEY 未配置；请检查 backend/.env")
     logger.info(
-        "Backend starting | env={} | cors_origins={}",
+        "Backend starting | env={} | model={} | cors_origins={}",
         settings.app_env,
+        settings.deepseek_model,
         settings.cors_origin_list,
     )
     yield
