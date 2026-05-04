@@ -7,6 +7,10 @@ from loguru import logger
 from src import __version__
 from src.api import health
 from src.config import settings
+from src.utils.logging import configure_logging
+
+
+configure_logging(settings.log_level)
 
 
 @asynccontextmanager
