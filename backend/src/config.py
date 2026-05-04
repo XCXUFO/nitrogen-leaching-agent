@@ -1,9 +1,16 @@
+from pathlib import Path
+
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+ENV_FILE = BASE_DIR / ".env"
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=ENV_FILE,
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
@@ -22,6 +29,32 @@ class Settings(BaseSettings):
 
     database_url: str = "sqlite:///./data/app.db"
     chroma_persist_dir: str = "./data/chroma"
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def normalize_database_url(cls, value: str) -> str:
+        sqlite_prefix = "sqlite:///"
+        if not value.startswith(sqlite_prefix):
+            return value
+
+        raw_path = value[len(sqlite_prefix) :]
+        if raw_path == ":memory:":
+            return value
+
+        db_path = Path(raw_path)
+        if db_path.is_absolute():
+            return value
+
+        return f"{sqlite_prefix}{(BASE_DIR / db_path).resolve()}"
+
+    @field_validator("chroma_persist_dir", mode="before")
+    @classmethod
+    def normalize_chroma_persist_dir(cls, value: str) -> str:
+        chroma_path = Path(value)
+        if chroma_path.is_absolute():
+            return str(chroma_path)
+
+        return str((BASE_DIR / chroma_path).resolve())
 
     @property
     def cors_origin_list(self) -> list[str]:
