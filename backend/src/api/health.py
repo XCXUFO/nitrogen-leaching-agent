@@ -1,5 +1,7 @@
 from fastapi import APIRouter
 
+from src import __version__
+
 router = APIRouter()
 
 
@@ -8,5 +10,5 @@ async def health() -> dict[str, str]:
     return {
         "status": "ok",
         "service": "nitrogen-leaching-agent-backend",
-        "version": "0.1.0",
+        "version": __version__,
     }

@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
+from src import __version__
 from src.api import health
 from src.config import settings
 
@@ -22,7 +23,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Nitrogen Leaching Agent API",
     description="Backend for the farmland nitrogen leaching risk decision AI agent.",
-    version="0.1.0",
+    version=__version__,
     lifespan=lifespan,
 )
 
