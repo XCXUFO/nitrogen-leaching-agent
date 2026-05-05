@@ -11,7 +11,7 @@
 |---|---|
 | 迭代名 | m1-3-1-chat-rag-route |
 | 日期 | 2026-05-05 |
-| 涉及 commit | 待落地（commit 后回填） |
+| 涉及 commit | `069ea67` |
 | 文档版本 | v1.1（实现回填） |
 | 父里程碑 | M1（基础对话闭环） |
 | 责任 LLM | Claude Opus 4.7 (claude-opus-4-7) |

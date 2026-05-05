@@ -9,8 +9,8 @@
 |---|---|
 | 迭代代号 | m1-3-1-chat-rag-route |
 | 日期 | 2026-05-05 |
-| 起止 commit | 待回填 |
-| 包含 commit 数 | 预计 3（docs + backend feat + tests/docs follow-up） |
+| 起止 commit | `6904bc9` (排除) → `069ea67`（审查基线） |
+| 包含 commit 数 | 1（feat api，含代码、测试、docs） |
 | 目标里程碑 | M1.3（后端 RAG Chat API） |
 | 责任 LLM | GPT-5 |
 | 责任人 | XCXUFO |
@@ -75,11 +75,11 @@
 ```yaml
 iteration: 2026-05-05-m1-3-1-chat-rag-route
 commits_from: 6904bc9
-commits_to: TBD
-commit_count: TBD
-files_changed: TBD
-lines_added: TBD
-lines_removed: TBD
+commits_to: 069ea67
+commit_count: 1
+files_changed: 19
+lines_added: 1817
+lines_removed: 1
 tests_passed: 84
 tests_failed: 0
 tests_skipped: 20
