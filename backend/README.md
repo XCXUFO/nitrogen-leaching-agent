@@ -35,4 +35,26 @@ uv run pytest
 
 启动后访问 <http://localhost:8000/api/health> 确认服务可用。
 
+## RAG Chat
+
+`POST /api/chat` 默认返回 503，因为 `RAG_ENABLED=false` 时不会加载 BGE、Chroma
+或本地索引。启用真实问答前先安装 RAG extras 并生成 Chroma 索引：
+
+```bash
+uv sync --extra rag
+uv run python scripts/index_papers.py \
+  --paths ../data/papers/sample.txt \
+  --persist-dir var/chroma \
+  --collection papers \
+  --repo-root ..
+```
+
+然后在 `.env` 中设置：
+
+```dotenv
+RAG_ENABLED=true
+RAG_CHROMA_DIR=./var/chroma
+RAG_COLLECTION=papers
+```
+
 详细开发流程见仓库根目录的 [docs/development.md](../docs/development.md)。

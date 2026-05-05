@@ -8,3 +8,6 @@ HTTP 路由层。职责：
 
 当前占位端点：
 - `GET /api/health` — 健康检查
+
+当前业务端点：
+- `POST /api/chat` — 单轮 RAG 问答；未启用或未初始化 RAG 时返回 503

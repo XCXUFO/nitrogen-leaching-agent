@@ -30,6 +30,14 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./data/app.db"
     chroma_persist_dir: str = "./data/chroma"
 
+    rag_enabled: bool = False
+    rag_chroma_dir: str | None = None
+    rag_collection: str = "papers"
+
+    chat_top_k: int = 5
+    chat_max_context_chars: int = 4000
+    chat_temperature: float = 0.3
+
     @field_validator("database_url", mode="before")
     @classmethod
     def normalize_database_url(cls, value: str) -> str:
@@ -50,6 +58,18 @@ class Settings(BaseSettings):
     @field_validator("chroma_persist_dir", mode="before")
     @classmethod
     def normalize_chroma_persist_dir(cls, value: str) -> str:
+        chroma_path = Path(value)
+        if chroma_path.is_absolute():
+            return str(chroma_path)
+
+        return str((BASE_DIR / chroma_path).resolve())
+
+    @field_validator("rag_chroma_dir", mode="before")
+    @classmethod
+    def normalize_rag_chroma_dir(cls, value: str | None) -> str | None:
+        if value in (None, ""):
+            return None
+
         chroma_path = Path(value)
         if chroma_path.is_absolute():
             return str(chroma_path)
