@@ -110,6 +110,8 @@ lerna-debug.log*
 # Chroma persistence
 chroma_db/
 *.chroma/
+backend/data/chroma/
+backend/var/
 
 # Model caches / weights
 models/
@@ -122,6 +124,11 @@ models/
 data/raw/
 data/processed/
 data/interim/
+
+# Paper corpus: PDFs are copyrighted, never commit
+data/papers/*.pdf
+!data/papers/sample.txt
+!data/papers/README.md
 
 # Ignore local scratch
 scratch/

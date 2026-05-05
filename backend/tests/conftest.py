@@ -11,6 +11,10 @@ import os
 # 模块导入期实例化，fixture 来不及。
 if not os.environ.get("RUN_LIVE_LLM"):
     os.environ["DEEPSEEK_API_KEY"] = "test-key-not-real"
+
+# RUN_LIVE_EMBED=1 时也保留代理：HuggingFace 首次下载 BGE 权重需要走代理。
+# DEEPSEEK 哨兵不受影响（embed 路径不依赖该 key）。
+if not (os.environ.get("RUN_LIVE_LLM") or os.environ.get("RUN_LIVE_EMBED")):
     for _var in (
         "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY",
         "http_proxy", "https_proxy", "all_proxy", "no_proxy",

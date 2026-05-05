@@ -16,6 +16,13 @@ dependencies = [
     "openai>=1.50,<2.0",
 ]
 
+[project.optional-dependencies]
+rag = [
+    "sentence-transformers>=3.0,<4.0",
+    "chromadb>=0.5,<0.6",
+    "pymupdf>=1.24,<2.0",
+]
+
 [dependency-groups]
 dev = [
     "pytest>=8.3.0",
