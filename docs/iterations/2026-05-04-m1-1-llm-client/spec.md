@@ -8,8 +8,8 @@
 |---|---|
 | 迭代名 | m1-1-llm-client |
 | 日期 | 2026-05-04 |
-| 涉及 commit | `838f59b` `df61d29` `6c9b2d5` |
-| 文档版本 | v1.1（落地后回填） |
+| 涉及 commit | `838f59b` `df61d29` `6c9b2d5` `5da6a3d`（fix）|
+| 文档版本 | v1.2（含复审修订） |
 | 父里程碑 | M1（基础对话闭环） |
 | 责任 LLM | Claude Opus 4.7 (claude-opus-4-7) |
 | 责任人 | XCXUFO |
@@ -115,18 +115,13 @@ if not settings.deepseek_api_key:
 
 fail-fast，避免延迟到第一次 chat 调用才暴露。
 
-测试与 CI 通过 `tests/conftest.py` 注入哨兵值绕过：
+测试与 CI 通过 `tests/conftest.py` 在顶层注入哨兵值绕过；
+具体实现见 §4.4，要点：
 
-```python
-@pytest.fixture(autouse=True, scope="session")
-def _stub_deepseek_key(monkeypatch_session):
-    monkeypatch_session.setenv("DEEPSEEK_API_KEY", "test-key-not-real")
-```
-
-注意：由于 `Settings()` 在 `config.py` 模块导入期实例化，
-fixture 必须在 `from src.main import app` 之前生效。具体方案是
-在 `conftest.py` 顶层（任何业务 import 之前）直接 `os.environ.setdefault`，
-而不是用 fixture。详见 §4.4。
+- 用 `os.environ[...] = ...` 而不是 fixture（fixture 在 collection
+  之后才执行，那时 `Settings()` 已在 `src.config` 导入期实例化，来不及）
+- 整个覆盖动作由 `RUN_LIVE_LLM` 环境变量门控：默认（mocked）模式强制
+  哨兵值；`RUN_LIVE_LLM=1` 时让真实 key 与代理透传，便于 live smoke
 
 ### 2.6 `LLMClient` 是 ABC 而非 Protocol
 
@@ -268,14 +263,30 @@ async def lifespan(app: FastAPI):
 ```python
 import os
 
-# 必须在任何 src.* 模块被 import 之前注入；
-# 因为 Settings() 在 src.config 模块导入期就读取环境变量。
-os.environ.setdefault("DEEPSEEK_API_KEY", "test-key-not-real")
+# 默认（mocked）模式下强制测试隔离：把 DEEPSEEK_API_KEY 设为哨兵值，
+# 并清空 WSL2 樱花猫客户端可能注入的非法 *_PROXY 值（含换行，会让
+# openai SDK 构造时经 httpx 报 InvalidURL，见 walking-skeleton spec §7.1）。
+#
+# 但当 RUN_LIVE_LLM=1 时，调用方在用真实 DeepSeek 跑 smoke：必须保留
+# 真实 key 与真实代理设置，否则 live 测试拿不到 key、连不上 api。
+if not os.environ.get("RUN_LIVE_LLM"):
+    os.environ["DEEPSEEK_API_KEY"] = "test-key-not-real"
+    for _var in (
+        "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY",
+        "http_proxy", "https_proxy", "all_proxy", "no_proxy",
+    ):
+        os.environ.pop(_var, None)
 ```
 
-这一行写在 `conftest.py` 顶层、import 之前，是 pytest 唯一能保证
-在所有 test 模块的 `from src...` 之前生效的位置。**用 fixture 不行**，
-fixture 在 collection 后执行，那时 settings 已经实例化。
+为什么写在 `conftest.py` 顶层而不是 fixture：`Settings()` 在
+`src.config` 模块导入期就读取 env，pytest 的 fixture 在 collection
+完成后才执行，那时 settings 已经实例化、改 env 来不及。
+
+为什么用 `RUN_LIVE_LLM` 门控而不是无条件覆盖：spec §5 规划了
+`RUN_LIVE_LLM=1 DEEPSEEK_API_KEY=<real>` 的 live smoke 路径；
+若 conftest 无条件改写 `DEEPSEEK_API_KEY`，live 测试会拿到哨兵 key
+直接 401，整个设计先天失效。代理同理 — live 模式下宿主代理设置
+是合法的真实需求。
 
 ## 5 验证方法
 
@@ -333,7 +344,7 @@ RUN_LIVE_LLM=1 DEEPSEEK_API_KEY=<real-key> uv run pytest tests/test_llm_live.py
 | 直接依赖只加 `openai` | 加了 `openai` + `pytest-asyncio` | `@pytest.mark.asyncio` 必需。spec 起草时未列入，实施时补 |
 | pytest 配置不动 | 加 `asyncio_mode = "strict"` | pytest-asyncio 默认模式弃用警告，显式声明避免 |
 | `conftest.py` 仅注 DEEPSEEK_API_KEY | 同时清空 8 个代理环境变量（HTTP_PROXY 等）| WSL2 宿主代理含换行非法值，openai SDK 构造时经 httpx 读 env 直接 `InvalidURL`（walking-skeleton spec §7.1 已记录的坑）。测试不应触网，统一清掉 |
-| `conftest.py` 用 `os.environ.setdefault` | 改为 `os.environ[...] = ...` 直接赋值 | 测试隔离更严，避免外部 env 泄漏；纯审查偏好，不改变测试结果 |
+| `conftest.py` 用 `os.environ.setdefault` | 改为 `if not RUN_LIVE_LLM: os.environ[...] = ...` 门控覆盖 | 默认 mocked 模式强制哨兵以避免宿主 env 污染；`RUN_LIVE_LLM=1` 时让真实 key 与代理透传（修复了一次过渡期的 bug：曾改成无条件直接赋值，会堵死 spec §5 规划的 live smoke 路径，已纠正）|
 | `DeepSeekClient.chat()` 总传 `max_tokens` 给 SDK | `max_tokens is None` 时不入 kwargs | 请求体语义更精确；新增对应回归测 `test_chat_omits_max_tokens_when_not_provided` |
 
 ### 8.2 M0 遗留项处置
@@ -361,11 +372,11 @@ RUN_LIVE_LLM=1 DEEPSEEK_API_KEY=<real-key> uv run pytest tests/test_llm_live.py
    `Settings()` 本身仍在 `config.py` 导入期执行。如果未来希望
    `Settings()` 失败本身（如 `.env` 格式错）也 fail-fast，
    需要把校验上移到 import 期 — 当前不做。
-5. **测试环境对宿主 env 的依赖**：本轮 conftest 主动清空 `*_PROXY`
-   环境变量。这意味着用户在测试期间显式依赖代理的边缘场景（极少）
-   会失败 — 当前判断是 trade-off 可接受，CI 与开发机均不触网。
-   若未来要在测试中实调外部 API（已禁掉，但理论上），需要把代理清理
-   收窄到只跟 openai SDK 构造冲突的具体场景。
+5. **测试环境对宿主 env 的依赖**：本轮 conftest 在默认模式下清空
+   `DEEPSEEK_API_KEY` 与 `*_PROXY`，仅在 `RUN_LIVE_LLM=1` 时透传。
+   依赖是：调用方必须显式声明 live 意图。若未来出现"既要 live 又要
+   mocked 子集"的混合需求，需要把门控收窄到具体测试 marker 而不是
+   全局 env。当前 trade-off 可接受。
 
 ## 10 参考
 

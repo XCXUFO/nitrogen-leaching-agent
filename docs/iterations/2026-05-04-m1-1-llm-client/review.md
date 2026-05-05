@@ -9,8 +9,8 @@
 |---|---|
 | 迭代代号 | m1-1-llm-client |
 | 日期 | 2026-05-04 |
-| 起止 commit | `3a61161` (排除) → `6c9b2d5` (审查基线) |
-| 包含 commit 数 | 3（feat llm + feat backend + test infra），docs 自身不计入 |
+| 起止 commit | `3a61161` (排除) → `5da6a3d` (审查基线，含复审 fix) |
+| 包含 commit 数 | 4（feat llm + feat backend + test infra + 复审 fix），docs 自身不计入 |
 | 目标里程碑 | M1（基础对话闭环，第一步） |
 | 责任 LLM | Claude Opus 4.7 (claude-opus-4-7) |
 | 责任人 | XCXUFO |
@@ -28,17 +28,18 @@
 
 ## 3 commit 规范清单
 
-实际 commit（本迭代审查范围 `3a61161..6c9b2d5`）：
+实际 commit（本迭代审查范围 `3a61161..5da6a3d`）：
 
 - [x] `838f59b feat(llm): add LLMClient ABC with DeepSeek implementation`
 - [x] `df61d29 feat(backend): fail-fast on missing DEEPSEEK_API_KEY at startup`
 - [x] `6c9b2d5 test(llm): add conftest sentinel and proxy env cleanup`
+- [x] `5da6a3d fix(test): preserve real env when RUN_LIVE_LLM is set` — 复审反馈触发的回归修复（详见 §11.1）
 
-随后用 `docs(iteration): add 2026-05-04 m1-1-llm-client spec and review` 落定本目录文档（按既有惯例不计入审查范围）。
+中间用 `23fa37d docs(iteration): add 2026-05-04 m1-1-llm-client spec and review` 落定首版文档，本次同 commit 的 docs 增量再封口一次（按既有惯例 docs 不计入审查范围）。
 
 - [x] 全部符合 `<type>(<scope>): <subject>`
-- [x] 单 commit 单意图：feat 与 test 拆开，避免主 feat commit 的 diff 被测试基础设施稀释
-- [x] **已知不可避免**：commit 838f59b 在 isolation 下 `pytest` 会失败（pytest-asyncio 尚未安装），但 3 个 commit 作为整体审查单元在 6c9b2d5 处恢复绿。本约束已记入本节备注
+- [x] 单 commit 单意图：feat 与 test 拆开，避免主 feat commit 的 diff 被测试基础设施稀释；fix 与 docs 同样独立
+- [x] **已知不可避免**：commit 838f59b 在 isolation 下 `pytest` 会失败（pytest-asyncio 尚未安装），但作为整体审查单元在 6c9b2d5 处恢复绿。本约束已记入本节备注
 
 ## 4 验证证据清单
 
@@ -54,6 +55,7 @@
 | `content=None` 兜底 | DeepSeek 返回 `content=None` | `ChatResult.content == ""` | 命中 | [x] |
 | `max_tokens=None` 不入参 | 不传 max_tokens 时 SDK kwargs 不含该键 | `'max_tokens' not in kwargs` | 命中 | [x] |
 | 实调 DeepSeek（可选）| `RUN_LIVE_LLM=1 uv run pytest tests/test_llm_live.py` | 默认跳过 | N/A — 未引入 live test 文件 | [-] |
+| `RUN_LIVE_LLM` 透传校验 | `RUN_LIVE_LLM=1 DEEPSEEK_API_KEY=real-key python -c "import tests.conftest, os; print(os.environ['DEEPSEEK_API_KEY'])"` | 输出 `real-key`（非哨兵） | 输出 `real-key` | [x] |
 
 ## 5 依赖变更清单
 
@@ -100,9 +102,22 @@
 ## 10 待办（不阻塞合并）
 
 - [ ] M1.2 之前补 `RUN_LIVE_LLM=1` 守门的实调 smoke 测，确认对真实 DeepSeek 的请求形态正确
-- [ ] CI 加一行 `DEEPSEEK_API_KEY=ci-stub` 让 GitHub Actions 跑 pytest 时也能过 fail-fast 校验（或在 workflow 里把 conftest 哨兵机制对齐 CI 环境）
+- ~~CI 加 `DEEPSEEK_API_KEY=ci-stub`~~ 已无需：`conftest.py` 在 import 期顶层注入哨兵 key，CI `uv run pytest` 直接通过 fail-fast 校验，无需 workflow 额外配置（详见 spec §4.4）
 
 ## 11 审查结论
+
+### 11.1 复审反馈与处置
+
+首版（commits_to=`6c9b2d5`）push 前的代码审查发现：
+
+| # | 位置 | 问题 | 处置 |
+|---|---|---|---|
+| 1 | `backend/tests/conftest.py:5` | 无条件 `os.environ["DEEPSEEK_API_KEY"] = "test-key-not-real"` 会覆盖调用方传入的真实 key，堵死 spec §5 规划的 `RUN_LIVE_LLM=1` live smoke 路径（永远 401） | commit `5da6a3d`：用 `if not os.environ.get("RUN_LIVE_LLM"):` 包住覆盖逻辑；mocked 模式行为不变，live 模式真实 key 与代理透传 |
+| 2 | `review.md` §10 第 2 条 TODO | 文案"CI 加 `DEEPSEEK_API_KEY=ci-stub`"在 conftest 顶层注哨兵后已无意义，会误导后续维护者以为 CI 还有未收尾配置 | 本次文档修订划掉该 TODO，改为说明 conftest 已覆盖（详见同节） |
+
+11 passed 测试套件在修复前后均绿，本次修复不引入新行为，仅修正"过渡期 bug"。
+
+### 11.2 结论
 
 - [ ] **通过**（reviewer 签名 + 日期：__________ / __________）
 - [ ] **驳回**，原因：__________
@@ -115,10 +130,10 @@
 ```yaml
 iteration: 2026-05-04-m1-1-llm-client
 commits_from: 3a61161
-commits_to: 6c9b2d5
-commit_count: 3
+commits_to: 5da6a3d
+commit_count: 4
 files_changed: 9
-lines_added: 348
+lines_added: 352
 lines_removed: 1
 tests_passed: 11
 tests_failed: 0
