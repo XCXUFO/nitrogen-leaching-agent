@@ -35,3 +35,6 @@ dev = [
 pythonpath = ["."]
 testpaths = ["tests"]
 asyncio_mode = "strict"
+markers = [
+    "live: tests that hit live external services or load real local models (gated by env vars)",
+]

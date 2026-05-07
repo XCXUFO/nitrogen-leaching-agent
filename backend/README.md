@@ -89,4 +89,44 @@ RAG_CHROMA_DIR=./var/chroma
 RAG_COLLECTION=papers
 ```
 
+### 5. 启用 Reranker（M1.4-b，可选）
+
+二阶段检索：embedding 召回 `RAG_RERANKER_TOP_K_RECALL=20` 候选 →
+`BAAI/bge-reranker-v2-m3` 重排取 `RAG_RERANKER_TOP_N=5` 给 LLM。
+模型约 2.2 GB，只在需要 reranker 时拉：
+
+```bash
+# 在仓库根
+bash scripts/download_models.sh reranker
+```
+
+启用：
+
+```dotenv
+RAG_RERANKER_ENABLED=true
+RAG_RERANKER_TOP_K_RECALL=20
+RAG_RERANKER_TOP_N=5
+RAG_RERANKER_MODEL=data/models/bge-reranker-v2-m3
+```
+
+`RAG_RERANKER_ENABLED=false` 时纯 embedding 路径不变，与 M1.3.x 完全一致
+（用于 A/B 对照）。Retriever 只在 `enabled=true` 时实例化 reranker，避免
+仅 BGE 用户白下 2.2 GB。
+
+### 6. Retrieval 调试
+
+`scripts/retrieval_debug.py` 不调 LLM，单独看 retrieval 命中：
+
+```bash
+uv run python scripts/retrieval_debug.py \
+  --questions ../data/eval/mini_questions.yaml \
+  --persist-dir var/chroma \
+  --collection papers \
+  --out var/retrieval \
+  --top-n 20            # 加 --rerank 切到 reranked 输出
+```
+
+每题落 `var/retrieval/<runid>/<qid>.json`，便于 embedding-only vs reranked
+做 diff。
+
 详细开发流程见仓库根目录的 [docs/development.md](../docs/development.md)。

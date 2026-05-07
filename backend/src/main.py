@@ -9,7 +9,7 @@ from src.agent.chat_service import ChatService
 from src.api import chat, health
 from src.config import settings
 from src.llm.deepseek import DeepSeekClient
-from src.rag import BGEEmbedder, Retriever
+from src.rag import BGEEmbedder, Reranker, Retriever
 from src.storage import ChromaStore
 from src.utils.logging import configure_logging
 
@@ -40,18 +40,37 @@ async def lifespan(app: FastAPI):
         try:
             embedder = BGEEmbedder(model_id=settings.embedding_model)
             store = ChromaStore(chroma_dir, settings.rag_collection)
-            retriever = Retriever(embedder, store)
+
+            reranker: Reranker | None = None
+            if settings.rag_reranker_enabled:
+                reranker = Reranker(model_id=settings.rag_reranker_model)
+
+            retriever = Retriever(
+                embedder,
+                store,
+                reranker=reranker,
+                top_k_recall=settings.rag_reranker_top_k_recall,
+            )
+            chat_top_k = (
+                settings.rag_reranker_top_n
+                if settings.rag_reranker_enabled
+                else settings.chat_top_k
+            )
             app.state.chat_service = ChatService(
                 retriever,
                 llm,
-                top_k=settings.chat_top_k,
+                top_k=chat_top_k,
                 max_context_chars=settings.chat_max_context_chars,
                 temperature=settings.chat_temperature,
             )
             logger.info(
-                "RAG enabled | chroma_dir={} | collection={}",
+                "RAG enabled | chroma_dir={} | collection={} | "
+                "reranker={} | top_k_recall={} | top_k={}",
                 chroma_dir,
                 settings.rag_collection,
+                settings.rag_reranker_model if reranker else "off",
+                settings.rag_reranker_top_k_recall if reranker else "n/a",
+                chat_top_k,
             )
         except Exception:
             logger.warning(

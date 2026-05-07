@@ -39,7 +39,7 @@ if str(_BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(_BACKEND_ROOT))
 
 from src.config import settings  # noqa: E402
-from src.rag import BGEEmbedder, Retriever  # noqa: E402
+from src.rag import BGEEmbedder, Reranker, Retriever  # noqa: E402
 from src.storage import ChromaStore  # noqa: E402
 
 SNIPPET_CHARS = 120
@@ -78,9 +78,21 @@ def parse_args() -> argparse.Namespace:
         help="optional comma-separated question ids to include (e.g. q01,q07)",
     )
     p.add_argument(
+        "--rerank",
+        action="store_true",
+        help="run reranker on the recalled top-N and output reranked order "
+             "(stage label flips to 'reranked' automatically)",
+    )
+    p.add_argument(
+        "--reranker-model",
+        default=None,
+        help="reranker model id/path; defaults to settings.rag_reranker_model",
+    )
+    p.add_argument(
         "--stage",
-        default="embedding_only",
-        help="stage label written into each output file (default embedding_only)",
+        default=None,
+        help="override stage label written to each output file "
+             "(default: 'reranked' when --rerank, else 'embedding_only')",
     )
     return p.parse_args()
 
@@ -101,21 +113,32 @@ def main() -> int:
             print(f"[fatal] no questions matched --qids {args.qids}", file=sys.stderr)
             return 2
 
+    stage = args.stage or ("reranked" if args.rerank else "embedding_only")
     runid = datetime.now().strftime("%Y%m%d-%H%M%S")
     out_dir = args.out / runid
     out_dir.mkdir(parents=True, exist_ok=True)
 
     print(f"[runid]      {runid}")
     print(f"[out]        {out_dir}")
-    print(f"[stage]      {args.stage}")
+    print(f"[stage]      {stage}")
     print(f"[top-n]      {args.top_n}")
     print(f"[chroma]     {args.persist_dir} :: {args.collection}")
     print(f"[embedding]  {settings.embedding_model}")
+    if args.rerank:
+        print(f"[reranker]   {args.reranker_model or settings.rag_reranker_model}")
     print(f"[count]      {len(questions)} questions\n")
 
     embedder = BGEEmbedder(model_id=settings.embedding_model)
     store = ChromaStore(args.persist_dir, args.collection)
-    retriever = Retriever(embedder, store)
+    reranker: Reranker | None = None
+    if args.rerank:
+        reranker = Reranker(
+            model_id=args.reranker_model or settings.rag_reranker_model,
+        )
+    # Embedder recalls top_n; if reranker provided, recall is identical (no
+    # extra recall depth) so the dump exposes EXACTLY the rerank of the same
+    # candidates the embedding-only run saw — clean A/B comparison.
+    retriever = Retriever(embedder, store, reranker=reranker, top_k_recall=args.top_n)
 
     for q in questions:
         qid = q.get("id", "?")
@@ -132,9 +155,13 @@ def main() -> int:
             "category": q.get("category"),
             "query": query,
             "should_refuse": q.get("should_refuse", False),
-            "stage": args.stage,
+            "stage": stage,
             "top_n": args.top_n,
             "embedding_model": settings.embedding_model,
+            "reranker_model": (
+                args.reranker_model or settings.rag_reranker_model
+                if args.rerank else None
+            ),
             "collection": args.collection,
             "results": [
                 {

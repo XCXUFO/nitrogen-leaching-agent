@@ -38,6 +38,11 @@ class Settings(BaseSettings):
     chat_max_context_chars: int = 4000
     chat_temperature: float = 0.3
 
+    rag_reranker_enabled: bool = False
+    rag_reranker_top_k_recall: int = 20
+    rag_reranker_top_n: int = 5
+    rag_reranker_model: str = "data/models/bge-reranker-v2-m3"
+
     @field_validator("database_url", mode="before")
     @classmethod
     def normalize_database_url(cls, value: str) -> str:

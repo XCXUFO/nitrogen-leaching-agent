@@ -166,3 +166,119 @@ def test_retrieval_result_is_frozen() -> None:
     hit = RetrievalResult(chunk_id="x", document="y", score=0.5, metadata={"k": "v"})
     with pytest.raises(Exception):
         hit.score = 0.9  # type: ignore[misc]
+
+
+# ---------------------------------------------------------------------------
+# Reranker integration (M1.4-b) — enabled / disabled paths
+# ---------------------------------------------------------------------------
+
+
+class _FakeReranker:
+    """Minimal stand-in honoring the ``Reranker.rerank`` signature.
+
+    Reverses the embedding ranking so tests can assert the rerank step
+    actually ran (rather than passing through embedding order silently).
+    """
+
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, int]] = []
+
+    def rerank(
+        self, query: str, candidates: list[RetrievalResult]
+    ) -> list[RetrievalResult]:
+        self.calls.append((query, len(candidates)))
+        # Reverse order, replace scores with descending integers so order
+        # is unambiguous and decoupled from embedding cosine.
+        ranked: list[RetrievalResult] = []
+        for i, c in enumerate(reversed(candidates)):
+            ranked.append(
+                RetrievalResult(
+                    chunk_id=c.chunk_id,
+                    document=c.document,
+                    score=float(len(candidates) - i),
+                    metadata=c.metadata,
+                )
+            )
+        return ranked
+
+
+def test_retriever_disabled_reranker_keeps_embedding_order(
+    store: ChromaStore, embedder: FakeEmbedder
+) -> None:
+    """A control: reranker=None must produce identical output to M1.3.x."""
+    _seed(
+        store,
+        embedder,
+        [
+            ("c0", "alpha", {"source": "a"}),
+            ("c1", "beta", {"source": "b"}),
+            ("c2", "gamma", {"source": "c"}),
+        ],
+    )
+    r = Retriever(embedder, store, reranker=None, top_k_recall=20)
+    results = r.retrieve("alpha", k=3)
+
+    assert [h.chunk_id for h in results] == ["c0", "c1", "c2"][:3] or \
+        results[0].chunk_id == "c0"
+    # alpha must come first via cosine
+    assert results[0].chunk_id == "c0"
+
+
+def test_retriever_with_reranker_returns_rerank_order(
+    store: ChromaStore, embedder: FakeEmbedder
+) -> None:
+    """When reranker is set, final order is reranker's, not embedding's."""
+    _seed(
+        store,
+        embedder,
+        [
+            ("c0", "alpha", {"source": "a"}),
+            ("c1", "beta", {"source": "b"}),
+            ("c2", "gamma", {"source": "c"}),
+        ],
+    )
+    fake_rk = _FakeReranker()
+    r = Retriever(embedder, store, reranker=fake_rk, top_k_recall=20)
+    results = r.retrieve("alpha", k=3)
+
+    # FakeReranker reverses → original alpha-first becomes alpha-last
+    assert results[-1].chunk_id == "c0"
+    assert len(results) == 3
+    # rerank step actually ran
+    assert len(fake_rk.calls) == 1
+    # reranker received the embedding-recalled candidates (3 here, since
+    # store has only 3 docs even though top_k_recall=20)
+    assert fake_rk.calls[0][1] == 3
+
+
+def test_retriever_with_reranker_caps_to_caller_k(
+    store: ChromaStore, embedder: FakeEmbedder
+) -> None:
+    """Even with top_k_recall=20, ``retrieve(k=2)`` must return ≤ 2 hits."""
+    _seed(
+        store,
+        embedder,
+        [
+            ("c0", "alpha", {"source": "a"}),
+            ("c1", "beta", {"source": "b"}),
+            ("c2", "gamma", {"source": "c"}),
+            ("c3", "delta", {"source": "d"}),
+        ],
+    )
+    fake_rk = _FakeReranker()
+    r = Retriever(embedder, store, reranker=fake_rk, top_k_recall=20)
+    results = r.retrieve("alpha", k=2)
+
+    assert len(results) == 2
+    # reranker still saw all 4 recalled candidates
+    assert fake_rk.calls[0][1] == 4
+
+
+def test_retriever_top_k_recall_validation() -> None:
+    """top_k_recall must be positive."""
+    fake_embedder = FakeEmbedder()
+    with pytest.raises(ValueError):
+        # store is irrelevant — ctor validates top_k_recall before touching it
+        Retriever(fake_embedder, store=None, top_k_recall=0)  # type: ignore[arg-type]
+    with pytest.raises(ValueError):
+        Retriever(fake_embedder, store=None, top_k_recall=-1)  # type: ignore[arg-type]
