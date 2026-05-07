@@ -1,0 +1,101 @@
+runid: "20260507-164315"
+raw_jsonl: "backend/var/eval/mini_eval_20260507-164315.jsonl"
+questions_file: "data/eval/mini_questions.yaml"
+indexed_corpus:
+  papers: 8
+  chunks: 1348
+
+scores:
+  - question_id: q01
+    category: factual
+    relevant: false
+    cited: false
+    not_hallucinated: false
+    usable_for_demo: false
+    notes: "Initial review: HTTP error / ReadTimeout after 60033 ms. Strictly scored all false because there is no verifiable answer; this is not a content hallucination, but it is an eval failure."
+
+  - question_id: q02
+    category: factual
+    relevant: false
+    cited: true
+    not_hallucinated: false
+    usable_for_demo: false
+    notes: "Initial review: answer gives 87% / 74% scenario-optimization reductions, not expected D vs F reductions 41% / 60% / 68% / 68%; citations support the given numbers but the comparison target is wrong."
+
+  - question_id: q03
+    category: factual
+    relevant: false
+    cited: false
+    not_hallucinated: true
+    usable_for_demo: false
+    notes: "Initial review: correct answer exists in [63], but answer says the specific Jilin Lishu maize/soil-texture data were not found; no fabrication, but retrieval/answer failed."
+
+  - question_id: q04
+    category: factual
+    relevant: false
+    cited: false
+    not_hallucinated: true
+    usable_for_demo: false
+    notes: "Initial review: correct answer exists in [79], but answer says Hubei Jingzhou subsurface/surface runoff data not found; no fabrication, but retrieval/answer failed."
+
+  - question_id: q05
+    category: concept
+    relevant: false
+    cited: false
+    not_hallucinated: true
+    usable_for_demo: false
+    notes: "Initial review: expected WHCNS modules and source models are in [26], but answer says the module list is not specified; conservative, not fabricated, but misses expected points."
+
+  - question_id: q06
+    category: concept
+    relevant: false
+    cited: false
+    not_hallucinated: true
+    usable_for_demo: false
+    notes: "Initial review: expected lateral seepage concentration/mechanism is in [79], but answer says corpus does not cover this; no fabrication, but retrieval/answer failed."
+
+  - question_id: q07
+    category: synthesis
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: false
+    notes: "Initial review: answer gives one valid management measure, green manure / milk vetch from [60], but does not synthesize across >=2 sources or cover multiple expected measures."
+
+  - question_id: q08
+    category: citation_check
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: false
+    notes: "Initial review: answer gives a partially relevant supported claim (good performance, IA > 0.70), but misses required R2 0.84-0.99, RMSE 243-1097 kg/ha, and DBW abnormal-yield caveat."
+
+  - question_id: q09
+    category: refuse
+    relevant: true
+    cited: false
+    not_hallucinated: true
+    usable_for_demo: true
+    notes: "Initial review: refusal is correct; answer says corpus does not cover the Nobel chemistry topic and does not fabricate winner names or work."
+
+  - question_id: q10
+    category: refuse
+    relevant: true
+    cited: false
+    not_hallucinated: true
+    usable_for_demo: true
+    notes: "Initial review: refusal is correct; answer explicitly says the concrete AWD + North China winter wheat leaching scenario is not covered and avoids fabricating a value."
+
+summary:
+  total: 10
+  http_errors: 1
+  relevant: 4
+  cited: 3
+  not_hallucinated: 7
+  usable_for_demo: 2
+  refuse_not_hallucinated: 2
+  dod:
+    usable_for_demo_at_least_7_of_10: false
+    refuse_not_hallucinated_2_of_2: true
+    http_errors_at_most_1_of_10: true
+  reviewer_notes: "Initial self-review. M1.4-a did not pass demo usability threshold. Main issue is retrieval missing expected chunks for factual/concept questions; refusal behavior is acceptable. A domain/professional reviewer should verify these labels before final report."
