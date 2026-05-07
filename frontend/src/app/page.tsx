@@ -2,69 +2,100 @@
 
 import { useState } from "react";
 
-import { Button } from "@/components/ui/button";
+import { ChatError } from "@/components/chat/chat-error";
+import { ChatForm } from "@/components/chat/chat-form";
+import { ChatMessage } from "@/components/chat/chat-message";
+import { CitationList } from "@/components/chat/citation-list";
+import { HealthProbe } from "@/components/debug/health-probe";
+import { ApiError, apiBaseUrl, postChat } from "@/lib/api";
+import { UNKNOWN_FAILURE } from "@/lib/error-messages";
+import type { ChatResponse } from "@/lib/types";
 
-type HealthResult =
-  | { ok: true; data: unknown }
-  | { ok: false; error: string };
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+type AssistantTurn =
+  | { kind: "loading"; slow: boolean }
+  | { kind: "ok"; response: ChatResponse }
+  | { kind: "error"; error: ApiError };
 
 export default function Home() {
-  const [result, setResult] = useState<HealthResult | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [userQuery, setUserQuery] = useState<string | null>(null);
+  const [assistant, setAssistant] = useState<AssistantTurn | null>(null);
 
-  async function checkHealth() {
-    setLoading(true);
-    setResult(null);
+  async function handleSubmit(query: string) {
+    setUserQuery(query);
+    setAssistant({ kind: "loading", slow: false });
+
+    const slowTimer = window.setTimeout(() => {
+      setAssistant((prev) =>
+        prev?.kind === "loading" ? { kind: "loading", slow: true } : prev,
+      );
+    }, 3000);
+
     try {
-      const response = await fetch(`${API_BASE_URL}/api/health`);
-      if (!response.ok) {
-        setResult({
-          ok: false,
-          error: `HTTP ${response.status} ${response.statusText}`,
-        });
-        return;
-      }
-      const data: unknown = await response.json();
-      setResult({ ok: true, data });
+      const response = await postChat(query);
+      setAssistant({ kind: "ok", response });
     } catch (err) {
-      setResult({
-        ok: false,
-        error: err instanceof Error ? err.message : String(err),
-      });
+      const error =
+        err instanceof ApiError
+          ? err
+          : new ApiError("unknown", null, UNKNOWN_FAILURE, err);
+      setAssistant({ kind: "error", error });
     } finally {
-      setLoading(false);
+      window.clearTimeout(slowTimer);
     }
   }
 
+  const isLoading = assistant?.kind === "loading";
+
   return (
-    <main className="mx-auto flex min-h-dvh max-w-2xl flex-col items-center justify-center gap-8 px-6 py-16">
-      <div className="space-y-2 text-center">
-        <h1 className="text-3xl font-semibold tracking-tight">
-          氮淋失风险决策 Agent — Hello World
+    <main className="mx-auto flex min-h-dvh max-w-2xl flex-col gap-6 px-6 py-10">
+      <header className="space-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight">
+          氮淋失风险决策 Agent
         </h1>
-        <p className="text-muted-foreground text-sm">
-          验证前后端连通的最小页面
+        <p className="text-muted-foreground text-xs">
+          单轮问答 · 基于本地论文知识库 · 回答带引用
         </p>
-      </div>
+      </header>
 
-      <Button onClick={checkHealth} disabled={loading} size="lg">
-        {loading ? "请求中..." : "测试后端连接"}
-      </Button>
+      <ChatForm onSubmit={handleSubmit} disabled={isLoading} />
 
-      {result && (
-        <pre className="bg-muted text-foreground w-full overflow-x-auto rounded-lg border p-4 text-xs">
-          {result.ok
-            ? JSON.stringify(result.data, null, 2)
-            : `错误：${result.error}`}
-        </pre>
-      )}
+      <section className="flex flex-col gap-3">
+        {userQuery && <ChatMessage role="user" content={userQuery} />}
 
-      <p className="text-muted-foreground text-xs">
-        API base: <code>{API_BASE_URL}</code>
-      </p>
+        {assistant?.kind === "loading" && (
+          <ChatMessage
+            role="assistant"
+            content="正在思考…"
+            pending
+            slowHint={assistant.slow}
+          />
+        )}
+
+        {assistant?.kind === "ok" && (
+          <>
+            <ChatMessage
+              role="assistant"
+              content={assistant.response.answer}
+            />
+            <CitationList
+              citations={assistant.response.citations}
+              retrievedCount={assistant.response.retrieved_count}
+            />
+          </>
+        )}
+
+        {assistant?.kind === "error" && <ChatError error={assistant.error} />}
+      </section>
+
+      <details className="text-muted-foreground mt-auto pt-8 text-xs">
+        <summary className="cursor-pointer">调试 / Backend health</summary>
+        <div className="mt-2 space-y-2">
+          <p>
+            API base: <code>{apiBaseUrl}</code>
+          </p>
+          <HealthProbe />
+        </div>
+      </details>
     </main>
   );
 }
