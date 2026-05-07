@@ -1,0 +1,151 @@
+# Mini eval question set — M1.4-a
+#
+# 为什么 10 题：见迭代 spec §3.2。最小可信样本，覆盖 5 个类别。
+# 题目基于 8 篇真实论文反推（候选池见 docs/iterations/.../candidate_pool.md），
+# 已对照 /tmp/m14a_papers/*.txt 抽查关键事实。
+#
+# Schema:
+#   version:        当前 1
+#   questions:      list[Question]
+#
+# Question:
+#   id:             稳定字符串 id（用于和 judged.yaml 对账，**不要改名**）
+#   category:       factual | concept | synthesis | refuse | citation_check
+#   query:          中文题面，<= 200 chars
+#   expected_points: list[str]，人工评分对照用，runner 不读
+#   should_refuse:  bool，true 表示期望模型拒答 / 声明无资料
+#   notes:          预期命中哪篇论文 + 评分提示
+#
+# 类别配额（spec §3.2）：4 factual / 2 concept / 1 synthesis / 1 citation_check / 2 refuse
+
+version: 1
+
+questions:
+  # ---------------- factual × 4 ----------------
+  - id: q01
+    category: factual
+    query: 内蒙古阿拉善沙漠绿洲春玉米田，常规灌溉与节水灌溉下的硝态氮淋失量分别是多少？
+    expected_points:
+      - 常规灌溉（Istd）平均淋失约 135.3 kg N/ha
+      - 节水灌溉（Icsv）平均淋失约 58.0 kg N/ha
+      - 前者是后者约 2.3 倍
+      - 节水灌溉减少淋失同时不显著降低产量
+    should_refuse: false
+    notes: 预期命中 [29] Liang 2017。证据：摘要 + 3.4 节不确定性分析
+
+  - id: q02
+    category: factual
+    query: 天津武清日光温室番茄试验中，相比沟灌加常规施氮，滴灌加优化施氮在灌溉水量、水分淋失、硝态氮和 DON 淋失上分别减少了多少？
+    expected_points:
+      - 灌溉水使用减少约 41%
+      - 水分淋失减少约 60%
+      - 硝态氮淋失减少约 68%
+      - DON 淋失减少约 68%
+      - 番茄产量未受影响
+    should_refuse: false
+    notes: 预期命中 [43] Liang 2020。证据：摘要 + 3.3 节。多信息点，按 expected_points 逐项核
+
+  - id: q03
+    category: factual
+    query: 吉林梨树春玉米田，沙壤土和黏壤土两种质地下三种施氮处理的年均氮淋失量范围分别是多少？两种土壤推荐的最佳施氮量是多少？
+    expected_points:
+      - 沙壤土三处理（N168/N240/N312）年均淋失约 5.1、9.7、13.2 kg N/ha
+      - 黏壤土三处理对应约 1.9、3.6、5.0 kg N/ha
+      - 沙壤土年均淋失比黏壤土高约 170%
+      - 沙壤土推荐施氮量 180 kg N/ha
+      - 黏壤土推荐施氮量 200 kg N/ha
+    should_refuse: false
+    notes: 预期命中 [63] Meng 2022。证据：摘要 + 表 3 + 图 6。多信息点（淋失范围 + 推荐 N），按 expected_points 逐项核
+
+  - id: q04
+    category: factual
+    query: 湖北荆州稻田水稻生长季的地下径流氮损失和地表径流相比量级如何？侧向渗漏对地下径流氮损失贡献多少？
+    expected_points:
+      - 地下径流 N 损失约 6.2 kg N/ha（占施氮 4%）
+      - 地表径流 N 损失约 3.1 kg N/ha
+      - 地下径流约为地表径流 2 倍
+      - 侧向渗漏占地下径流 N 损失约 33%
+      - 侧向渗漏占地下径流水量 17±4%
+    should_refuse: false
+    notes: 预期命中 [79] Huang 2024。证据：摘要 + 3.2、3.3 节 + Fig.5d-f。多信息点，按 expected_points 逐项核
+
+  # ---------------- concept × 2 ----------------
+  - id: q05
+    category: concept
+    query: WHCNS 模型由哪些主要模块组成？分别借鉴了哪些已有模型？
+    expected_points:
+      - 五大模块：土壤水分、土壤热传输、氮运移、土壤有机碳周转、作物生长
+      - 土壤水分与热传输模块取自 HYDRUS1D
+      - 碳氮循环取自 DAISY
+      - 作物生长基于 PS123
+      - 氮胁迫效应借鉴 CERES
+    should_refuse: false
+    notes: 预期命中 [26] Liang 2016。证据：Methods "The framework of WHCNS model" 段
+
+  - id: q06
+    category: concept
+    query: 稻田地下径流中，为什么侧向渗漏水的氮浓度高于垂直淋溶水？
+    expected_points:
+      - 渗漏水平均 N 浓度约 1.7 mg N/L
+      - 淋溶水平均 N 浓度约 0.7 mg N/L
+      - 渗漏路径较短
+      - N 在传输和转化过程中被作物吸收和反硝化消耗较少
+    should_refuse: false
+    notes: 预期命中 [79] Huang 2024。证据：3.3 节主文（数值 1.7/0.7 mg N/L + 渗漏路径机制陈述）
+
+  # ---------------- synthesis × 1 ----------------
+  - id: q07
+    category: synthesis
+    query: 在减施化学氮肥的同时维持或提高作物产量，相关研究提出过哪些可行的管理措施？
+    expected_points:
+      - 优化氮肥分施比例（如 [41] 长江中游稻田 SNR 5:3:1 改 1:1:4，N 从 231 降到 155 kg/ha 产量略增）
+      - 滴灌 + 优化施氮（如 [43] 温室番茄滴灌处理灌溉水减 41%，淋失减 68%，产量不变）
+      - 绿肥替代部分化肥（如 [60] 紫云英 15–30 t/ha 替代 20–40% 化肥）
+      - 按土壤质地差异化施氮（如 [63] 沙壤土 180、黏壤土 200 kg N/ha）
+      - 答案需基于 ≥2 篇不同 source，体现"综合"
+    should_refuse: false
+    notes: |
+      synthesis 题，期望召回 ≥2 不同 source。
+      已知评测风险：chat_top_k=5 时若 top 5 全召回单一论文，synthesis 会失败。
+      本迭代不调 top_k（spec §3.10），调整留给 M1.4-b。
+
+  # ---------------- citation_check × 1 ----------------
+  - id: q08
+    category: citation_check
+    query: WHCNS 模型在华北平原四个站点上模拟作物产量的精度如何？
+    expected_points:
+      - 四站点产量决定系数 R² 介于 0.84–0.99
+      - RMSE 介于 243–1097 kg/ha
+      - IA（一致性指数）全部大于 0.70
+      - DBW 站点 2011 年冬小麦产量异常低（约 3220 kg/ha）属极端气候情况，模型未模拟病虫害/极端气候影响
+    should_refuse: false
+    notes: |
+      citation_check 重点：人工评分时核对 answer 文本里 [N] 标记是否真的指向 citations 数组里相应位置。
+      预期命中 [26] Liang 2016。证据：Results "Crop growth" 段 + Table 7。
+
+  # ---------------- refuse × 2 ----------------
+  - id: q09
+    category: refuse
+    query: 2025 年诺贝尔化学奖获得者的主要工作是什么？
+    expected_points:
+      - 模型应明确表示知识库无相关资料 / 不在系统范围
+      - 不应胡编获奖者姓名或工作内容
+    should_refuse: true
+    notes: |
+      Tier A（完全脱离知识库）。
+      not_hallucinated 必须为 true（spec §5.3 硬阈值，refuse 题不允许胡编）。
+
+  - id: q10
+    category: refuse
+    query: 华北平原冬小麦在 AWD 交替干湿灌溉下的氮淋失量是多少？
+    expected_points:
+      - 模型应明确表示知识库未覆盖此具体场景
+      - 可指出 AWD（交替干湿灌溉）主要在稻田背景出现，不是华北冬小麦
+      - 不应把 [41] 稻田 AWD 数据 / [29] 阿拉善玉米数据 / [26] 华北小麦产量数据强行拼成淋失量数值
+    should_refuse: true
+    notes: |
+      Tier B（高难度 refuse）：看起来像氮淋失题，但 AWD 是稻田水分管理概念；
+      知识库中华北相关论文是冬小麦/玉米（[26]/[29]），稻田论文（[41]/[60]/[79]）不在华北平原，
+      "华北冬小麦 + AWD" 这个组合不在 8 篇覆盖范围内。
+      模型可能召回 [41] AWD 提及 + 华北其他论文数据，硬拼数值即为幻觉。
+      **本题核心是 not_hallucinated**：考察模型会不会不诚实地强答。
