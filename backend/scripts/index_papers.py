@@ -27,6 +27,7 @@ _BACKEND_ROOT = Path(__file__).resolve().parent.parent
 if str(_BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(_BACKEND_ROOT))
 
+from src.config import settings  # noqa: E402
 from src.rag import BGEEmbedder, chunk_text, load_text  # noqa: E402
 from src.storage import ChromaStore  # noqa: E402
 
@@ -60,7 +61,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    embedder = BGEEmbedder()
+    embedder = BGEEmbedder(model_id=settings.embedding_model)
     store = ChromaStore(args.persist_dir, args.collection)
 
     total_docs = 0

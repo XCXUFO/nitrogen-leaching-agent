@@ -14,12 +14,13 @@ pytestmark = pytest.mark.skipif(
 @pytest.mark.asyncio
 async def test_live_chat_with_indexed_sample(tmp_path: Path) -> None:
     from src.agent.chat_service import ChatService
+    from src.config import settings
     from src.llm.deepseek import DeepSeekClient
     from src.rag import BGEEmbedder, Retriever
     from src.storage import ChromaStore
 
     store = ChromaStore(tmp_path / "chroma", "live-rag-chat")
-    embedder = BGEEmbedder()
+    embedder = BGEEmbedder(model_id=settings.embedding_model)
     docs = ["氮素淋失主要受降雨量、土壤质地和施肥方式影响。"]
     store.upsert(
         ids=["sample::0000"],
@@ -38,9 +39,9 @@ async def test_live_chat_with_indexed_sample(tmp_path: Path) -> None:
     service = ChatService(
         Retriever(embedder, store),
         DeepSeekClient(
-            api_key=os.environ["DEEPSEEK_API_KEY"],
-            base_url=os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
-            model=os.environ.get("DEEPSEEK_MODEL", "deepseek-chat"),
+            api_key=settings.deepseek_api_key,
+            base_url=settings.deepseek_base_url,
+            model=settings.deepseek_model,
         ),
         top_k=1,
         max_context_chars=1000,

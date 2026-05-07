@@ -24,6 +24,7 @@ pytestmark = [
 ]
 
 # Late imports — only safe once skipif gates above pass
+from src.config import settings  # noqa: E402
 from src.rag import BGEEmbedder, chunk_text, load_text  # noqa: E402
 from src.rag.retriever import Retriever  # noqa: E402
 from src.storage import ChromaStore  # noqa: E402
@@ -37,7 +38,7 @@ def test_live_index_and_retrieve_sample(tmp_path: Path) -> None:
     chunks = chunk_text(text, document_id="data/papers/sample", source=str(_SAMPLE))
     assert len(chunks) > 0
 
-    embedder = BGEEmbedder()
+    embedder = BGEEmbedder(model_id=settings.embedding_model)
     store = ChromaStore(tmp_path / "chroma", "live-rag")
     store.add(
         ids=[c.chunk_id for c in chunks],

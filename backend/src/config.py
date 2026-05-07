@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     deepseek_base_url: str = "https://api.deepseek.com"
     deepseek_model: str = "deepseek-chat"
 
-    embedding_model: str = "BAAI/bge-large-zh-v1.5"
+    embedding_model: str = "data/models/bge-large-zh-v1.5"
 
     database_url: str = "sqlite:///./data/app.db"
     chroma_persist_dir: str = "./data/chroma"

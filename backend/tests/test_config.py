@@ -40,7 +40,7 @@ def test_settings_normalize_optional_rag_chroma_dir():
 
 
 def test_settings_chat_rag_defaults():
-    settings = Settings()
+    settings = Settings(_env_file=None)
 
     assert settings.rag_enabled is False
     assert settings.rag_collection == "papers"
