@@ -1,6 +1,6 @@
 # 说明文档 — M1.3.2 前端最小 Chat UI
 
-> 本文档已回填实现与验证结果（v1.1）；commit 仍待提交后补充。
+> 本文档已回填实现与验证结果（v1.1）；落库 commit 见 §1。
 > 上承 M1.3.1（`POST /api/chat` 已稳定），下接 M1.4（评测）。
 > 目标：把 Walking Skeleton 前端从 health 探测页改造为**单轮**聊天页，
 > 用户能在浏览器问答、看到带引用的回答、看到清晰的错误状态。
@@ -11,7 +11,7 @@
 |---|---|
 | 迭代名 | m1-3-2-frontend-chat-ui |
 | 日期 | 2026-05-06 |
-| 涉及 commit | 待回填（本地已实现，尚未提交） |
+| 涉及 commit | `1c40ca5` feat(frontend) / `4b90906` docs spec+report / `c959456` docs review refresh |
 | 文档版本 | v1.1（实现回填） |
 | 父里程碑 | M1.3（前后端 RAG Chat 闭环） |
 | 实现 LLM | Claude Opus 4.7 (claude-opus-4-7) |

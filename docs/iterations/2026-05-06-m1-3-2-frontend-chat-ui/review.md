@@ -57,11 +57,11 @@ M1.3.2 可以判定完成。
 
 ## 已知问题
 
-1. `scripts/index_papers.py` 没有读取 `settings.embedding_model`
+1. `scripts/index_papers.py` 没有读取 `settings.embedding_model` —— **M1.4-a 已解决**
 
    当前 `backend/src/config.py` 默认 `embedding_model = "data/models/bge-large-zh-v1.5"`，本地模型也已完整存在。但 `backend/scripts/index_papers.py` 直接 `BGEEmbedder()`，会走类默认值 `BAAI/bge-large-zh-v1.5`，导致重新建索引时尝试访问 Hugging Face 远端。
 
-   本次为不改后端代码，使用临时命令显式传入本地模型路径完成索引。后续建议小修：indexer 使用 `BGEEmbedder(model_id=settings.embedding_model)`。
+   本次为不改后端代码，使用临时命令显式传入本地模型路径完成索引。后续已落地：M1.4-a commit `3568989` 让 indexer 显式 `BGEEmbedder(model_id=settings.embedding_model)`，索引 / 查询同源；见 `docs/iterations/2026-05-07-m1-4-a-real-index-mini-eval/review.md` §2。
 
 2. DeepSeek 上游偶发 `llm_unreachable`
 
@@ -89,4 +89,4 @@ M1.3.2 可以判定完成。
 - 不新增前端运行时依赖
 - lint/build 通过
 
-因此，M1.3.2 可以关闭。建议在进入 M1.4 前补一个小修：让 `scripts/index_papers.py` 读取 `settings.embedding_model`，避免后续重建索引再次误走远端下载。
+因此，M1.3.2 可以关闭。建议在进入 M1.4 前补一个小修：让 `scripts/index_papers.py` 读取 `settings.embedding_model`，避免后续重建索引再次误走远端下载（M1.4-a commit `3568989` 已落地）。
