@@ -26,6 +26,7 @@ proves rerank actually moves target papers up.
 from __future__ import annotations
 
 import argparse
+import gc
 import json
 import sys
 from datetime import datetime
@@ -130,15 +131,9 @@ def main() -> int:
 
     embedder = BGEEmbedder(model_id=settings.embedding_model)
     store = ChromaStore(args.persist_dir, args.collection)
-    reranker: Reranker | None = None
-    if args.rerank:
-        reranker = Reranker(
-            model_id=args.reranker_model or settings.rag_reranker_model,
-        )
-    # Embedder recalls top_n; if reranker provided, recall is identical (no
-    # extra recall depth) so the dump exposes EXACTLY the rerank of the same
-    # candidates the embedding-only run saw — clean A/B comparison.
-    retriever = Retriever(embedder, store, reranker=reranker, top_k_recall=args.top_n)
+    retriever = Retriever(embedder, store, reranker=None, top_k_recall=args.top_n)
+
+    recalled: list[tuple[dict[str, Any], list[Any]]] = []
 
     for q in questions:
         qid = q.get("id", "?")
@@ -148,6 +143,23 @@ def main() -> int:
             continue
 
         hits = retriever.retrieve(query, k=args.top_n)
+        recalled.append((q, hits))
+
+    reranker: Reranker | None = None
+    if args.rerank:
+        # Keep retrieval_debug usable on CPU-only machines by not holding the
+        # embedder model and the 2.2 GB reranker in memory at the same time.
+        del retriever, embedder, store
+        gc.collect()
+        reranker = Reranker(
+            model_id=args.reranker_model or settings.rag_reranker_model,
+        )
+
+    for q, hits in recalled:
+        qid = q.get("id", "?")
+        query = q.get("query", "")
+        if reranker is not None:
+            hits = reranker.rerank(query, hits)[: args.top_n]
 
         record = {
             "runid": runid,
