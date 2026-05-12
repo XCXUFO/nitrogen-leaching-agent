@@ -1,0 +1,111 @@
+runid: "20260512-113851"
+raw_jsonl: "backend/var/eval/mini_eval_20260512-113851.jsonl"
+questions_file: "data/eval/mini_questions.yaml"
+retrieval_runid: "20260512-103608"
+retrieval_dir: "backend/var/retrieval/20260512-103608"
+indexed_corpus:
+  papers: 8
+  chunks: 1348
+experiment:
+  rag_reranker_enabled: true
+  rag_reranker_model: "data/models/bge-reranker-v2-m3"
+  rag_reranker_top_k_recall: 20
+  rag_reranker_top_n: 5
+  request_k: null
+
+scores:
+  - question_id: q01
+    category: factual
+    relevant: false
+    cited: false
+    not_hallucinated: true
+    usable_for_demo: false
+    notes: "Initial review: expected [29] Liang 2017 appears only at reranked top5 rank 5 in retrieval_debug, but /api/chat citations are dominated by [41]/[43]. Answer conservatively says the Alxa maize irrigation/leaching data are not covered. No fabrication, but factual task failed."
+
+  - question_id: q02
+    category: factual
+    relevant: false
+    cited: true
+    not_hallucinated: false
+    usable_for_demo: false
+    notes: "Initial review: answer gives 87% nitrate and 74% DON reductions, matching cited [43] snippets, but the expected D vs F comparison is 41% irrigation, 60% water leaching, 68% nitrate, 68% DON. It answers the wrong comparison target and omits two requested fields."
+
+  - question_id: q03
+    category: factual
+    relevant: false
+    cited: false
+    not_hallucinated: true
+    usable_for_demo: false
+    notes: "Initial review: expected [63] Meng 2022 enters reranked top5 at rank 5, but answer says the Jilin Lishu soil-texture leaching/rate data were not found. Conservative, not fabricated, but misses all expected numeric points."
+
+  - question_id: q04
+    category: factual
+    relevant: false
+    cited: false
+    not_hallucinated: true
+    usable_for_demo: false
+    notes: "Initial review: reranked top5 misses expected [79] Huang 2024 and contains only [41]. Answer says Hubei Jingzhou subsurface/surface runoff and lateral seepage data are not covered. Conservative, but retrieval/answer failed."
+
+  - question_id: q05
+    category: concept
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: false
+    notes: "Initial review: answer correctly lists the five WHCNS modules from [26], but does not recover the source model mapping (HYDRUS1D, DAISY, PS123, CERES). Partially useful, still below demo threshold."
+
+  - question_id: q06
+    category: concept
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: false
+    notes: "Initial review: answer cites [79] and gives the main mechanism, but misses expected concentration values 1.7 vs 0.7 mg N/L and the short lateral seepage path explanation. Partially useful, not demo-complete."
+
+  - question_id: q07
+    category: synthesis
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: false
+    notes: "Initial review: retrieval top5 covers 3 sources, but answer uses only [60] green manure / milk vetch and does not synthesize across >=2 sources or cover drip irrigation, optimized N splitting, or soil-texture-specific N rates."
+
+  - question_id: q08
+    category: citation_check
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: false
+    notes: "Initial review: answer correctly identifies [26] and says WHCNS performs well, but says detailed values are not provided. It misses required R2 0.84-0.99, RMSE 243-1097 kg/ha, IA > 0.70, and the DBW abnormal-yield caveat."
+
+  - question_id: q09
+    category: refuse
+    relevant: true
+    cited: false
+    not_hallucinated: true
+    usable_for_demo: true
+    notes: "Initial review: refusal is correct for an out-of-corpus Nobel chemistry question. No winner names or work are fabricated."
+
+  - question_id: q10
+    category: refuse
+    relevant: true
+    cited: false
+    not_hallucinated: true
+    usable_for_demo: true
+    notes: "Initial review: refusal is correct for the unsupported North China winter wheat + AWD leaching scenario. The answer avoids fabricating a numeric value."
+
+summary:
+  total: 10
+  http_errors: 0
+  relevant: 6
+  cited: 5
+  not_hallucinated: 9
+  usable_for_demo: 2
+  refuse_not_hallucinated: 2
+  retrieval_top5_expected_source_hits_q01_q08: 7
+  dod:
+    usable_for_demo_at_least_7_of_10: false
+    refuse_not_hallucinated_2_of_2: true
+    http_errors_at_most_1_of_10: true
+    retrieval_expected_source_top5_at_least_6_of_8: true
+  reviewer_notes: "Initial self-review. Reranker improves retrieval-level expected-source placement from the M1.4-a bottleneck, but answer-level usability remains 2/10. Main remaining issue is that relevant chunks often lack enough key numeric evidence in the final top5/context or the model remains overly conservative. Domain review is still required before thesis/demo claims."

@@ -13,7 +13,7 @@
 |---|---|
 | 迭代名 | m1-4-b-retrieval-rerank |
 | 日期 | 2026-05-08 |
-| 涉及 commit | 待回填 |
+| 涉及 commit | `6fc2a40` retrieval debug；`213fff9` reranker integration；`1add700` retrieval debug memory fix；report/review 见本迭代 docs commit |
 | 文档版本 | v1.0（设计） |
 | 父里程碑 | M1.4（评测） — a / b 两步走的第二步 |
 | 设计 LLM | Claude Opus 4.7 (claude-opus-4-7) |
