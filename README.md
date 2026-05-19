@@ -1,7 +1,7 @@
 # 农田氮淋失风险决策 AI Agent
 
 > An LLM-based AI Agent for farmland nitrogen leaching risk decision support.
-> 中国农业大学 资源与环境专业 硕士毕业设计
+
 
 ## 项目简介
 
