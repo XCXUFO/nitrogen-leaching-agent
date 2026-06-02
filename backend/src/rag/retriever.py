@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from src.rag.base import Embedder
+from src.rag.reference_filter import filter_reference_chunks
 from src.storage.chroma_store import ChromaStore
 
 if TYPE_CHECKING:
@@ -51,13 +52,29 @@ class Retriever:
         store: ChromaStore,
         reranker: "Reranker | None" = None,
         top_k_recall: int = 20,
+        reference_filter_enabled: bool = False,
+        reference_filter_min_keep: int = 1,
+        reference_filter_overfetch: int = 2,
     ) -> None:
         if top_k_recall <= 0:
             raise ValueError(f"top_k_recall must be positive, got {top_k_recall}")
+        if reference_filter_min_keep <= 0:
+            raise ValueError(
+                "reference_filter_min_keep must be positive, "
+                f"got {reference_filter_min_keep}"
+            )
+        if reference_filter_overfetch <= 0:
+            raise ValueError(
+                "reference_filter_overfetch must be positive, "
+                f"got {reference_filter_overfetch}"
+            )
         self._embedder = embedder
         self._store = store
         self._reranker = reranker
         self._top_k_recall = top_k_recall
+        self._reference_filter_enabled = reference_filter_enabled
+        self._reference_filter_min_keep = reference_filter_min_keep
+        self._reference_filter_overfetch = reference_filter_overfetch
 
     def retrieve(self, query: str, k: int = 5) -> list[RetrievalResult]:
         if not query.strip():
@@ -67,8 +84,14 @@ class Retriever:
 
         recall_k = max(self._top_k_recall, k) if self._reranker is not None else k
 
+        raw_k = (
+            recall_k * self._reference_filter_overfetch
+            if self._reference_filter_enabled
+            else recall_k
+        )
+
         vector = self._embedder.embed_query(query)
-        raw = self._store.query(vector, k=recall_k)
+        raw = self._store.query(vector, k=raw_k)
 
         ids = (raw.get("ids") or [[]])[0]
         docs = (raw.get("documents") or [[]])[0]
@@ -87,6 +110,13 @@ class Retriever:
                     metadata=dict(meta) if meta else {},
                 )
             )
+
+        if self._reference_filter_enabled and results:
+            results, _ = filter_reference_chunks(
+                results,
+                min_keep=self._reference_filter_min_keep,
+            )
+            results = results[:recall_k]
 
         if self._reranker is not None and results:
             results = self._reranker.rerank(query, results)

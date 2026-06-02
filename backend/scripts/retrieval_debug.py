@@ -95,6 +95,23 @@ def parse_args() -> argparse.Namespace:
         help="override stage label written to each output file "
              "(default: 'reranked' when --rerank, else 'embedding_only')",
     )
+    p.add_argument(
+        "--reference-filter",
+        action="store_true",
+        help="drop likely bibliography/reference-list chunks before reranking",
+    )
+    p.add_argument(
+        "--reference-filter-min-keep",
+        type=int,
+        default=settings.rag_reference_filter_min_keep,
+        help="minimum candidates preserved after reference filtering",
+    )
+    p.add_argument(
+        "--reference-filter-overfetch",
+        type=int,
+        default=settings.rag_reference_filter_overfetch,
+        help="embedding recall multiplier used before reference filtering",
+    )
     return p.parse_args()
 
 
@@ -127,11 +144,25 @@ def main() -> int:
     print(f"[embedding]  {settings.embedding_model}")
     if args.rerank:
         print(f"[reranker]   {args.reranker_model or settings.rag_reranker_model}")
+    print(
+        "[ref-filter] "
+        f"{'on' if args.reference_filter else 'off'} "
+        f"(min_keep={args.reference_filter_min_keep}, "
+        f"overfetch={args.reference_filter_overfetch})"
+    )
     print(f"[count]      {len(questions)} questions\n")
 
     embedder = BGEEmbedder(model_id=settings.embedding_model)
     store = ChromaStore(args.persist_dir, args.collection)
-    retriever = Retriever(embedder, store, reranker=None, top_k_recall=args.top_n)
+    retriever = Retriever(
+        embedder,
+        store,
+        reranker=None,
+        top_k_recall=args.top_n,
+        reference_filter_enabled=args.reference_filter,
+        reference_filter_min_keep=args.reference_filter_min_keep,
+        reference_filter_overfetch=args.reference_filter_overfetch,
+    )
 
     recalled: list[tuple[dict[str, Any], list[Any]]] = []
 
@@ -174,6 +205,11 @@ def main() -> int:
                 args.reranker_model or settings.rag_reranker_model
                 if args.rerank else None
             ),
+            "reference_filter": {
+                "enabled": args.reference_filter,
+                "min_keep": args.reference_filter_min_keep,
+                "overfetch": args.reference_filter_overfetch,
+            },
             "collection": args.collection,
             "results": [
                 {

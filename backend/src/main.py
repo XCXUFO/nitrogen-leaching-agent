@@ -50,6 +50,9 @@ async def lifespan(app: FastAPI):
                 store,
                 reranker=reranker,
                 top_k_recall=settings.rag_reranker_top_k_recall,
+                reference_filter_enabled=settings.rag_reference_filter_enabled,
+                reference_filter_min_keep=settings.rag_reference_filter_min_keep,
+                reference_filter_overfetch=settings.rag_reference_filter_overfetch,
             )
             chat_top_k = (
                 settings.rag_reranker_top_n
@@ -65,12 +68,13 @@ async def lifespan(app: FastAPI):
             )
             logger.info(
                 "RAG enabled | chroma_dir={} | collection={} | "
-                "reranker={} | top_k_recall={} | top_k={}",
+                "reranker={} | top_k_recall={} | top_k={} | reference_filter={}",
                 chroma_dir,
                 settings.rag_collection,
                 settings.rag_reranker_model if reranker else "off",
                 settings.rag_reranker_top_k_recall if reranker else "n/a",
                 chat_top_k,
+                "on" if settings.rag_reference_filter_enabled else "off",
             )
         except Exception:
             logger.warning(

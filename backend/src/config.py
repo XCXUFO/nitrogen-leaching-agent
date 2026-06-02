@@ -43,6 +43,10 @@ class Settings(BaseSettings):
     rag_reranker_top_n: int = 5
     rag_reranker_model: str = "data/models/bge-reranker-v2-m3"
 
+    rag_reference_filter_enabled: bool = False
+    rag_reference_filter_min_keep: int = 1
+    rag_reference_filter_overfetch: int = 2
+
     @field_validator("database_url", mode="before")
     @classmethod
     def normalize_database_url(cls, value: str) -> str:
