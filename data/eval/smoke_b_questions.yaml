@@ -1,0 +1,24 @@
+# Smoke B question subset — M1.5-b q08 evidence boost
+#
+# 单题 live smoke：验证「A2 + numeric-boost 默认生产路径（recall20 / top_n5 /
+# ref-filter on / overfetch10 / reranker on / numeric_boost on）下 q08 不再
+# 拒答，且答出 R²/RMSE/IA 关键统计指标，引用可追到 026::0172」。与
+# mini_questions.yaml 的 q08 逐字一致（id 不改名，便于对账）。
+#
+# 独立于 smoke_questions.yaml（smoke A 只跑 q04），避免 smoke A 顺带多打一次
+# live q08。本地/手动 gate，不入 CI——依赖真 DeepSeek API、本地 chroma 索引与
+# reranker 模型。
+#
+# 跑法：backend/scripts/run_smoke_b.sh
+version: 1
+questions:
+  - id: q08
+    category: citation_check
+    query: WHCNS 模型在华北平原四个站点上模拟作物产量的精度如何？
+    expected_points:
+      - 四站点产量决定系数 R² 介于 0.84–0.99
+      - RMSE 介于 243–1097 kg/ha
+      - IA（一致性指数）全部大于 0.70
+      - DBW 站点 2011 年冬小麦产量异常低（约 3220 kg/ha）属极端气候，模型未模拟病虫害/极端气候影响
+    should_refuse: false
+    notes: 预期命中 [26] Liang 2016。boost 证据段 026::0172（R²/RMSE/IA），需 numeric_boost 默认开才进 top_n。
