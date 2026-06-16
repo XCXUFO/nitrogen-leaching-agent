@@ -84,7 +84,14 @@ export default function Home() {
           </>
         )}
 
-        {assistant?.kind === "error" && <ChatError error={assistant.error} />}
+        {assistant?.kind === "error" && (
+          <ChatError
+            error={assistant.error}
+            onRetry={
+              userQuery ? () => handleSubmit(userQuery) : undefined
+            }
+          />
+        )}
       </section>
 
       <details className="text-muted-foreground mt-auto pt-8 text-xs">
