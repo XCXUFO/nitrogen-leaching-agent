@@ -58,6 +58,7 @@ from src.agent.prompt import format_context  # noqa: E402
 from src.config import settings  # noqa: E402
 from src.rag import BGEEmbedder, Reranker, Retriever  # noqa: E402
 from src.rag.numeric_boost import (  # noqa: E402
+    DEFAULT_NUMERIC_BOOST_BAND,
     DEFAULT_NUMERIC_BOOST_WEIGHT,
     apply_numeric_boost,
     numeric_evidence_density,
@@ -162,6 +163,15 @@ def parse_args() -> argparse.Namespace:
         help=(
             "logit-space boost weight "
             f"(default DEFAULT_NUMERIC_BOOST_WEIGHT={DEFAULT_NUMERIC_BOOST_WEIGHT})"
+        ),
+    )
+    p.add_argument(
+        "--numeric-boost-band",
+        type=float,
+        default=DEFAULT_NUMERIC_BOOST_BAND,
+        help=(
+            "relevance band: only boost candidates within this many logits of "
+            f"the pool leader (default DEFAULT_NUMERIC_BOOST_BAND={DEFAULT_NUMERIC_BOOST_BAND})"
         ),
     )
     return p.parse_args()
@@ -287,6 +297,8 @@ def _boost_fields(result: RetrievalResult) -> dict[str, Any]:
         "numeric_density": round(float(density), 6),
         "boost_delta": round(float(delta), 6),
         "boosted_score": round(float(result.score), 6),
+        "boost_eligible": meta.get("numeric_boost_eligible"),
+        "boost_band": meta.get("numeric_boost_band"),
     }
 
 
@@ -339,7 +351,7 @@ def main() -> int:
     print(
         "[numeric-boost]      "
         f"{'on' if args.numeric_boost else 'off'} "
-        f"(weight={args.numeric_boost_weight})"
+        f"(weight={args.numeric_boost_weight}, band={args.numeric_boost_band})"
     )
     print(f"[count]              {len(questions)} questions\n")
 
@@ -382,7 +394,10 @@ def main() -> int:
         reranked_full = reranker.rerank(query, list(embedding_hits))
         if args.numeric_boost:
             reranked_full = apply_numeric_boost(
-                query, reranked_full, weight=args.numeric_boost_weight
+                query,
+                reranked_full,
+                weight=args.numeric_boost_weight,
+                band=args.numeric_boost_band,
             )
         reranked = reranked_full[: args.top_n]
 
@@ -411,6 +426,7 @@ def main() -> int:
                 "numeric_boost": {
                     "enabled": args.numeric_boost,
                     "weight": args.numeric_boost_weight,
+                    "band": args.numeric_boost_band,
                 },
                 "collection": args.collection,
             },
