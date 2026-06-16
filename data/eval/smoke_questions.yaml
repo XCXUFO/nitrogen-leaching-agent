@@ -1,0 +1,21 @@
+# Smoke A question subset — M1.5-a demo hardening
+#
+# 单题 live smoke：验证「A2 默认路径（recall20 / top_n5 / ref-filter on /
+# overfetch10 + reranker）下 q04 不再拒答」。与 mini_questions.yaml 的 q04
+# 逐字一致（id 不改名，便于对账）。这是本地/手动 gate，不入 CI——依赖真
+# DeepSeek API、本地 chroma 索引与 reranker 模型。
+#
+# 跑法：backend/scripts/run_smoke_a.sh
+version: 1
+questions:
+  - id: q04
+    category: factual
+    query: 湖北荆州稻田水稻生长季的地下径流氮损失和地表径流相比量级如何？侧向渗漏对地下径流氮损失贡献多少？
+    expected_points:
+      - 地下径流 N 损失约 6.2 kg N/ha（占施氮 4%）
+      - 地表径流 N 损失约 3.1 kg N/ha
+      - 地下径流约为地表径流 2 倍
+      - 侧向渗漏占地下径流 N 损失约 33%
+      - 侧向渗漏占地下径流水量 17±4%
+    should_refuse: false
+    notes: 预期命中 [79] Huang 2024。A2 翻盘证据段 079::0004(6.2/4%) + 079::0005(2×/33%)
