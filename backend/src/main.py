@@ -58,6 +58,9 @@ async def lifespan(app: FastAPI):
                 reference_filter_enabled=settings.rag_reference_filter_enabled,
                 reference_filter_min_keep=settings.rag_reference_filter_min_keep,
                 reference_filter_overfetch=settings.rag_reference_filter_overfetch,
+                numeric_boost_enabled=settings.rag_numeric_boost_enabled,
+                numeric_boost_weight=settings.rag_numeric_boost_weight,
+                numeric_boost_band=settings.rag_numeric_boost_band,
             )
             chat_top_k = (
                 settings.rag_reranker_top_n
@@ -74,7 +77,7 @@ async def lifespan(app: FastAPI):
             logger.info(
                 "RAG enabled | chroma_dir={} | collection={} | "
                 "reranker={} | top_k_recall={} | top_k={} | "
-                "reference_filter={} | overfetch={}",
+                "reference_filter={} | overfetch={} | numeric_boost={}",
                 chroma_dir,
                 settings.rag_collection,
                 settings.rag_reranker_model if reranker else "off",
@@ -84,6 +87,11 @@ async def lifespan(app: FastAPI):
                 settings.rag_reference_filter_overfetch
                 if settings.rag_reference_filter_enabled
                 else "n/a",
+                # boost only matters on the reranker path
+                f"on(w={settings.rag_numeric_boost_weight},"
+                f"b={settings.rag_numeric_boost_band})"
+                if (reranker and settings.rag_numeric_boost_enabled)
+                else "off",
             )
         except Exception:
             logger.warning(

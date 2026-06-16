@@ -54,6 +54,17 @@ class Settings(BaseSettings):
     rag_reference_filter_min_keep: int = 1
     rag_reference_filter_overfetch: int = 10
 
+    # M1.5-b: numeric/evidence boost — reranker post-processing that lifts
+    # numeric/statistical data chunks the cross-encoder underweights (solves q08
+    # 026::0172 R²/RMSE/IA). Only active on the RAG + reranker path; does not
+    # change RAG_ENABLED / RAG_RERANKER_ENABLED opt-in semantics. Defaults are
+    # the DoD-2-validated weight/band (see src/rag/numeric_boost.py
+    # DEFAULT_NUMERIC_BOOST_WEIGHT / _BAND); under these only q08's top_n changes
+    # vs boost-off, the other nine mini-eval questions are byte-identical.
+    rag_numeric_boost_enabled: bool = True
+    rag_numeric_boost_weight: float = 0.445
+    rag_numeric_boost_band: float = 0.30
+
     @field_validator("database_url", mode="before")
     @classmethod
     def normalize_database_url(cls, value: str) -> str:
