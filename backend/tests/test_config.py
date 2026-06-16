@@ -47,3 +47,15 @@ def test_settings_chat_rag_defaults():
     assert settings.chat_top_k == 5
     assert settings.chat_max_context_chars == 4000
     assert settings.chat_temperature == 0.3
+
+
+def test_settings_a2_demo_defaults():
+    # M1.5-a DoD #1: 生产默认配置与 M1.4-c 验证过的 A2 对齐
+    # (recall20 / top_n5 / ref-filter on / overfetch10)。
+    # A2 是 demo 默认而非最终最优检索策略；M1.5-b 解 q08 后可调整本断言。
+    settings = Settings(_env_file=None)
+
+    assert settings.rag_reranker_top_k_recall == 20
+    assert settings.rag_reranker_top_n == 5
+    assert settings.rag_reference_filter_enabled is True
+    assert settings.rag_reference_filter_overfetch == 10

@@ -68,13 +68,17 @@ async def lifespan(app: FastAPI):
             )
             logger.info(
                 "RAG enabled | chroma_dir={} | collection={} | "
-                "reranker={} | top_k_recall={} | top_k={} | reference_filter={}",
+                "reranker={} | top_k_recall={} | top_k={} | "
+                "reference_filter={} | overfetch={}",
                 chroma_dir,
                 settings.rag_collection,
                 settings.rag_reranker_model if reranker else "off",
                 settings.rag_reranker_top_k_recall if reranker else "n/a",
                 chat_top_k,
                 "on" if settings.rag_reference_filter_enabled else "off",
+                settings.rag_reference_filter_overfetch
+                if settings.rag_reference_filter_enabled
+                else "n/a",
             )
         except Exception:
             logger.warning(

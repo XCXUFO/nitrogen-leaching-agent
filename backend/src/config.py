@@ -43,9 +43,12 @@ class Settings(BaseSettings):
     rag_reranker_top_n: int = 5
     rag_reranker_model: str = "data/models/bge-reranker-v2-m3"
 
-    rag_reference_filter_enabled: bool = False
+    # M1.5-a demo default = M1.4-c 验证过的 A2 配置（recall20 / top_n5 /
+    # ref-filter on / overfetch10）：A2 是全矩阵唯一让 q04 evidence-level 翻盘的
+    # 配置。这是 demo 默认而非最终最优检索策略；M1.5-b 解 q08 后可覆盖。
+    rag_reference_filter_enabled: bool = True
     rag_reference_filter_min_keep: int = 1
-    rag_reference_filter_overfetch: int = 2
+    rag_reference_filter_overfetch: int = 10
 
     @field_validator("database_url", mode="before")
     @classmethod
