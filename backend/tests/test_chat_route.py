@@ -3,7 +3,7 @@ from __future__ import annotations
 import httpx
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from openai import APIConnectionError
+from openai import APIConnectionError, APITimeoutError
 
 from src.agent.chat_service import ChatServiceResult, Citation, RAGQueryError
 from src.api import chat
@@ -109,3 +109,33 @@ def test_chat_502_on_llm_connection_error() -> None:
 
     assert response.status_code == 502
     assert response.json()["detail"]["code"] == "llm_unreachable"
+
+
+def test_chat_504_on_llm_timeout() -> None:
+    # M1.5-a 场景 B：第 2 步的有界超时触顶 → 明确 504 llm_timeout，
+    # 不被误归为 llm_unreachable（APITimeoutError 是 APIConnectionError 子类）。
+    error = APITimeoutError(request=httpx.Request("POST", "https://example.test"))
+    client = TestClient(_app_with_service(FakeChatService(error=error)))
+
+    response = client.post("/api/chat", json={"query": "q"})
+
+    assert response.status_code == 504
+    assert response.json()["detail"]["code"] == "llm_timeout"
+
+
+def test_chat_500_on_unexpected_error_stays_controlled() -> None:
+    # M1.5-a 场景 B：未预期异常也走稳定契约（前端始终拿得到 code），不裸崩，
+    # 且不把内部异常细节回显给前端（防泄露），完整异常只进日志。
+    client = TestClient(
+        _app_with_service(FakeChatService(error=RuntimeError("boom: /secret/path"))),
+        raise_server_exceptions=False,
+    )
+
+    response = client.post("/api/chat", json={"query": "q"})
+
+    assert response.status_code == 500
+    detail = response.json()["detail"]
+    assert detail["code"] == "internal_error"
+    assert detail["message"] == "服务内部异常，请稍后重试"
+    assert "boom" not in detail["message"]
+    assert "/secret/path" not in detail["message"]
