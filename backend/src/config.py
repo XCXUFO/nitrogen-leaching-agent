@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     deepseek_api_key: str = ""
     deepseek_base_url: str = "https://api.deepseek.com"
     deepseek_model: str = "deepseek-v4-flash"
+    # M1.5-a demo hardening: 有界超时 + 显式有界重试，替代 SDK 默认（timeout=600s）。
+    # 这是策略默认值，可被 .env 覆盖；后续 A 档延迟变化时只改这里，不牵动测试。
+    deepseek_timeout_s: float = 60.0
+    deepseek_max_retries: int = 2
 
     embedding_model: str = "data/models/bge-large-zh-v1.5"
 

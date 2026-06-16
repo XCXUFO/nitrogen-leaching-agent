@@ -4,8 +4,23 @@ from src.llm.base import ChatMessage, ChatResult, ChatUsage, LLMClient
 
 
 class DeepSeekClient(LLMClient):
-    def __init__(self, api_key: str, base_url: str, model: str) -> None:
-        self._client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+    def __init__(
+        self,
+        api_key: str,
+        base_url: str,
+        model: str,
+        *,
+        timeout_s: float = 60.0,
+        max_retries: int = 2,
+    ) -> None:
+        # 运行时权威值来自 Settings（config.py）→ main.py 显式传入；这里的默认仅
+        # 作为直接构造（脚本/测试）时的安全兜底，不再吃 SDK 的 600s 默认超时。
+        self._client = AsyncOpenAI(
+            api_key=api_key,
+            base_url=base_url,
+            timeout=timeout_s,
+            max_retries=max_retries,
+        )
         self._model = model
 
     async def chat(

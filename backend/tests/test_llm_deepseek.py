@@ -65,3 +65,18 @@ async def test_chat_omits_max_tokens_when_not_provided(monkeypatch):
     await client.chat([ChatMessage(role="user", content="hi")])
 
     assert "max_tokens" not in create_mock.await_args.kwargs
+
+
+def test_client_forwards_timeout_and_max_retries():
+    # M1.5-a DoD #2: 断「透传生效」而非策略值——用非默认值构造，验证传入的
+    # timeout/max_retries 确实落到底层 AsyncOpenAI（不硬编 60/2）。
+    client = DeepSeekClient(
+        api_key="x",
+        base_url="https://example",
+        model="deepseek-chat",
+        timeout_s=42.0,
+        max_retries=5,
+    )
+
+    assert client._client.timeout == 42.0
+    assert client._client.max_retries == 5

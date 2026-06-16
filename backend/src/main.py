@@ -22,15 +22,20 @@ async def lifespan(app: FastAPI):
     if not settings.deepseek_api_key:
         raise RuntimeError("DEEPSEEK_API_KEY 未配置；请检查 backend/.env")
     logger.info(
-        "Backend starting | env={} | model={} | cors_origins={}",
+        "Backend starting | env={} | model={} | cors_origins={} | "
+        "llm_timeout_s={} | llm_max_retries={}",
         settings.app_env,
         settings.deepseek_model,
         settings.cors_origin_list,
+        settings.deepseek_timeout_s,
+        settings.deepseek_max_retries,
     )
     llm = DeepSeekClient(
         api_key=settings.deepseek_api_key,
         base_url=settings.deepseek_base_url,
         model=settings.deepseek_model,
+        timeout_s=settings.deepseek_timeout_s,
+        max_retries=settings.deepseek_max_retries,
     )
     app.state.llm = llm
     app.state.chat_service = None
