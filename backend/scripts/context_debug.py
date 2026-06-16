@@ -57,6 +57,11 @@ if str(_BACKEND_ROOT) not in sys.path:
 from src.agent.prompt import format_context  # noqa: E402
 from src.config import settings  # noqa: E402
 from src.rag import BGEEmbedder, Reranker, Retriever  # noqa: E402
+from src.rag.numeric_boost import (  # noqa: E402
+    DEFAULT_NUMERIC_BOOST_WEIGHT,
+    apply_numeric_boost,
+    numeric_evidence_density,
+)
 from src.rag.retriever import RetrievalResult  # noqa: E402
 from src.storage import ChromaStore  # noqa: E402
 
@@ -140,6 +145,24 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=settings.rag_reference_filter_overfetch,
         help="embedding recall multiplier used before reference filtering",
+    )
+    p.add_argument(
+        "--numeric-boost",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help=(
+            "apply numeric/evidence boost after reranking (use --no-numeric-boost "
+            "to force off); default off so the DoD-2 A/B does not rely on env vars"
+        ),
+    )
+    p.add_argument(
+        "--numeric-boost-weight",
+        type=float,
+        default=DEFAULT_NUMERIC_BOOST_WEIGHT,
+        help=(
+            "logit-space boost weight "
+            f"(default DEFAULT_NUMERIC_BOOST_WEIGHT={DEFAULT_NUMERIC_BOOST_WEIGHT})"
+        ),
     )
     return p.parse_args()
 
@@ -245,6 +268,28 @@ def verify_mirror(
         )
 
 
+def _boost_fields(result: RetrievalResult) -> dict[str, Any]:
+    """Per-chunk numeric-boost audit fields, valid whether or not boost ran.
+
+    When boost ran, ``raw_score`` / ``numeric_density`` / ``boost_delta`` were
+    stamped into metadata by ``apply_numeric_boost`` and ``result.score`` is the
+    boosted value. When it did not run, raw == boosted, delta == 0, and density
+    is computed here for display so the on/off dumps stay comparable in DoD-2.
+    """
+    meta = result.metadata
+    raw = meta.get("numeric_boost_raw_score", result.score)
+    density = meta.get("numeric_boost_density")
+    if density is None:
+        density = numeric_evidence_density(result.document)
+    delta = meta.get("numeric_boost_delta", 0.0)
+    return {
+        "raw_score": round(float(raw), 6),
+        "numeric_density": round(float(density), 6),
+        "boost_delta": round(float(delta), 6),
+        "boosted_score": round(float(result.score), 6),
+    }
+
+
 def _count_by_source(items: list[Any], get_source) -> dict[str, int]:
     counts: dict[str, int] = {}
     for it in items:
@@ -291,6 +336,11 @@ def main() -> int:
         f"(min_keep={args.reference_filter_min_keep}, "
         f"overfetch={args.reference_filter_overfetch})"
     )
+    print(
+        "[numeric-boost]      "
+        f"{'on' if args.numeric_boost else 'off'} "
+        f"(weight={args.numeric_boost_weight})"
+    )
     print(f"[count]              {len(questions)} questions\n")
 
     embedder = BGEEmbedder(model_id=settings.embedding_model)
@@ -326,7 +376,15 @@ def main() -> int:
         qid = q.get("id", "?")
         query = q.get("query", "")
 
-        reranked = reranker.rerank(query, list(embedding_hits))[: args.top_n]
+        # Rerank the full candidate pool, then (optionally) boost-reorder the
+        # whole pool before slicing top_n — mirrors the production Retriever
+        # order (rerank -> numeric_boost -> [:k]).
+        reranked_full = reranker.rerank(query, list(embedding_hits))
+        if args.numeric_boost:
+            reranked_full = apply_numeric_boost(
+                query, reranked_full, weight=args.numeric_boost_weight
+            )
+        reranked = reranked_full[: args.top_n]
 
         final_context = format_context(reranked, max_chars=args.max_context_chars)
         final_chunks = compute_final_context_chunks(reranked, args.max_context_chars)
@@ -350,6 +408,10 @@ def main() -> int:
                     "min_keep": args.reference_filter_min_keep,
                     "overfetch": args.reference_filter_overfetch,
                 },
+                "numeric_boost": {
+                    "enabled": args.numeric_boost,
+                    "weight": args.numeric_boost_weight,
+                },
                 "collection": args.collection,
             },
             "embedding_recall": [
@@ -368,6 +430,7 @@ def main() -> int:
                     "chunk_id": h.chunk_id,
                     "source": h.metadata.get("source"),
                     "score": round(h.score, 6),
+                    **_boost_fields(h),
                     "document": h.document,
                 }
                 for i, h in enumerate(reranked)
