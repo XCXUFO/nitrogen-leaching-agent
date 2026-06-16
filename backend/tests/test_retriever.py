@@ -282,3 +282,86 @@ def test_retriever_top_k_recall_validation() -> None:
         Retriever(fake_embedder, store=None, top_k_recall=0)  # type: ignore[arg-type]
     with pytest.raises(ValueError):
         Retriever(fake_embedder, store=None, top_k_recall=-1)  # type: ignore[arg-type]
+
+
+# Numeric/evidence boost integration (M1.5-b) — only on the reranker path.
+
+# A statistics-dense document (drives high numeric_evidence_density) and a
+# narrative one (density 0). Text doubles as the embedder lookup key (unknown
+# keys fall back to a fixed vector), which is fine — the fake reranker below
+# fully controls ordering, decoupling this from cosine.
+_DENSE_DOC = "RMSE R² 0.84 0.99 243 1097 kg ha-1 IA 0.70 NSE"
+_NARR_DOC = "the model reproduced the observed dynamics well overall"
+
+
+class _ScoreReranker:
+    """Reranker stand-in that assigns preset scores by chunk_id, so the test
+    can place candidates within / outside the boost relevance band on purpose.
+    """
+
+    def __init__(self, scores: dict[str, float]) -> None:
+        self._scores = scores
+
+    def rerank(
+        self, query: str, candidates: list[RetrievalResult]
+    ) -> list[RetrievalResult]:
+        rescored = [
+            RetrievalResult(
+                chunk_id=c.chunk_id,
+                document=c.document,
+                score=self._scores[c.chunk_id],
+                metadata=c.metadata,
+            )
+            for c in candidates
+        ]
+        rescored.sort(key=lambda r: r.score, reverse=True)
+        return rescored
+
+
+def test_retriever_numeric_boost_reorders_dense_chunk(
+    store: ChromaStore, embedder: FakeEmbedder
+) -> None:
+    """With boost enabled and a quantitative query, the dense chunk is lifted
+    over a higher-reranked narrative chunk (within band)."""
+    _seed(
+        store,
+        embedder,
+        [
+            ("narr", _NARR_DOC, {"source": "a"}),
+            ("dense", _DENSE_DOC, {"source": "b"}),
+        ],
+    )
+    # narrative leads rerank but dense is within band 0.30.
+    rk = _ScoreReranker({"narr": 0.90, "dense": 0.70})
+    r = Retriever(
+        embedder,
+        store,
+        reranker=rk,
+        top_k_recall=20,
+        numeric_boost_enabled=True,
+        numeric_boost_weight=1.0,
+        numeric_boost_band=0.30,
+    )
+    results = r.retrieve("淋失量是多少？", k=2)
+    assert results[0].chunk_id == "dense"
+    assert results[0].metadata["numeric_boost_eligible"] is True
+
+
+def test_retriever_numeric_boost_default_off_keeps_rerank_order(
+    store: ChromaStore, embedder: FakeEmbedder
+) -> None:
+    """Default ctor (boost off) leaves rerank order untouched even for a
+    quantitative query with a dense chunk present."""
+    _seed(
+        store,
+        embedder,
+        [
+            ("narr", _NARR_DOC, {"source": "a"}),
+            ("dense", _DENSE_DOC, {"source": "b"}),
+        ],
+    )
+    rk = _ScoreReranker({"narr": 0.90, "dense": 0.70})
+    r = Retriever(embedder, store, reranker=rk, top_k_recall=20)
+    results = r.retrieve("淋失量是多少？", k=2)
+    assert results[0].chunk_id == "narr"
+    assert "numeric_boost_eligible" not in results[0].metadata

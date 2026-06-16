@@ -4,6 +4,11 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from src.rag.base import Embedder
+from src.rag.numeric_boost import (
+    DEFAULT_NUMERIC_BOOST_BAND,
+    DEFAULT_NUMERIC_BOOST_WEIGHT,
+    apply_numeric_boost,
+)
 from src.rag.reference_filter import filter_reference_chunks
 from src.storage.chroma_store import ChromaStore
 
@@ -41,6 +46,8 @@ class Retriever:
     Two-stage flow when ``reranker`` is provided (M1.4-b):
         1. embedder + chroma recall ``max(top_k_recall, k)`` candidates
         2. reranker re-scores and sorts; top ``k`` are returned
+       (2b. optional numeric/evidence boost re-orders the reranked pool before
+            the top ``k`` cut when ``numeric_boost_enabled`` — M1.5-b)
 
     When ``reranker`` is None, behavior matches M1.3.x exactly: recall ``k``
     via embedding only.
@@ -55,6 +62,9 @@ class Retriever:
         reference_filter_enabled: bool = False,
         reference_filter_min_keep: int = 1,
         reference_filter_overfetch: int = 2,
+        numeric_boost_enabled: bool = False,
+        numeric_boost_weight: float = DEFAULT_NUMERIC_BOOST_WEIGHT,
+        numeric_boost_band: float = DEFAULT_NUMERIC_BOOST_BAND,
     ) -> None:
         if top_k_recall <= 0:
             raise ValueError(f"top_k_recall must be positive, got {top_k_recall}")
@@ -75,6 +85,9 @@ class Retriever:
         self._reference_filter_enabled = reference_filter_enabled
         self._reference_filter_min_keep = reference_filter_min_keep
         self._reference_filter_overfetch = reference_filter_overfetch
+        self._numeric_boost_enabled = numeric_boost_enabled
+        self._numeric_boost_weight = numeric_boost_weight
+        self._numeric_boost_band = numeric_boost_band
 
     def retrieve(self, query: str, k: int = 5) -> list[RetrievalResult]:
         if not query.strip():
@@ -120,5 +133,16 @@ class Retriever:
 
         if self._reranker is not None and results:
             results = self._reranker.rerank(query, results)
+            # numeric/evidence boost is a reranker post-processing step — only
+            # reachable on the reranker path, so non-reranker retrieval is
+            # unchanged (M1.5-b). No-op unless enabled and the query is
+            # quantitative (see apply_numeric_boost).
+            if self._numeric_boost_enabled:
+                results = apply_numeric_boost(
+                    query,
+                    results,
+                    weight=self._numeric_boost_weight,
+                    band=self._numeric_boost_band,
+                )
 
         return results[:k]
