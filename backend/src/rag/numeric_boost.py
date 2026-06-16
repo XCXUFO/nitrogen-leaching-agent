@@ -40,6 +40,16 @@ if TYPE_CHECKING:
 # DoD-2 (q01–q10 on/off regression) passes — production stays off until then.
 DEFAULT_NUMERIC_BOOST_WEIGHT = 0.445
 
+# Relevance band (M1.5-b DoD-2): only re-order candidates the reranker already
+# scored within `band` logits of the pool leader. Additive density boost alone
+# resurrects a near-irrelevant but numeric-dense chunk (raw logit ≈ 0) into
+# top_n purely on density — observed on q01, where it evicted the expected
+# source. With weight ≥ 0.395 (needed for q08) no single weight avoids this, so
+# the band is the second knob: it expresses "boost re-orders relevant
+# contenders, it does not recall the irrelevant tail". band 0.30 includes q08's
+# target (gap ≈ 0.253) and excludes q01's polluters (gap ≈ 0.85).
+DEFAULT_NUMERIC_BOOST_BAND = 0.30
+
 # --- query side: quantitative-intent gate ------------------------------------
 # Fires when the query explicitly asks for a quantity / magnitude / metric.
 # Deliberately excludes bare "浓度"/"高于" so mechanism questions ("why is the
@@ -115,6 +125,7 @@ def apply_numeric_boost(
     reranked: list["RetrievalResult"],
     *,
     weight: float,
+    band: float = DEFAULT_NUMERIC_BOOST_BAND,
 ) -> list["RetrievalResult"]:
     """Re-score reranked candidates by ``score + weight·density`` and re-sort.
 
@@ -122,25 +133,37 @@ def apply_numeric_boost(
     ``weight <= 0`` or the query is not quantitative — zero behaviour change for
     the non-quantitative path.
 
-    Otherwise returns **new** ``RetrievalResult`` objects (the dataclass is
-    frozen) via ``dataclasses.replace``, with ``score`` set to the boosted value
-    and three audit fields stamped into ``metadata`` for debug/DoD-2 tracing:
+    Otherwise only candidates the reranker scored within ``band`` logits of the
+    pool leader are *eligible* for the boost (relevance band, see
+    ``DEFAULT_NUMERIC_BOOST_BAND``); ineligible chunks keep their raw score
+    (``delta = 0``). This stops a near-irrelevant but numeric-dense chunk from
+    being resurrected into top_n on density alone.
+
+    Returns **new** ``RetrievalResult`` objects (the dataclass is frozen) via
+    ``dataclasses.replace``, with ``score`` set to the boosted value and audit
+    fields stamped into ``metadata`` for debug/DoD-2 tracing:
     ``numeric_boost_raw_score`` (original reranker logit),
-    ``numeric_boost_density``, ``numeric_boost_delta`` (= weight·density).
-    The production prompt ignores these fields (``format_context`` reads only
-    ``document`` + ``metadata['source']``), so they are debug-only.
+    ``numeric_boost_density``, ``numeric_boost_delta`` (= weight·density, or 0),
+    ``numeric_boost_eligible`` (bool), ``numeric_boost_band``. The production
+    prompt ignores these fields (``format_context`` reads only ``document`` +
+    ``metadata['source']``), so they are debug-only.
     """
     if weight <= 0 or not reranked or not is_quantitative_query(query):
         return list(reranked)
 
+    floor = max(r.score for r in reranked) - band
+
     boosted: list[RetrievalResult] = []
     for result in reranked:
         density = numeric_evidence_density(result.document)
-        delta = weight * density
+        eligible = result.score >= floor
+        delta = weight * density if eligible else 0.0
         new_meta = dict(result.metadata)
         new_meta["numeric_boost_raw_score"] = result.score
         new_meta["numeric_boost_density"] = density
         new_meta["numeric_boost_delta"] = delta
+        new_meta["numeric_boost_eligible"] = eligible
+        new_meta["numeric_boost_band"] = band
         boosted.append(
             dataclasses.replace(
                 result,

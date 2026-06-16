@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from src.rag.numeric_boost import (
+    DEFAULT_NUMERIC_BOOST_BAND,
     DEFAULT_NUMERIC_BOOST_WEIGHT,
     apply_numeric_boost,
     is_quantitative_query,
@@ -90,12 +91,13 @@ def test_boost_noop_on_empty() -> None:
 
 
 def test_boost_reorders_data_chunk_above_narrative() -> None:
-    # narrative starts ahead by reranker score; a large enough weight lifts the
-    # statistics chunk past it.
+    # narrative leads by reranker score but is within the relevance band of the
+    # stats chunk; a large enough weight lifts the statistics chunk past it.
     narrative = _result("narr::1", NARRATIVE_TEXT, 0.90)
-    stats = _result("stat::1", STAT_TEXT, 0.60)
+    stats = _result("stat::1", STAT_TEXT, 0.65)  # gap 0.25 < band 0.30 -> eligible
     out = apply_numeric_boost("精度是多少？", [narrative, stats], weight=2.0)
     assert out[0].chunk_id == "stat::1"
+    assert out[0].metadata["numeric_boost_eligible"] is True
 
 
 def test_boost_stamps_audit_metadata_and_keeps_payload() -> None:
@@ -111,8 +113,23 @@ def test_boost_stamps_audit_metadata_and_keeps_payload() -> None:
     density = hit.metadata["numeric_boost_density"]
     delta = hit.metadata["numeric_boost_delta"]
     assert raw == 0.60
+    assert hit.metadata["numeric_boost_eligible"] is True  # sole chunk == leader
+    assert hit.metadata["numeric_boost_band"] == DEFAULT_NUMERIC_BOOST_BAND
     assert delta == DEFAULT_NUMERIC_BOOST_WEIGHT * density
     assert hit.score == raw + delta
+
+
+def test_boost_band_excludes_chunk_far_below_leader() -> None:
+    # A numeric-dense chunk the reranker scored far below the leader (gap > band)
+    # must NOT be resurrected on density alone — this is the q01 regression fix.
+    leader = _result("lead::1", NARRATIVE_TEXT, 1.00)  # high relevance, no numbers
+    far_stats = _result("far::1", STAT_TEXT, 0.50)  # gap 0.50 > band 0.30
+    out = apply_numeric_boost("精度是多少？", [leader, far_stats], weight=2.0)
+    assert [c.chunk_id for c in out] == ["lead::1", "far::1"]
+    far = next(c for c in out if c.chunk_id == "far::1")
+    assert far.metadata["numeric_boost_eligible"] is False
+    assert far.metadata["numeric_boost_delta"] == 0.0
+    assert far.score == far.metadata["numeric_boost_raw_score"]  # unchanged
 
 
 def test_boost_does_not_mutate_input() -> None:
