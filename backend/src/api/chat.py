@@ -12,6 +12,7 @@ from openai import (
     RateLimitError,
 )
 
+from src.agent.prompt import DialogueTurn
 from src.agent.chat_service import ChatService, RAGQueryError
 from src.api.chat_schema import ChatRequest, ChatResponse
 
@@ -73,7 +74,11 @@ async def chat(request: Request, body: ChatRequest) -> ChatResponse:
 
     t0 = time.perf_counter()
     try:
-        result = await service.answer(body.query, k=body.k)
+        history = [
+            DialogueTurn(role=message.role, content=message.content)
+            for message in body.history
+        ]
+        result = await service.answer(body.query, k=body.k, history=history)
     except RAGQueryError as exc:
         raise _fail(
             status_code=503,

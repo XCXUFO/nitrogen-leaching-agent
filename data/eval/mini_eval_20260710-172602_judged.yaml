@@ -1,0 +1,274 @@
+runid: "20260710-172602"
+raw_jsonl: "backend/var/eval/mini_eval_20260710-172602.jsonl"
+questions_file: "data/eval/m16_questions.yaml"
+indexed_corpus:
+  papers: 90
+  chroma_dir: "backend/var/chroma_m16"
+  collection: "papers"
+experiment:
+  rag_enabled: true
+  rag_reranker_enabled: true
+  rag_reranker_model: "data/models/bge-reranker-v2-m3"
+  rag_reranker_top_k_recall: 20
+  rag_reranker_top_n: 5
+  request_k: null
+  retrieval_hint_pass: true
+  followup_numeric_alias_pass: true
+
+scores:
+  - question_id: m16_q01
+    category: factual
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: true
+    failure_category: none
+    notes: "Self-review: [92] Han 2025 remains correctly retrieved and answers drainage, N leaching, N2O, yield, WUE and NUE deltas."
+
+  - question_id: m16_q02
+    category: factual
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: true
+    failure_category: none
+    notes: "Self-review: [92] Han 2025 remains correctly retrieved and answers the CIFS/CIF trade-off."
+
+  - question_id: m16_q03
+    category: factual
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: true
+    failure_category: none
+    notes: "Self-review: improved. [84] Feng 2025 chunks 0005/0006 are in citations and the answer gives 29.17%, 27.13%, 11.38% and 17.80%."
+
+  - question_id: m16_q04
+    category: factual
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: true
+    failure_category: none
+    notes: "Self-review: improved. [84] Feng 2025 chunk 0005 is citation [1], and the answer gives F2W1 8.90%/41.67% and F1W2 12.50%/15.99%. It omits the optional F2W2-best context but answers the user question."
+
+  - question_id: m16_q05
+    category: factual
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: true
+    failure_category: none
+    notes: "Self-review: improved. [81] Li 2025 chunk 0010 is citation [1], and the answer gives 77.2, 65.6, 81.5 kg N/ha plus 33.6%, 31.5%, 40.8%."
+
+  - question_id: m16_q06
+    category: factual
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: false
+    failure_category: spatial_factor_under_extraction
+    notes: "Self-review: retrieval is fixed with [81] chunks 0009/0142/0143 in citations, but the answer still says NH3 spatial drivers were not explicit, missing the temperature/precipitation factor."
+
+  - question_id: m16_q07
+    category: factual
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: true
+    failure_category: none
+    notes: "Self-review: [19] Zhou 2025 remains stable and demo-usable."
+
+  - question_id: m16_q08
+    category: factual
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: true
+    failure_category: none
+    notes: "Self-review: [19] Zhou 2025 remains stable and demo-usable."
+
+  - question_id: m16_q09
+    category: factual
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: true
+    failure_category: none
+    notes: "Self-review: [20] Huang 2026 remains stable and demo-usable."
+
+  - question_id: m16_q10
+    category: factual
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: true
+    failure_category: none
+    notes: "Self-review: [22] Pan 2026 remains stable and demo-usable."
+
+  - question_id: m16_q11
+    category: factual
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: true
+    failure_category: none
+    notes: "Self-review: [67] Wu 2023 remains stable and demo-usable."
+
+  - question_id: m16_q12
+    category: factual
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: true
+    failure_category: none
+    notes: "Self-review: [72] Wu 2024 remains stable and demo-usable."
+
+  - question_id: m16_q13
+    category: factual
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: true
+    failure_category: none
+    notes: "Self-review: improved. [78] Wu 2024 chunks 0005/0006 are in citations and the answer covers ETc, groundwater table, irrigation saving, WP and water footprint."
+
+  - question_id: m16_q14
+    category: factual
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: false
+    failure_category: partial_numeric_extraction
+    notes: "Self-review: improved on 2050 target and cultivar/fertilizer contrast, but still says the national NUE value was not directly available, missing 0.31."
+
+  - question_id: m16_q15
+    category: factual
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: true
+    failure_category: none
+    notes: "Self-review: [93] Hou 2025 remains stable and demo-usable."
+
+  - question_id: m16_q16
+    category: citation_check
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: true
+    failure_category: none
+    notes: "Self-review: improved. [87] Bo 2025 chunks 0005/0006 are in citations and the answer gives 52%, 60%, 37%, 94% and 35%-85%."
+
+  - question_id: m16_q17
+    category: citation_check
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: true
+    failure_category: none
+    notes: "Self-review: [84] Feng 2025 remains stable and demo-usable."
+
+  - question_id: m16_q18
+    category: citation_check
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: false
+    failure_category: partial_numeric_extraction
+    notes: "Self-review: retrieval is fixed with [81] chunks 0010/0144, but the answer gives ranges and explanation instead of explicitly listing 77.2, 65.6, 81.5 kg N/ha and 33.6%, 31.5%, 40.8%."
+
+  - question_id: m16_q19
+    category: synthesis
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: true
+    failure_category: none
+    notes: "Self-review: improved. The answer compares [43] Liang 2020 and [92] Han 2025, correctly states the consistent direction, and avoids applying the [92] straw/flooding trade-off as the drip-reduced-N conclusion."
+
+  - question_id: m16_q20
+    category: synthesis
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: true
+    failure_category: none
+    notes: "Self-review: remains demo-usable synthesis over multiple rice studies."
+
+  - question_id: m16_q21
+    category: synthesis
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: true
+    failure_category: none
+    notes: "Self-review: improved. The answer uses at least two target sources, [67] and [78], and states the common conclusion that shallower precision irrigation can preserve yield while reducing irrigation and improving water productivity."
+
+  - question_id: m16_q22
+    category: synthesis
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: true
+    failure_category: none
+    notes: "Self-review: source-ID comparison remains stable and demo-usable."
+
+  - question_id: m16_q23
+    category: refuse
+    relevant: true
+    cited: false
+    not_hallucinated: true
+    usable_for_demo: true
+    failure_category: none
+    notes: "Self-review: correct refusal for a specific 2026 Jiangsu farmer prescription."
+
+  - question_id: m16_q24
+    category: refuse
+    relevant: true
+    cited: false
+    not_hallucinated: true
+    usable_for_demo: true
+    failure_category: none
+    notes: "Self-review: correct refusal for unsupported North China peanut + AWD nitrate-leaching evidence."
+
+summary:
+  total: 24
+  http_errors: 0
+  relevant: 24
+  cited: 22
+  not_hallucinated: 24
+  usable_for_demo: 21
+  refuse_not_hallucinated: 2
+  usable_question_ids:
+    - m16_q01
+    - m16_q02
+    - m16_q03
+    - m16_q04
+    - m16_q05
+    - m16_q07
+    - m16_q08
+    - m16_q09
+    - m16_q10
+    - m16_q11
+    - m16_q12
+    - m16_q13
+    - m16_q15
+    - m16_q16
+    - m16_q17
+    - m16_q19
+    - m16_q20
+    - m16_q21
+    - m16_q22
+    - m16_q23
+    - m16_q24
+  failure_categories:
+    spatial_factor_under_extraction: 1
+    partial_numeric_extraction: 2
+    none: 21
+  dod:
+    expanded_eval_completed_24_of_24_without_http_errors: true
+    refuse_not_hallucinated_2_of_2: true
+    usable_for_demo_at_least_12_of_24: true
+    synthesis_usable_at_least_2_of_4: true
+  reviewer_notes: "Initial self-review only; domain review is still required before making thesis/demo quality claims. The follow-up numeric/synthesis alias pass improved self-reviewed usability from 14/24 to 21/24. Remaining failures are no longer broad retrieval misses: q06 misses the NH3 spatial-driver phrase despite retrieving [81], q14 misses the national NUE value 0.31, and q18 does not explicitly list the required total-N-loss values and shares."

@@ -127,6 +127,8 @@ data/interim/
 
 # Paper corpus: PDFs are copyrighted, never commit
 data/papers/*.pdf
+data/papers/**/*.pdf
+data/papers_duplicates_m16/*.pdf
 !data/papers/sample.txt
 !data/papers/README.md
 

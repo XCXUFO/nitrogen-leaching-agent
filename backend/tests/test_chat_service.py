@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import asyncio
 import threading
+from collections.abc import Callable
+from typing import Any
 
 import pytest
 
 from src.agent.chat_service import ChatService, RAGQueryError
+from src.agent.prompt import DialogueTurn
 from src.llm.base import ChatMessage, ChatResult, ChatUsage, LLMClient
 from src.rag.retriever import RetrievalResult
 
@@ -68,6 +72,25 @@ def _result(index: int, document: str | None = None) -> RetrievalResult:
     )
 
 
+@pytest.fixture(autouse=True)
+def inline_to_thread(
+    monkeypatch: pytest.MonkeyPatch,
+) -> list[tuple[Callable[..., Any], tuple[Any, ...], dict[str, Any]]]:
+    calls: list[tuple[Callable[..., Any], tuple[Any, ...], dict[str, Any]]] = []
+
+    async def fake_to_thread(
+        func: Callable[..., Any],
+        /,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Any:
+        calls.append((func, args, kwargs))
+        return func(*args, **kwargs)
+
+    monkeypatch.setattr(asyncio, "to_thread", fake_to_thread)
+    return calls
+
+
 @pytest.mark.asyncio
 async def test_answer_uses_top_k_default_when_k_none() -> None:
     retriever = FakeRetriever([_result(1), _result(2)])
@@ -82,6 +105,28 @@ async def test_answer_uses_top_k_default_when_k_none() -> None:
     await service.answer("query")
 
     assert retriever.calls == [("query", 2)]
+
+
+@pytest.mark.asyncio
+async def test_answer_uses_history_in_retrieval_query() -> None:
+    retriever = FakeRetriever([_result(1)])
+    service = ChatService(
+        retriever,  # type: ignore[arg-type]
+        FakeLLMClient(),
+        top_k=2,
+        max_context_chars=500,
+        temperature=0.3,
+    )
+
+    await service.answer(
+        "那侧向渗漏贡献多少？",
+        history=[DialogueTurn(role="user", content="湖北荆州稻田地下径流")],
+    )
+
+    assert len(retriever.calls) == 1
+    assert "湖北荆州稻田地下径流" in retriever.calls[0][0]
+    assert "当前问题: lateral seepage" in retriever.calls[0][0]
+    assert "中文问题: 那侧向渗漏贡献多少？" in retriever.calls[0][0]
 
 
 @pytest.mark.asyncio
@@ -196,8 +241,9 @@ async def test_answer_wraps_retriever_exceptions() -> None:
 
 
 @pytest.mark.asyncio
-async def test_answer_runs_retriever_in_thread() -> None:
-    main_thread_id = threading.get_ident()
+async def test_answer_delegates_retriever_to_to_thread(
+    inline_to_thread: list[tuple[Callable[..., Any], tuple[Any, ...], dict[str, Any]]],
+) -> None:
     retriever = FakeRetriever([_result(1)])
     service = ChatService(
         retriever,  # type: ignore[arg-type]
@@ -209,5 +255,6 @@ async def test_answer_runs_retriever_in_thread() -> None:
 
     await service.answer("query")
 
-    assert retriever.thread_ids
-    assert retriever.thread_ids[0] != main_thread_id
+    assert len(inline_to_thread) == 1
+    assert inline_to_thread[0][0] == retriever.retrieve
+    assert inline_to_thread[0][1] == ("query", 1)

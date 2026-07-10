@@ -12,10 +12,16 @@ export interface Citation {
   snippet: string;
 }
 
+export interface ChatHistoryMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
 export interface ChatRequest {
   query: string;
   k?: number;
   session_id?: string;
+  history?: ChatHistoryMessage[];
 }
 
 export interface ChatResponse {

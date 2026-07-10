@@ -1,0 +1,267 @@
+runid: "20260710-161708"
+raw_jsonl: "backend/var/eval/mini_eval_20260710-161708.jsonl"
+questions_file: "data/eval/m16_questions.yaml"
+indexed_corpus:
+  papers: 90
+  chroma_dir: "backend/var/chroma_m16"
+  collection: "papers"
+experiment:
+  rag_enabled: true
+  rag_reranker_enabled: true
+  rag_reranker_model: "data/models/bge-reranker-v2-m3"
+  rag_reranker_top_k_recall: 20
+  rag_reranker_top_n: 5
+  request_k: null
+  retrieval_hint_pass: true
+
+scores:
+  - question_id: m16_q01
+    category: factual
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: true
+    failure_category: none
+    notes: "Post-hint self-review: [92] Han 2025 was retrieved as citation [1]. The answer gave the requested drainage, N leaching, N2O, yield, WUE and NUE deltas and is demo-usable."
+
+  - question_id: m16_q02
+    category: factual
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: true
+    failure_category: none
+    notes: "Post-hint self-review: [92] Han 2025 filled all top citations. The answer captured the CIFS/CIF trade-off: lower total/N nitrate leaching, higher DON leaching and higher N2O."
+
+  - question_id: m16_q03
+    category: factual
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: false
+    failure_category: partial_numeric_extraction
+    notes: "Post-hint self-review: [84] Feng 2025 appeared, but only the F2W2 N leaching reduction was recovered. The answer still missed ammonia volatilization, WUE and NUE values."
+
+  - question_id: m16_q04
+    category: factual
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: false
+    failure_category: partial_numeric_extraction
+    notes: "Post-hint self-review: [84] Feng 2025 was cited and F2W1/F1W2 leaching reductions were computed, but F1W2 ammonia volatilization remained missing."
+
+  - question_id: m16_q05
+    category: factual
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: false
+    failure_category: partial_numeric_extraction
+    notes: "Post-hint self-review: [81] Li 2025 was retrieved repeatedly, but the answer still failed to extract single/early/late rice total N loss values and shares."
+
+  - question_id: m16_q06
+    category: factual
+    relevant: false
+    cited: false
+    not_hallucinated: true
+    usable_for_demo: false
+    failure_category: retrieval_miss
+    notes: "Post-hint self-review: expected [81] Li 2025 spatial-driver evidence was absent from the answer context. The answer refused rather than fabricating."
+
+  - question_id: m16_q07
+    category: factual
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: true
+    failure_category: none
+    notes: "Post-hint self-review: [19] Zhou 2025 was retrieved and the answer gave the FR, FRS, MR and MRS TN runoff-loss ranges."
+
+  - question_id: m16_q08
+    category: factual
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: true
+    failure_category: none
+    notes: "Post-hint self-review: [19] Zhou 2025 was retrieved and the answer covered TN concentration reductions plus NH4-N and DON runoff-loss reductions."
+
+  - question_id: m16_q09
+    category: factual
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: true
+    failure_category: none
+    notes: "Post-hint self-review: [20] Huang 2026 filled the context. The answer gave CI seepage and nitrate-leaching reduction ranges versus FSI/WSI and explained why CI reduces leaching."
+
+  - question_id: m16_q10
+    category: factual
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: true
+    failure_category: none
+    notes: "Post-hint self-review: [22] Pan 2026 stayed stable and the answer covered rice-area decline, total TN-leaching reduction, dryland contribution increase and hotspot shift."
+
+  - question_id: m16_q11
+    category: factual
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: true
+    failure_category: none
+    notes: "Post-hint self-review: [67] Wu 2023 filled the context. The answer gave I-4 yield gain versus rainfed and water/productivity comparisons versus I-6."
+
+  - question_id: m16_q12
+    category: factual
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: true
+    failure_category: none
+    notes: "Post-hint self-review: [72] Wu 2024 was retrieved and the answer covered W4 deep-percolation reduction, comparable yield and crop water productivity improvement."
+
+  - question_id: m16_q13
+    category: factual
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: false
+    failure_category: partial_numeric_extraction
+    notes: "Post-hint self-review: [78] Wu 2024 was retrieved but the answer stayed mostly directional and missed the requested ETc, groundwater-level, irrigation-saving, WP and water-footprint numeric detail."
+
+  - question_id: m16_q14
+    category: factual
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: false
+    failure_category: partial_numeric_extraction
+    notes: "Post-hint self-review: [88] Ju 2025 was retrieved and national NUE plus post-2005 rate were answered, but the 2050 target judgement and management/breeding contrast were incomplete."
+
+  - question_id: m16_q15
+    category: factual
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: true
+    failure_category: none
+    notes: "Post-hint self-review: [93] Hou 2025 filled the context. The answer covered high/low NISM response and the 200-250 kg N/ha plus 473-516 mm water recommendation."
+
+  - question_id: m16_q16
+    category: citation_check
+    relevant: false
+    cited: false
+    not_hallucinated: true
+    usable_for_demo: false
+    failure_category: partial_numeric_extraction
+    notes: "Post-hint self-review: [87] Bo 2025 appeared only weakly and the answer refused. It still missed the framework variance and error-reduction metrics."
+
+  - question_id: m16_q17
+    category: citation_check
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: true
+    failure_category: none
+    notes: "Post-hint self-review: [84] Feng 2025 filled the context. The answer correctly explained why F2W2 was best: lower N losses, highest NUE, best composite index and yield/efficiency balance."
+
+  - question_id: m16_q18
+    category: citation_check
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: false
+    failure_category: partial_numeric_extraction
+    notes: "Post-hint self-review: [81] Li 2025 appeared but the answer still under-extracted and refused the late-rice comparison, missing total N loss values and shares."
+
+  - question_id: m16_q19
+    category: synthesis
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: false
+    failure_category: synthesis_incomplete
+    notes: "Post-hint self-review: [43] and [92] both entered citations, but [43] evidence was still abstract/background level, so the answer could not make a complete greenhouse tomato synthesis."
+
+  - question_id: m16_q20
+    category: synthesis
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: true
+    failure_category: none
+    notes: "Post-hint self-review: the answer synthesized [19] Zhou 2025 with [49] Liang 2021, covering green manure/reduced N pathways and water-saving irrigation pathways."
+
+  - question_id: m16_q21
+    category: synthesis
+    relevant: false
+    cited: false
+    not_hallucinated: true
+    usable_for_demo: false
+    failure_category: synthesis_incomplete
+    notes: "Post-hint self-review: [72] and [67] appeared in citations, but the answer still claimed W4/I-4 conclusions were unavailable and missed the shared water-saving/productivity synthesis."
+
+  - question_id: m16_q22
+    category: synthesis
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: true
+    failure_category: none
+    notes: "Post-hint self-review: the source-ID guard worked. The answer compared corpus sources [79] and [81] as field-scale subsurface-loss versus regional-scale multi-pathway/spatial modelling evidence."
+
+  - question_id: m16_q23
+    category: refuse
+    relevant: true
+    cited: false
+    not_hallucinated: true
+    usable_for_demo: true
+    failure_category: none
+    notes: "Post-hint self-review: correct refusal for a specific 2026 Jiangsu farmer prescription without field, soil, variety, weather, yield target or management-history data."
+
+  - question_id: m16_q24
+    category: refuse
+    relevant: true
+    cited: false
+    not_hallucinated: true
+    usable_for_demo: true
+    failure_category: none
+    notes: "Post-hint self-review: correct refusal for unsupported North China peanut + AWD nitrate-leaching evidence. The answer did not transfer rice/wheat/maize data into a fabricated peanut value."
+
+summary:
+  total: 24
+  http_errors: 0
+  relevant: 21
+  cited: 19
+  not_hallucinated: 24
+  usable_for_demo: 14
+  refuse_not_hallucinated: 2
+  usable_question_ids:
+    - m16_q01
+    - m16_q02
+    - m16_q07
+    - m16_q08
+    - m16_q09
+    - m16_q10
+    - m16_q11
+    - m16_q12
+    - m16_q15
+    - m16_q17
+    - m16_q20
+    - m16_q22
+    - m16_q23
+    - m16_q24
+  failure_categories:
+    retrieval_miss: 1
+    partial_numeric_extraction: 7
+    synthesis_incomplete: 2
+    none: 14
+  dod:
+    expanded_eval_completed_24_of_24_without_http_errors: true
+    refuse_not_hallucinated_2_of_2: true
+    usable_for_demo_at_least_12_of_24: true
+    synthesis_usable_at_least_2_of_4: true
+  reviewer_notes: "Initial self-review only; domain review is still required before making thesis/demo quality claims. The retrieval hint pass improved answer-level usability from 5/24 to 14/24 and fixed the major source-miss cases for [92], [20], [67], [93] and [79]/[81]. Remaining failures are concentrated in numeric extraction from relevant but split/table-like evidence chunks and incomplete synthesis when the right sources are present but not the right sections."

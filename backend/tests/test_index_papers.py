@@ -16,7 +16,7 @@ _SCRIPTS = _BACKEND_ROOT / "scripts"
 if str(_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS))
 
-from index_papers import derive_document_id  # noqa: E402
+from index_papers import collect_paths, derive_document_id  # noqa: E402
 
 
 def test_derive_document_id_strips_suffix(tmp_path: Path) -> None:
@@ -68,3 +68,30 @@ def test_derive_document_id_outside_repo_root_raises(tmp_path: Path) -> None:
     outside.write_text("x", encoding="utf-8")
     with pytest.raises(ValueError):
         derive_document_id(outside, repo)
+
+
+def test_collect_paths_scans_directory_recursively(tmp_path: Path) -> None:
+    paper_dir = tmp_path / "papers"
+    nested = paper_dir / "nested"
+    nested.mkdir(parents=True)
+    a = paper_dir / "a.pdf"
+    b = nested / "b.txt"
+    ignored = nested / "c.docx"
+    a.write_text("a", encoding="utf-8")
+    b.write_text("b", encoding="utf-8")
+    ignored.write_text("c", encoding="utf-8")
+
+    paths = collect_paths([], paper_dir, "**/*")
+
+    assert paths == [a, b]
+
+
+def test_collect_paths_deduplicates_explicit_and_scanned_paths(tmp_path: Path) -> None:
+    paper_dir = tmp_path / "papers"
+    paper_dir.mkdir()
+    f = paper_dir / "a.pdf"
+    f.write_text("x", encoding="utf-8")
+
+    paths = collect_paths([f], paper_dir, "**/*")
+
+    assert paths == [f]

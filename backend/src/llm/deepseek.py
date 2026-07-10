@@ -1,3 +1,4 @@
+import httpx
 from openai import AsyncOpenAI
 
 from src.llm.base import ChatMessage, ChatResult, ChatUsage, LLMClient
@@ -15,11 +16,15 @@ class DeepSeekClient(LLMClient):
     ) -> None:
         # 运行时权威值来自 Settings（config.py）→ main.py 显式传入；这里的默认仅
         # 作为直接构造（脚本/测试）时的安全兜底，不再吃 SDK 的 600s 默认超时。
+        # Demo 环境里常见代理变量被终端/IDE 注入；这里关闭 env proxy 继承，避免
+        # malformed HTTP(S)_PROXY 让后端在构造 client 阶段直接启动失败。
+        http_client = httpx.AsyncClient(trust_env=False)
         self._client = AsyncOpenAI(
             api_key=api_key,
             base_url=base_url,
             timeout=timeout_s,
             max_retries=max_retries,
+            http_client=http_client,
         )
         self._model = model
 

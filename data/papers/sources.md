@@ -28,3 +28,36 @@
 | WHCNS 模型应用 | [26] [29] [43] |
 
 8 篇覆盖"机制 / 管理 / 模型"三块，符合 spec §3.1 子主题分布。
+
+## M1.6 语料整理状态
+
+M1.6 已将本地新增 PDF 初步整理为统一命名格式：
+
+```text
+NNN_author_year_topic.pdf
+```
+
+整理结果：
+
+- `data/papers/` 当前保留 **90 篇**可索引 PDF。
+- 原 M1.4-a 的 8 篇 canonical 文件名保持不变，以保护既有 mini eval
+  的 chunk/source 引用。
+- 10 个重复文件已移出索引目录到 `data/papers_duplicates_m16/`：
+  - 8 个为 `[26]` / `[29]` / `[41]` / `[43]` / `[60]` / `[63]` / `[67]` /
+    `[79]` 与既有 canonical PDF 的精确重复；
+  - 1 个为 `[74]` / `[75]` 的精确重复；
+  - 1 个为 `[1]` / `[2]` 的语义重复（保留 `[1]`）。
+- 逐文件重命名与重复移动记录见 `data/papers/rename_manifest_m16.json`。
+- 可读文献目录见 `data/papers/catalog_m16.md`，机器可读目录见
+  `data/papers/catalog_m16.json`。
+- M1.6 demo 索引快照：`backend/var/chroma_m16` / collection `papers`，
+  共 90 个 `document_id`、12472 个 chunks；本地 `.env` 已指向
+  `RAG_CHROMA_DIR=./var/chroma_m16`。
+
+完整当前入库文件可用：
+
+```bash
+find data/papers -maxdepth 1 -type f -iname '*.pdf' | sort
+```
+
+> 注意：PDF 仍受版权保护，不入 git；本文件和 rename manifest 只记录本地语料组织状态。

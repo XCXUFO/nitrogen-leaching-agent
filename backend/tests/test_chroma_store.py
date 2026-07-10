@@ -36,6 +36,24 @@ def test_add_then_count_reflects_inserted_documents(tmp_path: Path) -> None:
     assert store.count() == 2
 
 
+def test_has_document_checks_document_id_metadata(tmp_path: Path) -> None:
+    store = ChromaStore(persist_dir=tmp_path, collection_name=_COLLECTION)
+    assert store.has_document("doc-a") is False
+
+    store.add(
+        ids=["a", "b"],
+        documents=["氮淋失风险评估", "土壤水分模拟"],
+        embeddings=[[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0]],
+        metadatas=[
+            {"document_id": "doc-a", "chunk_index": 0},
+            {"document_id": "doc-b", "chunk_index": 0},
+        ],
+    )
+
+    assert store.has_document("doc-a") is True
+    assert store.has_document("missing") is False
+
+
 def test_query_returns_nearest_by_embedding(tmp_path: Path) -> None:
     store = ChromaStore(persist_dir=tmp_path, collection_name=_COLLECTION)
     store.add(

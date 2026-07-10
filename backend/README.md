@@ -40,6 +40,24 @@ uv run pytest
 `POST /api/chat` 默认返回 503，因为 `RAG_ENABLED=false` 时不会加载 BGE、Chroma
 或本地索引。启用真实问答前需要：装 RAG extras → 准备本地嵌入模型 → 生成 Chroma 索引。
 
+M1.6 起 `/api/chat` 支持轻量多轮。旧请求体仍可用：
+
+```json
+{"query": "氮素淋失主要受什么因素影响？"}
+```
+
+追问时可附带最近历史，后端会用历史增强检索，但答案仍只依据本轮召回资料：
+
+```json
+{
+  "query": "那侧向渗漏贡献多少？",
+  "history": [
+    {"role": "user", "content": "湖北荆州稻田地下径流和地表径流相比如何？"},
+    {"role": "assistant", "content": "地下径流氮损失约为地表径流 2 倍。"}
+  ]
+}
+```
+
 ### 1. 安装 RAG 依赖
 
 ```bash
@@ -79,13 +97,26 @@ uv run python scripts/index_papers.py \
 索引脚本会读 `settings.embedding_model`，与运行期 `lifespan` 用同一份模型，
 避免索引/查询走不同模型导致检索错位。
 
+M1.6 demo 内容入库可以直接递归扫描论文目录：
+
+```bash
+uv run python scripts/index_papers.py \
+  --dir ../data/papers \
+  --glob '*.pdf' \
+  --persist-dir var/chroma_m16 \
+  --collection papers \
+  --repo-root .. \
+  --embed-batch-size 16 \
+  --skip-existing
+```
+
 ### 4. 启用 chat 路由
 
 在 `.env` 中设置：
 
 ```dotenv
 RAG_ENABLED=true
-RAG_CHROMA_DIR=./var/chroma
+RAG_CHROMA_DIR=./var/chroma_m16
 RAG_COLLECTION=papers
 ```
 

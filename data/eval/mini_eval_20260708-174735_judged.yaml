@@ -1,0 +1,259 @@
+runid: "20260708-174735"
+raw_jsonl: "backend/var/eval/mini_eval_20260708-174735.jsonl"
+questions_file: "data/eval/m16_questions.yaml"
+indexed_corpus:
+  papers: 90
+  chroma_dir: "backend/var/chroma_m16"
+  collection: "papers"
+experiment:
+  rag_enabled: true
+  rag_reranker_enabled: true
+  rag_reranker_model: "data/models/bge-reranker-v2-m3"
+  rag_reranker_top_k_recall: 20
+  rag_reranker_top_n: 5
+  request_k: null
+
+scores:
+  - question_id: m16_q01
+    category: factual
+    relevant: false
+    cited: false
+    not_hallucinated: true
+    usable_for_demo: false
+    failure_category: retrieval_miss
+    notes: "Initial self-review: expected [92] Han 2025 greenhouse tomato evidence was not retrieved. The answer conservatively refused and did not fabricate the requested drainage, N loss, N2O, yield, WUE or NUE values."
+
+  - question_id: m16_q02
+    category: factual
+    relevant: false
+    cited: false
+    not_hallucinated: true
+    usable_for_demo: false
+    failure_category: retrieval_miss
+    notes: "Initial self-review: expected [92] Han 2025 straw-return trade-off evidence was not retrieved. The answer correctly avoided inventing CIFS/CIF, DON and N2O values, but the task failed."
+
+  - question_id: m16_q03
+    category: factual
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: false
+    failure_category: partial_numeric_extraction
+    notes: "Initial self-review: [84] Feng 2025 entered citations and the answer recovered the F2W2 N leaching reduction, but missed ammonia volatilization, WUE and NUE values. Partial evidence hit, below demo threshold."
+
+  - question_id: m16_q04
+    category: factual
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: false
+    failure_category: partial_numeric_extraction
+    notes: "Initial self-review: [84] Feng 2025 evidence was cited and F2W1/F1W2 leaching reductions were computed correctly, but F1W2 ammonia volatilization was not extracted and the F2W2 best-treatment context was incomplete."
+
+  - question_id: m16_q05
+    category: factual
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: false
+    failure_category: partial_numeric_extraction
+    notes: "Initial self-review: [81] Li 2025 was retrieved repeatedly, but the model said the single/early/late rice total N loss values were not available. It missed 77.2, 65.6, 81.5 kg N/ha and 33.6%, 31.5%, 40.8%."
+
+  - question_id: m16_q06
+    category: factual
+    relevant: false
+    cited: false
+    not_hallucinated: true
+    usable_for_demo: false
+    failure_category: retrieval_miss
+    notes: "Initial self-review: expected [81] Li 2025 regional Hubei factor evidence was absent from the final answer context. The answer refused instead of fabricating, but did not answer the spatial-driver question."
+
+  - question_id: m16_q07
+    category: factual
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: true
+    failure_category: none
+    notes: "Initial self-review: correctly retrieved and cited [19] Zhou 2025 and gave the FR, FRS, MR and MRS TN runoff-loss ranges. This is demo-usable."
+
+  - question_id: m16_q08
+    category: factual
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: true
+    failure_category: none
+    notes: "Initial self-review: correctly retrieved [19] Zhou 2025 and answered TN peak/average concentration reductions plus NH4-N and DON runoff-loss pathways. Minor numeric range should be domain-checked, but the answer is demo-usable."
+
+  - question_id: m16_q09
+    category: factual
+    relevant: false
+    cited: false
+    not_hallucinated: true
+    usable_for_demo: false
+    failure_category: retrieval_miss
+    notes: "Initial self-review: expected [20] Huang 2026 WHCNS_Rice CI/FSI/WSI evidence was not retrieved. The answer refused without fabricating CI seepage or nitrate-leaching reductions."
+
+  - question_id: m16_q10
+    category: factual
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: true
+    failure_category: none
+    notes: "Initial self-review: correctly retrieved [22] Pan 2026 and described the rice-area decline, total TN-leaching reduction, dryland contribution increase and hotspot shift. This is demo-usable."
+
+  - question_id: m16_q11
+    category: factual
+    relevant: false
+    cited: false
+    not_hallucinated: true
+    usable_for_demo: false
+    failure_category: retrieval_miss
+    notes: "Initial self-review: expected [67] Wu 2023 I-4/I-6/rainfed evidence was not used. The answer refused and did not fabricate yield or water-productivity numbers."
+
+  - question_id: m16_q12
+    category: factual
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: false
+    failure_category: partial_numeric_extraction
+    notes: "Initial self-review: correctly retrieved [72] Wu 2024 and gave deep-percolation reduction plus comparable yields, but missed the full W-M and W-S crop water productivity comparisons. Useful partial answer, not demo-complete."
+
+  - question_id: m16_q13
+    category: factual
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: false
+    failure_category: partial_numeric_extraction
+    notes: "Initial self-review: retrieved [78] Wu 2024 and described WS/W4 directionally, but missed ETc variability, groundwater-level, irrigation-saving, WP and water-footprint numeric ranges."
+
+  - question_id: m16_q14
+    category: factual
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: false
+    failure_category: partial_numeric_extraction
+    notes: "Initial self-review: retrieved [88] Ju 2025 and answered national NUE plus post-2005 rate, but missed the 2050 target judgement and the management/breeding contrast required by the question."
+
+  - question_id: m16_q15
+    category: factual
+    relevant: false
+    cited: false
+    not_hallucinated: true
+    usable_for_demo: false
+    failure_category: retrieval_miss
+    notes: "Initial self-review: expected [93] Hou 2025 shallow-groundwater oasis drip maize evidence was not retrieved. The answer refused rather than inventing high/low initial mineral N responses or the 200-250 kg N/ha and 473-516 mm recommendation."
+
+  - question_id: m16_q16
+    category: citation_check
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: false
+    failure_category: partial_numeric_extraction
+    notes: "Initial self-review: [87] Bo 2025 was cited, but the final context did not expose the required framework metrics. The answer refused instead of giving 52%, 60%, 37%, 94%, 35%-85%, 18%, 11% and 14%."
+
+  - question_id: m16_q17
+    category: citation_check
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: false
+    failure_category: partial_numeric_extraction
+    notes: "Initial self-review: correctly cited [84] Feng 2025 and explained why F2W2 was best, but did not provide all required exact deltas for ammonia volatilization, N leaching, WUE and NUE. Strong partial answer, not demo-complete."
+
+  - question_id: m16_q18
+    category: citation_check
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: false
+    failure_category: partial_numeric_extraction
+    notes: "Initial self-review: [81] Li 2025 was cited, but the answer under-extracted and refused the late-rice comparison. It missed the required 77.2, 65.6, 81.5 kg N/ha and 33.6%, 31.5%, 40.8% values."
+
+  - question_id: m16_q19
+    category: synthesis
+    relevant: false
+    cited: false
+    not_hallucinated: true
+    usable_for_demo: false
+    failure_category: retrieval_miss
+    notes: "Initial self-review: expected cross-source greenhouse tomato synthesis over [43] Liang 2020 and [92] Han 2025 failed because neither target source was available in the answer context. Conservative refusal, not usable."
+
+  - question_id: m16_q20
+    category: synthesis
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: false
+    failure_category: synthesis_single_source
+    notes: "Initial self-review: correctly used [19] Zhou 2025 for green manure and reduced N, but failed to synthesize at least two rice studies and missed the controlled-irrigation seepage/nitrate-leaching pathway from [20] or related rice sources."
+
+  - question_id: m16_q21
+    category: synthesis
+    relevant: true
+    cited: true
+    not_hallucinated: true
+    usable_for_demo: false
+    failure_category: synthesis_incomplete
+    notes: "Initial self-review: [72] Wu 2024 and [67] Wu 2023 appeared in citations, but the answer still claimed W4/I-4 conclusions were not available and missed the shared yield-preserving water-saving/productivity conclusion."
+
+  - question_id: m16_q22
+    category: synthesis
+    relevant: false
+    cited: false
+    not_hallucinated: true
+    usable_for_demo: false
+    failure_category: citation_reference_confusion
+    notes: "Initial self-review: the model treated [79] and [81] as local citation indices instead of corpus source IDs, retrieved only [81], and did not compare field/process-scale and regional-scale Hubei evidence. Conservative but failed synthesis."
+
+  - question_id: m16_q23
+    category: refuse
+    relevant: true
+    cited: false
+    not_hallucinated: true
+    usable_for_demo: true
+    failure_category: none
+    notes: "Initial self-review: correct refusal for a specific 2026 Jiangsu farmer prescription without field, soil, variety, weather, yield target or management-history data. It did not turn paper treatments into a farm prescription."
+
+  - question_id: m16_q24
+    category: refuse
+    relevant: true
+    cited: false
+    not_hallucinated: true
+    usable_for_demo: true
+    failure_category: none
+    notes: "Initial self-review: correct refusal for unsupported North China peanut + AWD nitrate-leaching evidence. It did not transfer rice AWD/CI or wheat/maize irrigation data into a fabricated peanut value."
+
+summary:
+  total: 24
+  http_errors: 0
+  relevant: 16
+  cited: 14
+  not_hallucinated: 24
+  usable_for_demo: 5
+  refuse_not_hallucinated: 2
+  usable_question_ids:
+    - m16_q07
+    - m16_q08
+    - m16_q10
+    - m16_q23
+    - m16_q24
+  failure_categories:
+    retrieval_miss: 7
+    partial_numeric_extraction: 9
+    synthesis_single_source: 1
+    synthesis_incomplete: 1
+    citation_reference_confusion: 1
+    none: 5
+  dod:
+    expanded_eval_completed_24_of_24_without_http_errors: true
+    refuse_not_hallucinated_2_of_2: true
+    usable_for_demo_at_least_12_of_24: false
+    synthesis_usable_at_least_2_of_4: false
+  reviewer_notes: "Initial self-review only; domain review is still required before making thesis/demo quality claims. Transport and refusal behavior are stable, but answer-level usability is 5/24. The dominant failures are retrieval/source miss for new English papers and under-extraction of numeric facts from relevant evidence chunks; synthesis questions also need better multi-source retrieval and source-ID handling."

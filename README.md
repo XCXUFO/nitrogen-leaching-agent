@@ -14,7 +14,7 @@ The project currently provides a working foundation for RAG-based agronomy QA:
 - BGE embedding and Chroma vector search
 - optional cross-encoder reranking
 - FastAPI chat endpoint
-- Next.js single-turn chat UI
+- Next.js multi-turn chat UI
 - citation display
 - retrieval debugging and mini-evaluation utilities
 
@@ -24,14 +24,15 @@ environmental, or regulatory decisions.
 
 ## Capabilities
 
-- **RAG chat**: answer questions using a local paper knowledge base.
+- **RAG chat**: answer single-turn and recent-history follow-up questions using
+  a local paper knowledge base.
 - **Citations**: return source snippets with each answer.
 - **Retrieval diagnostics**: inspect embedding-only and reranked retrieval
   outputs.
 - **Evaluation workflow**: run a frozen mini eval set and record manual
   judgement results.
-- **Frontend UI**: submit one question at a time and inspect citations and
-  backend health.
+- **Frontend UI**: keep a running conversation and inspect per-answer citations
+  and backend health.
 
 ## Tech Stack
 

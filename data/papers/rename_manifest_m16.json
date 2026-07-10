@@ -1,0 +1,738 @@
+[
+  {
+    "ref_id": 10,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[10]设施菜地WHCNS＿Veg水氮管理模型_梁浩.pdf",
+    "to": "../data/papers/010_liang_2020_whcns_veg_water_n_management.pdf",
+    "sha256": "9020637e37254845260328e0786d3804291a0eec6856441ca82aa9b6f5d9a586"
+  },
+  {
+    "ref_id": 11,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[11]华北平原大孔隙优先流对农田氮素淋溶的影响_曾辉.pdf",
+    "to": "../data/papers/011_zeng_2021_macropore_preferential_flow_n_leaching.pdf",
+    "sha256": "ea661abdf64f4517440ca24a9168cb0869a2bf7a8275d9c975bd025099d38d00"
+  },
+  {
+    "ref_id": 12,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[12]华北平原农田裂缝对硝态氮淋溶的影响_阿力曼.pdf",
+    "to": "../data/papers/012_aliman_2021_farmland_cracks_nitrate_leaching.pdf",
+    "sha256": "e5cc307e1fea7d0023590c9a3b7c4be2b29f90651e78638afd165fe66462b81e"
+  },
+  {
+    "ref_id": 13,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[13]稻田-沟塘系统水氮动态模拟与灌排调控模型构建_梁浩.pdf",
+    "to": "../data/papers/013_liang_2021_paddy_ditch_pond_water_n_model.pdf",
+    "sha256": "353f01765486371c94d507332b5b73b1ad9e3b7b42c4a73d7d71215a2c030a56"
+  },
+  {
+    "ref_id": 14,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[14]改进WHCNS模型模拟耕作方式对作物生长和水分利用效率的影响_任健.pdf",
+    "to": "../data/papers/014_ren_2022_tillage_whcns_crop_water_efficiency.pdf",
+    "sha256": "ab47489a89cdf7b13b801240544dd280152b54421bb47ce52f60ad373b33993d"
+  },
+  {
+    "ref_id": 15,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[15]运用WHCNS模型对农田氮素损失的验证及分析_杜艾芳.pdf",
+    "to": "../data/papers/015_du_2015_whcns_farmland_n_loss_validation.pdf",
+    "sha256": "fcacf6b4933eb3e86e3dc6296c2de4ea998deeb3259f196695a465f5374c16fc"
+  },
+  {
+    "ref_id": 16,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[16]黄淮海平原微喷灌下冬小麦农田水分渗漏及氮素淋失模拟分析_乔毅博.pdf",
+    "to": "../data/papers/016_qiao_2023_winter_wheat_microsprinkler_n_leaching.pdf",
+    "sha256": "3e0ef4777a249893666c73489534eb80a3ee42538f1f04ef55cae2ba9912a7c9"
+  },
+  {
+    "ref_id": 17,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[17]基于WHCNS模型的黄河流域麦田氮淋失与氨挥发模拟_马莉.pdf",
+    "to": "../data/papers/017_ma_2024_yellow_river_wheat_n_leaching_nh3.pdf",
+    "sha256": "2dd2a3e1b64c262e4b5edc1396c312130b9525439ae514f3bc12a5622ec2de12"
+  },
+  {
+    "ref_id": 18,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[18]基于WHCNS模型的华北平原麦田灌溉制度优选研究_于晴.pdf",
+    "to": "../data/papers/018_yu_2024_north_china_wheat_irrigation_optimization.pdf",
+    "sha256": "0c60c547666171fcad16805652549c95ce5aad0bad3794f1d583616f3c21239c"
+  },
+  {
+    "ref_id": 19,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[19]绿肥配合氮肥减施40%对长江中下游稻田氮素径流形态及损失的影响_周国栋.pdf",
+    "to": "../data/papers/019_zhou_2025_green_manure_reduced_fertilizer_rice_runoff.pdf",
+    "sha256": "014a1fea6d9644ad4476dfc915d92216e489d7b6eccd8263324795209e23234b"
+  },
+  {
+    "ref_id": 1,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[1]j.issn.1002-6819.2014.24.007.pdf",
+    "to": "../data/papers/001_liang_2014_whcns_model_construction.pdf",
+    "sha256": "ff41913cc31c0f8e03db0b99afabe35125d9553153e8b974ecaba916f9e9363e"
+  },
+  {
+    "ref_id": 20,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[20]基于WHCNS＿Rice模型的水稻节水灌溉模式模拟与评价_黄昕然.pdf",
+    "to": "../data/papers/020_huang_2026_whcns_rice_water_saving_irrigation.pdf",
+    "sha256": "1ecb5ff96744508e3b95ea9399d0983255c86848df9fdad42fe821934b1a7e85"
+  },
+  {
+    "ref_id": 21,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[21]华北平原夏玉米WHCNS模型适用性分析_焦静.pdf",
+    "to": "../data/papers/021_jiao_2025_north_china_summer_maize_whcns.pdf",
+    "sha256": "1188f351b4645d1369f529ffd6e168fb2842922a9c9ae3dc2c50d68b17a2d9b6"
+  },
+  {
+    "ref_id": 22,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[22]宁夏引黄灌区近10年农田总氮淋失模拟及地下水污染新态势_潘永春.pdf",
+    "to": "../data/papers/022_pan_2026_ningxia_ten_year_total_n_leaching.pdf",
+    "sha256": "6b3c332409cdde021329fc6227dc3d8d3fe14b21707cc2ea128ca91a94b916fc"
+  },
+  {
+    "ref_id": 25,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[25]1-s2.0-S0378377415300019-main.pdf",
+    "to": "../data/papers/025_li_2015_evaluation_water_nitrogen_use_efficiencies_double_cropping_system.pdf",
+    "sha256": "31197da747967b1accb92c1614654d722a833a49b74def25d6180b3745af73ce"
+  },
+  {
+    "ref_id": 26,
+    "action": "move_duplicate",
+    "reason": "exact_duplicate",
+    "from": "../data/papers/[26]srep25755.pdf",
+    "to": "../data/papers_duplicates_m16/[26]srep25755.pdf",
+    "sha256": "46408cca70840ae508e90f62b5dac81b8358c42d78c4508e6bcf47d400311ba9"
+  },
+  {
+    "ref_id": 27,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[27]1-s2.0-S0301479716303371-main.pdf",
+    "to": "../data/papers/027_liang_2016_can_nitrate_contaminated_groundwater_be_remediated_optimizing_flood.pdf",
+    "sha256": "dee93f611b60886a8b4005304459f864e25bf0655381bc82a5f90b2db517a3a5"
+  },
+  {
+    "ref_id": 28,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[28]1-s2.0-S0378429016306608-main.pdf",
+    "to": "../data/papers/028_liang_2016_modelling_effect_mulching_soil_heat_transfer_water_movement.pdf",
+    "sha256": "f824dd1c829eaf8bf7c15b2ede69c6aedda9855e8ab7c802f84a85f7728685d5"
+  },
+  {
+    "ref_id": 29,
+    "action": "move_duplicate",
+    "reason": "exact_duplicate",
+    "from": "../data/papers/[29]1-s2.0-S016816991730409X-main.pdf",
+    "to": "../data/papers_duplicates_m16/[29]1-s2.0-S016816991730409X-main.pdf",
+    "sha256": "a090f268e917de7d59d51d156d171550d0b67089dd55287858200b97ecbdfc37"
+  },
+  {
+    "ref_id": 2,
+    "action": "move_duplicate",
+    "reason": "semantic_duplicate_of_001",
+    "from": "../data/papers/[2]土壤-作物-大气系统水热碳氮过程耦合模型构建_梁浩.pdf",
+    "to": "../data/papers_duplicates_m16/[2]土壤-作物-大气系统水热碳氮过程耦合模型构建_梁浩.pdf",
+    "sha256": "eb84df1abccd6d7031bd55e20e1a4bf295a11197b139fe4d26f73e08a97f2821"
+  },
+  {
+    "ref_id": 30,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[30]1-s2.0-S037837741730330X-main.pdf",
+    "to": "../data/papers/030_liang_2017_modelling_subsurface_drainage_nitrogen_losses_artificially_drained_cropland.pdf",
+    "sha256": "d7d69e461eaefbcd0626b968c36956e0581443d95315d6e099240b1b54782f3f"
+  },
+  {
+    "ref_id": 31,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[31]1-s2.0-S0304380017304416-main.pdf",
+    "to": "../data/papers/031_liang_2017_developing_water_nitrogen_management_model_greenhouse_vegetable_production.pdf",
+    "sha256": "352f1ebd9a836c30350b279ef5a6457385f7043e14e21cd09fdb53706c86006a"
+  },
+  {
+    "ref_id": 32,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[32]1-s2.0-S0378377418304001-main.pdf",
+    "to": "../data/papers/032_he_2018_modeling_nitrogen_leaching_spring_maize_system_changing_climate.pdf",
+    "sha256": "ae4b0eb7238927508172a0c56a930063503496514b69f4d1e88560e8b9027a31"
+  },
+  {
+    "ref_id": 33,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[33]Wang_2018_IOP_Conf._Ser.__Earth_Environ._Sci._170_022170.pdf",
+    "to": "../data/papers/033_wang_2018_potato_water_fertilizer_whcns_calibration.pdf",
+    "sha256": "ae6208f1e79ac55e8710c151ade260eee1fd044ce50c0148dd41990b7d48d817"
+  },
+  {
+    "ref_id": 34,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[34]1-s2.0-S0378377418306930-main.pdf",
+    "to": "../data/papers/034_zhang_2018_exploring_optimal_catch_crops_reducing_nitrate_leaching_vegetable.pdf",
+    "sha256": "003556e2ec75140260a953199697b280948c8947494bdee5b7dac573dcda2db3"
+  },
+  {
+    "ref_id": 35,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[35]1-s2.0-S001670611831200X-main.pdf",
+    "to": "../data/papers/035_liang_2019_modeling_dissolved_organic_nitrogen_dynamics_different_n_management.pdf",
+    "sha256": "d384d5530dcdaf61af00f90a99624ce2e76f460a4e4eabd9d7e0022d0437fcdd"
+  },
+  {
+    "ref_id": 36,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[36]1-s2.0-S0378377418315464-main.pdf",
+    "to": "../data/papers/036_liang_2019_modelling_groundwater_level_dynamics_different_cropping_systems_developing.pdf",
+    "sha256": "2a15a19d9e871fdebd71c4da7eb2e4516533f6aecf48ff61758666361ba11f21"
+  },
+  {
+    "ref_id": 37,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[37]1-s2.0-S0378429018314692-main.pdf",
+    "to": "../data/papers/037_liang_2019_ground_cover_rice_production_system_reduces_water_consumption.pdf",
+    "sha256": "077527ad44f0ba18a0e8366f22b1f87c9f90ce0d9767b83feacdf934f2f427ce"
+  },
+  {
+    "ref_id": 38,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[38]agronomy-09-00696.pdf",
+    "to": "../data/papers/038_leghari_2019_modeling_water_nitrogen_balance_different_cropping_systems_north.pdf",
+    "sha256": "9cbb8927de9dd2ffe7bbeda9c5ea88cc2b0cd3c46738dd8690b710c6fe2eebd3"
+  },
+  {
+    "ref_id": 39,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[39]agronomy-10-00786-v2.pdf",
+    "to": "../data/papers/039_he_2020_climate_change_wheat_maize_water_n_fluxes.pdf",
+    "sha256": "2f481ad0df056889b8854f7759df7909ebabf77c75ea773a5ea819da2a706d6d"
+  },
+  {
+    "ref_id": 3,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[3]不同施肥管理模式下农田氮素淋失及水氮利用效率模拟分析_梁浩.pdf",
+    "to": "../data/papers/003_liang_2015_fertilizer_management_n_leaching_efficiency.pdf",
+    "sha256": "797c9f1a7afdd132140dab2587218ed9293326f1dc8c44a9a7133d8ce47556f4"
+  },
+  {
+    "ref_id": 40,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[40]s11119-019-09688-0.pdf",
+    "to": "../data/papers/040_chen_2019_delineation_management_zones_optimization_irrigation_scheduling_improve_irrigation.pdf",
+    "sha256": "2fa55a3db5a9adb2e9b10c585ae14c9d1adc5552401b3eac88b7bef021cf49c6"
+  },
+  {
+    "ref_id": 41,
+    "action": "move_duplicate",
+    "reason": "exact_duplicate",
+    "from": "../data/papers/[41]1-s2.0-S0378377419310388-main.pdf",
+    "to": "../data/papers_duplicates_m16/[41]1-s2.0-S0378377419310388-main.pdf",
+    "sha256": "25e9dbc8d15de5052253a9b463de38d2cc87efe5d5b92dd0d8de995b89ef9023"
+  },
+  {
+    "ref_id": 42,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[42]1-s2.0-S0378377419322772-main.pdf",
+    "to": "../data/papers/042_shi_2020_determining_optimal_water_nitrogen_management_different_initial_soil.pdf",
+    "sha256": "14b07a0ea953192289ccec55632c80fc8caef37559b9a340d73b6825d4ba344e"
+  },
+  {
+    "ref_id": 43,
+    "action": "move_duplicate",
+    "reason": "exact_duplicate",
+    "from": "../data/papers/[43]1-s2.0-S0378377419310716-main.pdf",
+    "to": "../data/papers_duplicates_m16/[43]1-s2.0-S0378377419310716-main.pdf",
+    "sha256": "db9ce292c02370c39cb9538c96b5a90e07bf5eb44efe9428341df3a430dd0191"
+  },
+  {
+    "ref_id": 44,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[44]1-s2.0-S1161030120300514-main.pdf",
+    "to": "../data/papers/044_liang_2020_global_sensitivity_uncertainty_analysis_dynamic_simulation_crop_n.pdf",
+    "sha256": "c085ad393a4646c5696b49aa13bd41d37c78234aa55d3233cc79003bae8d3f73"
+  },
+  {
+    "ref_id": 45,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[45]1-s2.0-S0048969720328412-main.pdf",
+    "to": "../data/papers/045_chen_2021_evaluation_simulation_spatial_variability_soil_property_effects_deep.pdf",
+    "sha256": "7c313713298229e4e671e56bf4d8ffa73ff78f928daf35eb89a83ae42d636fa3"
+  },
+  {
+    "ref_id": 46,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[46]1-s2.0-S095965262031595X-main.pdf",
+    "to": "../data/papers/046_xu_2020_incorporating_whcns_model_assess_water_nitrogen_footprint_alternative.pdf",
+    "sha256": "b71147bde3f2462cc62d3850ffaf421362e022ff51d8b244497ac8f426b7ee04"
+  },
+  {
+    "ref_id": 47,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[47]1-s2.0-S0308521X2030812X-main.pdf",
+    "to": "../data/papers/047_liang_2021_modeling_effects_long_term_reduced_n_application_soil.pdf",
+    "sha256": "1cea89f1523046a995f63be8e506bfd4a8aa825615addc05882b303ee9c79061"
+  },
+  {
+    "ref_id": 48,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[48]agronomy-10-01890.pdf",
+    "to": "../data/papers/048_wang_2020_comparison_water_nitrogen_use_efficiency_over_drip_irrigation.pdf",
+    "sha256": "1222d8c7f50f207e6b1e1c1e282c80afe07c370afbd5e6b9b4842c140deff8b4"
+  },
+  {
+    "ref_id": 49,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[49]1-s2.0-S0167198721000143-main.pdf",
+    "to": "../data/papers/049_liang_2021_modeling_water_consumption_n_fates_rice_yield_water.pdf",
+    "sha256": "18ff12bf5d55ca001052b82f3ed15e27139b563449f68bba91e9af94c976de09"
+  },
+  {
+    "ref_id": 4,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[4]基于PEST的土壤-作物系统模型参数优化及灵敏度分析_梁浩.pdf",
+    "to": "../data/papers/004_liang_2016_pest_parameter_optimization_sensitivity.pdf",
+    "sha256": "957137266ea0e72e18eead8b67302fe6f16745a6e029aeb60dca540762b55eb7"
+  },
+  {
+    "ref_id": 50,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[50]Hui_2021_J._Phys.__Conf._Ser._1865_042059.pdf",
+    "to": "../data/papers/050_hui_2021_soil_moisture_thermal_web_parallel_computing.pdf",
+    "sha256": "affe9d8dcf66d2ec1475710cd61d438121c3988b6cd9fd5d235000c27ca8e395"
+  },
+  {
+    "ref_id": 51,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[51]1-s2.0-S0269749121007041-main.pdf",
+    "to": "../data/papers/051_jiang_2021_is_rice_field_nitrogen_source_sink_environment.pdf",
+    "sha256": "03544efaa766d3fe2623b1d76b32c0a6e7c51108c8757d86c0ec4823e786bac3"
+  },
+  {
+    "ref_id": 52,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[52]1-s2.0-S0378377421002985-main.pdf",
+    "to": "../data/papers/052_leghari_2021_modelling_water_consumption_n_fates_maize_yield_different.pdf",
+    "sha256": "33396346b7ac7d255f116d43befa971ee84edc8df72c1e434f01bf9323e47872"
+  },
+  {
+    "ref_id": 53,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[53]agronomy-11-01858.pdf",
+    "to": "../data/papers/053_jiang_2021_dndc_whcns_veg_optimize_management_strategies_improving_potato.pdf",
+    "sha256": "f895b43b9ea82eaada67c60385e8c87ed3bb19c6c8ac392484694664eb1129b7"
+  },
+  {
+    "ref_id": 54,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[54]atmosphere-12-00824.pdf",
+    "to": "../data/papers/054_zhang_2021_response_different_soybean_varieties_water_management_northwest_model.pdf",
+    "sha256": "cdfe5f81acf354341ccc68d6f4dfce5f07cbcb6bf752b16da46a96d8d0e428c2"
+  },
+  {
+    "ref_id": 55,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[55]mbe-18-06-472.pdf",
+    "to": "../data/papers/055_xu_2021_modelling_effect_different_irrigation_methods_spring_maize_yield.pdf",
+    "sha256": "8f55b2d94132a43d94fae19f0d3276e3be5d53f49ac0829b88a5db71e2191964"
+  },
+  {
+    "ref_id": 56,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[56]1-s2.0-S0378377421004510-main.pdf",
+    "to": "../data/papers/056_chen_2021_simulation_yield_water_balance_whcns_apsim_combined_geostatistics.pdf",
+    "sha256": "eda537c809e0a34cfb8ee6d8ab05873f400aef9e4afc0925810b4aff7569b7eb"
+  },
+  {
+    "ref_id": 57,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[57]1-s2.0-S1161030121002008-main.pdf",
+    "to": "../data/papers/057_liang_2022_bayesian_calibration_uncertainty_analysis_agroecosystem_model_different_n.pdf",
+    "sha256": "8f25312ca47f7786c569a2ad0040168d2475c38afc98c586ed4ce71cc918415e"
+  },
+  {
+    "ref_id": 58,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[58]1-s2.0-S0168169922002058-main.pdf",
+    "to": "../data/papers/058_shi_2022_modeling_ammonia_volatilization_following_urea_controlled_release_urea.pdf",
+    "sha256": "8a08866b75161b24dfb76568d4c84994059c47384ee01ded611902497e1d207c"
+  },
+  {
+    "ref_id": 59,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[59]1-s2.0-S0304380022001302-main.pdf",
+    "to": "../data/papers/059_zhang_2022_simulation_n2o_emissions_greenhouse_vegetable_production_different_management.pdf",
+    "sha256": "679ab7985c1535ac073f63649002fa0caf20a17c5cf9ea8002c118dae83f527c"
+  },
+  {
+    "ref_id": 5,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[5]填闲玉米对京郊设施菜地土壤氮素淋洗影响的模拟分析_梁浩.pdf",
+    "to": "../data/papers/005_liang_2016_catch_maize_greenhouse_n_leaching.pdf",
+    "sha256": "f6411cd42238c19643f003d111ca607abf6e0af31611cd3a168f169891070478"
+  },
+  {
+    "ref_id": 60,
+    "action": "move_duplicate",
+    "reason": "exact_duplicate",
+    "from": "../data/papers/[60]1-s2.0-S0167198722000551-main.pdf",
+    "to": "../data/papers_duplicates_m16/[60]1-s2.0-S0167198722000551-main.pdf",
+    "sha256": "b6f3a611247f1319f5eea0cd767f2e221b876cc61a6a715e419489e651267a10"
+  },
+  {
+    "ref_id": 61,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[61]atmosphere-13-01289-v3.pdf",
+    "to": "../data/papers/061_li_2022_whcns_veg_modelling_n2o_nh3_no3_dynamics_vegetable.pdf",
+    "sha256": "6b063100d3e3697281feffa0dbd02eca1fabd608d72ac42458c14daa61bd4a0a"
+  },
+  {
+    "ref_id": 62,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[62]1-s2.0-S0308521X22001640-main.pdf",
+    "to": "../data/papers/062_liang_2022_modeling_ch4_n2o_emissions_continuous_noncontinuous_flooding_rice.pdf",
+    "sha256": "03e78c25f0d39085460f8d0d224ce971096a03ef8939b4083a84e0b50da74764"
+  },
+  {
+    "ref_id": 63,
+    "action": "move_duplicate",
+    "reason": "exact_duplicate",
+    "from": "../data/papers/[63]plants-11-03338-v2.pdf",
+    "to": "../data/papers_duplicates_m16/[63]plants-11-03338-v2.pdf",
+    "sha256": "ab0e64bbb25ec82c8b8e550c7b19acd452d51562adc62c2c0daa4e43258941d2"
+  },
+  {
+    "ref_id": 64,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[64]plants-12-00597-v3.pdf",
+    "to": "../data/papers/064_han_2023_improvement_water_nitrogen_use_efficiencies_alternative_cropping_systems.pdf",
+    "sha256": "678f354396f7ae7c767b432f10a0017e74b4e92303511a9496dd94ee4523fd0c"
+  },
+  {
+    "ref_id": 65,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[65]ijerph-20-04567.pdf",
+    "to": "../data/papers/065_guo_2023_application_parameter_optimization_methods_kalman_formula_soilcrop_system.pdf",
+    "sha256": "8e895d4587e636b15de06abbbccad6c34f4c3aa2a2f2c140408ce00bff869ba3"
+  },
+  {
+    "ref_id": 66,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[66]1-s2.0-S0921344923001611-main.pdf",
+    "to": "../data/papers/066_gao_2023_southern_can_produce_more_high_quality_rice_less.pdf",
+    "sha256": "ee4750a853f9c53d5e84ff8bfb7a79fcf3868f66b94b1f61ecabffcd377287e0"
+  },
+  {
+    "ref_id": 67,
+    "action": "move_duplicate",
+    "reason": "exact_duplicate",
+    "from": "../data/papers/[67]1-s2.0-S0301479723022570-main.pdf",
+    "to": "../data/papers_duplicates_m16/[67]1-s2.0-S0301479723022570-main.pdf",
+    "sha256": "4d7c53afeaa7d6ee2d17e54c3b5d16f0256d3042fe219a3b6bc1a6112f3b7173"
+  },
+  {
+    "ref_id": 68,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[68]1-s2.0-S016816992300604X-main.pdf",
+    "to": "../data/papers/068_liang_2023_distributed_agroecosystem_model_regwhcns_water_n_management_regional.pdf",
+    "sha256": "53ba07e7ba80e4a75856e50a754c0ff5fdc51721deaa976f2370d6b68585a192"
+  },
+  {
+    "ref_id": 69,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[69]1-s2.0-S0301479723018212-main.pdf",
+    "to": "../data/papers/069_liang_2023_exploring_site_specific_n_application_rate_reduce_n.pdf",
+    "sha256": "396a435a48cf1dcc85a1cca94478943517dc0a147c959e704f45b9be7b7a7f4a"
+  },
+  {
+    "ref_id": 6,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[6]荒漠绿洲井灌农田砂质土壤氮素淋失规律研究_梁浩.pdf",
+    "to": "../data/papers/006_liang_2016_oasis_sandy_soil_n_leaching.pdf",
+    "sha256": "07735ed0a271c3084dafb698ff551116846b1b368d20d6d37675a24ff9d8b7fa"
+  },
+  {
+    "ref_id": 70,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[70]agronomy-13-03081-v2.pdf",
+    "to": "../data/papers/070_wang_2023_optimizing_nitrogen_management_summer_maize_yellow_river_basin.pdf",
+    "sha256": "5dcdddc49da3f55d1ecd180f93a64dc9081a1a870c4cf10c997394893a650b21"
+  },
+  {
+    "ref_id": 71,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[71]1-s2.0-S0378377423005188-main.pdf",
+    "to": "../data/papers/071_guo_2024_dynamics_soil_water_nitrate_within_vadose_zone_simulated.pdf",
+    "sha256": "5e2b6c5af3707a01478def7bace18bcc120cdc58628dc90e9821c73647029229"
+  },
+  {
+    "ref_id": 72,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[72]1-s2.0-S1161030124000145-main.pdf",
+    "to": "../data/papers/072_wu_2024_evaluating_optimized_irrigation_strategies_crop_productivity_field_water.pdf",
+    "sha256": "c6ecb57f90826f3713c52442061a862146c53c91c3ff51681bd0e6b8e93a5cad"
+  },
+  {
+    "ref_id": 73,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[73]1-s2.0-S0168169924000681-main.pdf",
+    "to": "../data/papers/073_leghari_2024_modelling_effects_cropping_systems_irrigation_methods_water_consumption.pdf",
+    "sha256": "45557fc263b734c57a01aa613a669bcc29f950ffad514173be486a6fe0aa316f"
+  },
+  {
+    "ref_id": 74,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[74]plants-13-01384.pdf",
+    "to": "../data/papers/074_zhang_2024_modeling_nitrogen_fate_water_nitrogen_use_efficiencies_different.pdf",
+    "sha256": "b07762648df7b02fe77ec5703f0df89d4a52222786cd7db16ef1d07e522ff60b"
+  },
+  {
+    "ref_id": 75,
+    "action": "move_duplicate",
+    "reason": "exact_duplicate",
+    "from": "../data/papers/[75]plants-13-01384.pdf",
+    "to": "../data/papers_duplicates_m16/[75]plants-13-01384.pdf",
+    "sha256": "b07762648df7b02fe77ec5703f0df89d4a52222786cd7db16ef1d07e522ff60b"
+  },
+  {
+    "ref_id": 76,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[76]1-s2.0-S037837742400252X-main.pdf",
+    "to": "../data/papers/076_leghari_2024_navigating_water_nitrogen_practices_sustainable_wheat_production_model.pdf",
+    "sha256": "9f0738894e87e302b4c08daeb843ea84af7eec5837e912e4713704abc63ad133"
+  },
+  {
+    "ref_id": 77,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[77]1-s2.0-S0378429023003908-main.pdf",
+    "to": "../data/papers/077_wang_2023_optimized_planting_structures_maintain_system_yield_economic_benefits.pdf",
+    "sha256": "b8920e25b4df199bffe2260d7a53ad8901d351aba1bbbbcf496bc44788a7bd83"
+  },
+  {
+    "ref_id": 78,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[78]1-s2.0-S0378429024000844-main.pdf",
+    "to": "../data/papers/078_wu_2024_enhancing_productivity_while_reducing_water_footprint_groundwater_depletion.pdf",
+    "sha256": "3942cc40f675dfdbfe06cfef865e0afdef610ad2b6965dd4dfda3ce3548f53d8"
+  },
+  {
+    "ref_id": 79,
+    "action": "move_duplicate",
+    "reason": "exact_duplicate",
+    "from": "../data/papers/[79]1-s2.0-S0167880923005406-main.pdf",
+    "to": "../data/papers_duplicates_m16/[79]1-s2.0-S0167880923005406-main.pdf",
+    "sha256": "dfc2a30818409303009bea202f6cb53b5d34651bb4ccce94073280ba04a86d66"
+  },
+  {
+    "ref_id": 7,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[7]基于密切值法和水氮管理模型的华北平原农田水氮优化管理_徐强.pdf",
+    "to": "../data/papers/007_xu_2017_north_china_water_n_optimization.pdf",
+    "sha256": "f04052e17f173aef4c6cbe75eb515d1aea45618ba8a0f07a29c540dc299c2db8"
+  },
+  {
+    "ref_id": 80,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[80]plants-13-03160-v2.pdf",
+    "to": "../data/papers/080_zhou_2024_modeling_effect_milk_vetchrice_rotation_n_runoff_loss.pdf",
+    "sha256": "1ecd27eae9a2657a40307ce92a96260da97ec9390044524129bc294a2117073c"
+  },
+  {
+    "ref_id": 81,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[81]1-s2.0-S0308521X24003998-main.pdf",
+    "to": "../data/papers/081_li_2025_regional_modelling_rice_yields_nitrogen_loss_hubei_province.pdf",
+    "sha256": "e3454fc0ba5db9363acc6b4d519cb8d485049412acdc92016492c701e0f827a1"
+  },
+  {
+    "ref_id": 82,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[82]1-s2.0-S0378429025000280-main.pdf",
+    "to": "../data/papers/082_wang_2025_optimizing_cropping_systems_irrigation_regimes_mitigate_nh3_emissions.pdf",
+    "sha256": "f312b631500d598f0d06437508460a4afaf6799af92507f68ccd253d072879d3"
+  },
+  {
+    "ref_id": 84,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[84]1-s2.0-S2095311925000681-main.pdf",
+    "to": "../data/papers/084_feng_2025_optimization_fertilization_combined_water_saving_irrigation_improves_water.pdf",
+    "sha256": "0085c69e698e8c62368cdc7eb4541f99dcd3df373c081722734b1765af7a0c4d"
+  },
+  {
+    "ref_id": 85,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[85]s10113-025-02379-9.pdf",
+    "to": "../data/papers/085_liu_2025_facing_climate_change_optimizing_planting_density_date_summer.pdf",
+    "sha256": "125f0431419a4ac1d9271fbb88302b87fbf1d06393c0af83cd1df86ac7465e6a"
+  },
+  {
+    "ref_id": 86,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[86]1-s2.0-S2214514125000698-main.pdf",
+    "to": "../data/papers/086_liu_2025_evapotranspiration_partitioning_crop_water_productivity_varying_planting_densities.pdf",
+    "sha256": "96f0320ebe1d30719a2809d6c690376319a873d427c6be7efa6adacb8cc2a4e5"
+  },
+  {
+    "ref_id": 87,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[87]gmd-18-3799-2025.pdf",
+    "to": "../data/papers/087_bo_2025_regional_irrigation_rice_ghg_framework.pdf",
+    "sha256": "5ac0d41a78b7d34b232b15f3ba8938fe1c03782cef9384bd4181dd3dd84c00a8"
+  },
+  {
+    "ref_id": 88,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[88]Global Change Biology - 2025 - Ju - The Contributions of Cultivar and Fertilization Improvements to Single Rice Nitrogen.pdf",
+    "to": "../data/papers/088_ju_2025_rice_nitrogen_use_efficiency_trends.pdf",
+    "sha256": "5d49f3f985067e1939c9cc69098b39b06d791d89c368a841ff22d0ef0a1cec88"
+  },
+  {
+    "ref_id": 89,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[89]agronomy-15-01818.pdf",
+    "to": "../data/papers/089_meng_2025_effects_conservation_tillage_nitrogen_inhibitors_yield_n2o_emissions.pdf",
+    "sha256": "3e5b2d44d71200ccd674adb7272cc8c747df14f487a7c8d2b7ad24546e0f6f6a"
+  },
+  {
+    "ref_id": 8,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[8]灌水次数对绿洲春玉米田氮素损失及水氮利用效率的影响_史鑫蕊.pdf",
+    "to": "../data/papers/008_shi_2018_oasis_maize_irrigation_n_loss.pdf",
+    "sha256": "b469a1de8afb8086e8a3f08bf97b12e94a4793152d38814210d3ec0b26d203fc"
+  },
+  {
+    "ref_id": 90,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[90]Earth s Future - 2025 - Liang - Sustained Green Manure‐Rice Rotations Can Mitigate Methane Emissions by Enhancing Microbial.pdf",
+    "to": "../data/papers/090_liang_2025_green_manure_rice_methane_mitigation.pdf",
+    "sha256": "2ab665371e7d8312a7c65e4b88f2340b23337f5e61b1a992bdd34cf7c1f933f6"
+  },
+  {
+    "ref_id": 91,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[91]1-s2.0-S0308521X25002641-main.pdf",
+    "to": "../data/papers/091_ren_2025_water_optimization_ground_cover_rice_production_system_synergistically.pdf",
+    "sha256": "8013724bbd1369f2d42eb29851f83ec7ed0503f2ff8dd34e1d6b26f5330e04d5"
+  },
+  {
+    "ref_id": 92,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[92]1-s2.0-S0378377425006420-main.pdf",
+    "to": "../data/papers/092_han_2025_mitigating_n_leaching_n2o_emissions_combining_drip_irrigation.pdf",
+    "sha256": "57f8489be825228fbc8a31b05ee2116183013df725cb7b1ddf2522f2bb079d2a"
+  },
+  {
+    "ref_id": 93,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[93]Hydrological Processes - 2025 - Hou - Optimising Water and Nitrogen Management for Drip‐Irrigated Maize in Oasis Farmland.pdf",
+    "to": "../data/papers/093_hou_2025_drip_irrigated_maize_oasis_groundwater.pdf",
+    "sha256": "539c6ea7eaba412f18c18b27d0dd8ef56d5d6e0ea3ac4169168b5f7d71d0a2b9"
+  },
+  {
+    "ref_id": 94,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[94]1-s2.0-S1161030125004186-main.pdf",
+    "to": "../data/papers/094_meng_2025_exploring_optimal_n_management_simulation_spring_maize_yield.pdf",
+    "sha256": "59664c729157547029574aa3bb7864c9b87fc09f020cc890bacf7a230a00f8f4"
+  },
+  {
+    "ref_id": 95,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[95]1-s2.0-S0308521X2600034X-main.pdf",
+    "to": "../data/papers/095_leghari_2026_peanut_yield_irrigation_precipitation_anomalies.pdf",
+    "sha256": "df8dc1d335597639fc7672b28f0348f6bcad6c209ad2d1ad21b9126633cd472d"
+  },
+  {
+    "ref_id": 9,
+    "action": "rename",
+    "reason": "canonicalize",
+    "from": "../data/papers/[9]稻田土壤-作物系统模型参数敏感性分析与模型验证_史鑫蕊.pdf",
+    "to": "../data/papers/009_shi_2020_rice_whcns_sensitivity_validation.pdf",
+    "sha256": "8bdc83e7411c88d17a5bfda1d370164c98228c45dfbcb848fe99a58359f3e68e"
+  }
+]

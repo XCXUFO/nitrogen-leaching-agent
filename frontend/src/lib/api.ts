@@ -1,5 +1,6 @@
 import type {
   BackendErrorDetail,
+  ChatHistoryMessage,
   ChatRequest,
   ChatResponse,
 } from "./types";
@@ -28,11 +29,15 @@ export class ApiError extends Error {
 
 export async function postChat(
   query: string,
+  history: ChatHistoryMessage[] = [],
   k?: number,
   signal?: AbortSignal,
+  sessionId?: string,
 ): Promise<ChatResponse> {
   const body: ChatRequest = { query };
+  if (history.length > 0) body.history = history;
   if (k !== undefined) body.k = k;
+  if (sessionId !== undefined) body.session_id = sessionId;
 
   let response: Response;
   try {

@@ -1,0 +1,301 @@
+# M1.6 expanded-corpus eval question set
+#
+# Purpose:
+#   24-question external eval for the 90-PDF M1.6 corpus. This set is not used
+#   for tuning before the first judged run. It is meant to expose new failure
+#   categories after corpus expansion and multi-turn support.
+#
+# Schema matches mini_questions.yaml so scripts/run_mini_eval.py can read it.
+
+version: 1
+
+questions:
+  - id: m16_q01
+    category: factual
+    query: 2025 年 Han 等温室番茄研究中，相比常规漫灌施肥，滴灌减氮平均降低了哪些氮损失和水分指标，又提升了哪些生产指标？
+    expected_points:
+      - 平均季节排水量降低 79.3%
+      - 氮淋失（硝态氮和 DON）降低 84.6%
+      - N2O 排放降低 82.6%
+      - 平均季节产量、水分利用效率和氮利用效率分别提高 13.0%、34.7% 和 147.3%
+      - 应引用 [92] Han 2025
+    should_refuse: false
+    notes: 预期命中 [92] greenhouse tomato / drip fertigation / reduced N / straw incorporation 摘要。
+
+  - id: m16_q02
+    category: factual
+    query: 在同一篇温室番茄研究中，秸秆还田在漫灌条件下对总氮淋失、硝态氮淋失、DON 淋失和 N2O 排放有什么相反影响？
+    expected_points:
+      - CIFS 相比 CIF 使平均季节总氮淋失降低 7.9%
+      - 主要原因是平均季节硝态氮淋失降低 19.0%
+      - 但平均季节 DON 淋失增加 112.9%
+      - N2O 排放增加 94.2%
+      - 应说明秸秆在滴灌条件下对氮损失影响较小且维持高产
+    should_refuse: false
+    notes: 预期命中 [92] Han 2025 摘要；用于检查模型是否能处理 trade-off。
+
+  - id: m16_q03
+    category: factual
+    query: 南四湖流域小麦研究中，F2W2 处理相对 CK 对氨挥发、氮淋失、水分利用效率和氮利用效率的影响是多少？
+    expected_points:
+      - F2W2 是减量控释肥加减量灌溉
+      - 相比 CK，氨挥发降低 29.17%
+      - 氮淋失降低 27.13%
+      - 水分利用效率提高 11.38%
+      - 氮利用效率提高 17.80%
+      - 应引用 [84] Feng 2025
+    should_refuse: false
+    notes: 预期命中 [84] Feng 2025 摘要。
+
+  - id: m16_q04
+    category: factual
+    query: 南四湖流域小麦研究中，F2W1 和 F1W2 相对 CK 分别怎样降低氮淋失和氨挥发？
+    expected_points:
+      - F2W1 的累积氮淋失降低 8.90%，氨挥发降低 41.67%
+      - F1W2 的累积氮淋失降低 12.50%，氨挥发降低 15.99%
+      - 应说明 F2W2 综合表现最好
+      - 应引用 [84] Feng 2025
+    should_refuse: false
+    notes: 预期命中 [84] Feng 2025 摘要；citation-check 时关注数字是否串位。
+
+  - id: m16_q05
+    category: factual
+    query: WHCNS 在湖北省区域尺度模拟水稻时，单季稻、早稻和晚稻的平均总氮损失分别是多少？各占施氮量多少？
+    expected_points:
+      - 单季稻平均总氮损失 77.2 kg N/ha，占施氮量 33.6%
+      - 早稻平均总氮损失 65.6 kg N/ha，占施氮量 31.5%
+      - 晚稻平均总氮损失 81.5 kg N/ha，占施氮量 40.8%
+      - 晚稻氮损失更严重
+      - 应引用 [81] Li 2025
+    should_refuse: false
+    notes: 预期命中 [81] Li 2025 摘要。
+
+  - id: m16_q06
+    category: factual
+    query: 湖北省水稻区域模拟研究中，产量、径流氮损失、淋失/反硝化和氨挥发的空间差异分别主要受哪些因素影响？
+    expected_points:
+      - 产量中部较高、西部和东南部较低，主要受太阳辐射、温度、土壤黏粒含量、pH 和容重影响
+      - 径流氮损失从东向西降低，单季稻和早稻主要受降雨和温度影响，晚稻受容重影响
+      - 西北部较高的氮淋失和反硝化与土壤总氮、有机质较高和通气差有关
+      - 东部较高的 NH3 排放主要受温度和降水影响
+      - 应引用 [81] Li 2025
+    should_refuse: false
+    notes: 预期命中 [81] Li 2025 摘要；考察非单点数字的因子归纳。
+
+  - id: m16_q07
+    category: factual
+    query: 长江中下游稻田绿肥配合减氮 40% 的多点研究中，FR、FRS、MR、MRS 四类处理的 TN 径流损失范围分别是多少？
+    expected_points:
+      - FR 为 19.94-25.22 kg/hm2
+      - FRS 为 17.71-22.36 kg/hm2
+      - MR 为 14.6-17.92 kg/hm2
+      - MRS 为 13.72-16.73 kg/hm2
+      - 绿肥处理相比冬闲处理使 TN 径流损失降低 22.5%-45.6%
+      - 应引用 [19] Zhou 2025
+    should_refuse: false
+    notes: 预期命中 [19] Zhou 2025 中文摘要。
+
+  - id: m16_q08
+    category: factual
+    query: 长江中下游稻田绿肥减氮研究中，绿肥处理怎样改变田面水 TN 浓度和 NH4-N、DON 径流损失？
+    expected_points:
+      - 绿肥处理下 TN 峰值浓度降低 11.1%-57.9%
+      - TN 平均浓度降低 17.1%-27.3%
+      - NH4-N 径流损失降低 7.7%-43.4%
+      - DON 径流损失降低 3.7%-39.5%
+      - 应说明绿肥主要通过降低 NH4-N 和 DON 来降低 TN 损失
+      - 应引用 [19] Zhou 2025
+    should_refuse: false
+    notes: 预期命中 [19] Zhou 2025 中文摘要。
+
+  - id: m16_q09
+    category: factual
+    query: WHCNS_Rice 节水灌溉研究中，控制灌溉 CI 相比 FSI 和 WSI 对水分渗漏和硝态氮淋失的降低幅度是多少？综合评价最优模式是什么？
+    expected_points:
+      - CI 比 FSI 和 WSI 减少 64.27%-73.65% 的水分渗漏
+      - CI 减少 84.80%-93.28% 的硝态氮淋失量
+      - 熵权 TOPSIS 评价下控制灌溉是节水、节肥指标下的最优模式
+      - 应引用 [20] Huang 2026
+    should_refuse: false
+    notes: 预期命中 [20] Huang 2026 中文摘要。
+
+  - id: m16_q10
+    category: factual
+    query: 宁夏引黄灌区近 10 年 TN 淋失研究认为，种植结构调整怎样改变了水稻和旱作农田对地下水氮输入的贡献？
+    expected_points:
+      - 2012-2022 年水稻面积减少约 64.50%
+      - 水稻 TN 淋失下降主导了灌区 TN 淋失总量约 20.22% 的削减
+      - 旱作农田 TN 淋失贡献率由 50.41% 升至 77.09%
+      - 氮淋失热点从传统水稻区转向旱作农业区
+      - 风险机制从持续缓释转向短时脉冲
+      - 应引用 [22] Pan 2026
+    should_refuse: false
+    notes: 预期命中 [22] Pan 2026 中文摘要。
+
+  - id: m16_q11
+    category: factual
+    query: 黄淮海冬小麦-夏玉米轮作研究中，I-4 相比雨养和 I-6 在产量、灌溉用水量、水分生产力方面有什么表现？
+    expected_points:
+      - 相比雨养 R，I-4 使周年作物产量显著提高 19.83%-28.65%
+      - I-4 与 I-6 产量相当
+      - 相比 I-6，I-4 灌溉用水量降低 33.91%
+      - 作物水分生产力提高 33.46%
+      - 灌溉水生产力提高 90.53%
+      - 应引用 [67] Wu 2023
+    should_refuse: false
+    notes: 预期命中 [67] Wu 2023 摘要。
+
+  - id: m16_q12
+    category: factual
+    query: 黄淮海微喷灌 W-M 和 W-S 轮作研究中，W4 相比 FI 怎样影响深层渗漏、产量和作物水分生产力？
+    expected_points:
+      - 相比 FI，W4 显著降低田间水分损失，尤其深层渗漏降低 18.3%-39.4%
+      - W4 与 W6、FI 产量相当
+      - W4 的作物水分生产力相对 W6 和 FI 在 W-M 中平均提高 17.9% 和 21.3%
+      - W4 的作物水分生产力相对 W6 和 FI 在 W-S 中平均提高 24.6% 和 31.4%
+      - 应引用 [72] Wu 2024
+    should_refuse: false
+    notes: 预期命中 [72] Wu 2024 摘要。
+
+  - id: m16_q13
+    category: factual
+    query: 冬小麦-大豆系统研究中，WS 系统和 W4 灌溉策略对 ETc、地下水位、灌溉节水、水分生产力和水足迹有什么影响？
+    expected_points:
+      - WS 系统相对 WM 系统 ETc 变异性降低 23.6%-29.1%
+      - WS 系统使地下水位提高 58.4%-146.4%
+      - W4 相比 W6 节省 97.9-98.2 mm 灌溉水
+      - W4 水分生产力提高 10.7%-32.1%
+      - W4 水足迹降低 14.3%-25.1%
+      - 应引用 [78] Wu 2024
+    should_refuse: false
+    notes: 预期命中 [78] Wu 2024 摘要。
+
+  - id: m16_q14
+    category: factual
+    query: 1978-2019 年中国单季稻 NUE 趋势研究中，全国 NUE 水平、2005 年后的变化速度、主要驱动因素和 2050 目标判断是什么？
+    expected_points:
+      - 研究期全国单季稻 NUE 为 0.31
+      - 2005 年后 NUE 快速增加，速率为 0.048/10 年
+      - 主要受施肥管理和品种更替控制
+      - 2005 年前品种改良收益 0.034/10 年几乎被过量施氮的 -0.029/10 年抵消
+      - 仅靠管理改进不足以达到 2050 年 NUE 0.6 目标，需要水稻育种改进
+      - 应引用 [88] Ju 2025
+    should_refuse: false
+    notes: 预期命中 [88] Ju 2025 摘要。
+
+  - id: m16_q15
+    category: factual
+    query: 浅层地下水绿洲滴灌玉米研究中，高初始土壤矿质氮和低初始土壤矿质氮条件下增施氮肥效应有何不同？推荐的水氮组合是什么？
+    expected_points:
+      - 高初始土壤矿质氮会降低额外施氮对产量和资源利用效率的收益
+      - 低初始土壤矿质氮条件对增施氮有正响应
+      - 最优施氮量为 200-250 kg N/ha
+      - 配套总水量为 473-516 mm
+      - 目标是在最大化产量的同时最小化水氮损失
+      - 应引用 [93] Hou 2025
+    should_refuse: false
+    notes: 预期命中 [93] Hou 2025 摘要。
+
+  - id: m16_q16
+    category: citation_check
+    query: 2025 年区域稻作灌溉优化框架研究中，新框架分别解释了产量、灌溉用水、甲烷和氧化亚氮多少比例的试验变异？相比原模型误差降低多少？
+    expected_points:
+      - 分别解释 52%、60%、37% 和 94% 的试验观测变异
+      - 相比原模型和传统参数升尺度方法，模拟误差降低 35%-85%
+      - 还识别出额外 18% 的可优化灌溉区域
+      - 水利用和甲烷排放额外降低潜力分别为 11% 和 14%，且不牺牲产量
+      - 应引用 [87] Bo 2025，答案里的引用编号需与 citations 数组一致
+    should_refuse: false
+    notes: citation_check；预期命中 [87] Bo 2025 摘要。
+
+  - id: m16_q17
+    category: citation_check
+    query: 请核对引用说明：F2W2 在南四湖小麦研究中为什么被认为综合表现最好？
+    expected_points:
+      - 说明 F2W2 显著减少氮损失且维持稳定产量
+      - 给出氨挥发降低 29.17%、氮淋失降低 27.13%
+      - 给出水分利用效率和氮利用效率分别提高 11.38% 和 17.80%
+      - 引用应实际指向 [84] Feng 2025 的证据 chunk，不能引用无关论文
+    should_refuse: false
+    notes: citation_check；预期命中 [84] Feng 2025。
+
+  - id: m16_q18
+    category: citation_check
+    query: 请核对引用说明：湖北省晚稻氮损失为什么比单季稻和早稻更严重？
+    expected_points:
+      - 应给出单季稻、早稻、晚稻平均总氮损失 77.2、65.6、81.5 kg N/ha
+      - 应给出占施氮量 33.6%、31.5%、40.8%
+      - 应说明晚稻最高
+      - 引用应实际指向 [81] Li 2025 的证据 chunk
+    should_refuse: false
+    notes: citation_check；预期命中 [81] Li 2025。
+
+  - id: m16_q19
+    category: synthesis
+    query: 温室番茄系统中，2020 年和 2025 年两篇研究对“滴灌/减氮”降低氮淋失的结论是否一致？请比较它们的管理措施和主要效果。
+    expected_points:
+      - 应至少引用 [43] Liang 2020 和 [92] Han 2025 两篇不同 source
+      - "[43] 中滴灌加优化施氮相对沟灌常规施氮减少灌溉水、水分淋失、硝态氮和 DON 淋失且不影响产量"
+      - "[92] 中滴灌减氮降低排水、氮淋失和 N2O，同时提高产量、WUE 和 NUE"
+      - "应指出两者方向一致：从漫灌/高氮转向滴灌/优化或减量施氮能同时降低氮损失并保持或提高生产表现"
+      - 不应把 [92] 的秸秆漫灌 trade-off 误写成滴灌减氮的负效应
+    should_refuse: false
+    notes: synthesis；考察跨 M1.4/M1.6 source 综合。
+
+  - id: m16_q20
+    category: synthesis
+    query: 稻田系统里，绿肥、减氮和节水灌溉分别通过哪些路径降低氮损失？请至少综合两篇稻田研究。
+    expected_points:
+      - 至少引用 [19] Zhou 2025、[20] Huang 2026、[60] Liang 2022 或 [80] Zhou 2024 中两篇
+      - 绿肥/紫云英加减氮可降低 TN 浓度和 NH4-N、DON 径流损失
+      - 控制灌溉可显著降低水分渗漏和硝态氮淋失
+      - 可补充绿肥长期提升作物吸氮并减少氮损失的证据
+      - 应区分径流损失、渗漏/淋失和作物吸收等机制
+    should_refuse: false
+    notes: synthesis；不要求固定数字全覆盖，但必须跨至少两个 source。
+
+  - id: m16_q21
+    category: synthesis
+    query: 黄淮海平原小麦轮作系统的灌溉优化研究对 W4/I-4 这类较浅层精准灌溉有什么共同结论？
+    expected_points:
+      - 至少引用 [67] Wu 2023、[72] Wu 2024、[78] Wu 2024 中两篇
+      - I-4/W4 在保持产量的同时减少灌溉水量或深层渗漏
+      - W4/I-4 提高作物水分生产力或灌溉水生产力
+      - W-S 系统相对 W-M 可改善地下水位或水足迹表现
+      - 应说明雨养虽然省水但产量损失大，不是主推方案
+    should_refuse: false
+    notes: synthesis；考察同一团队多篇灌溉优化论文的一致性。
+
+  - id: m16_q22
+    category: synthesis
+    query: 湖北稻田氮损失的田块尺度和区域尺度证据分别说明了什么？请比较 [79] 与 [81]。
+    expected_points:
+      - "[79] 是田块/过程尺度，强调地下通量主导溶解氮损失，地下径流约为地表径流两倍，侧向渗漏贡献约 33%"
+      - "[81] 是湖北省区域尺度，模拟单季稻、早稻、晚稻产量和多路径 N 损失的空间分布"
+      - 应说明区域尺度发现晚稻总氮损失最高，且不同 N 损失路径受气象和土壤因素控制
+      - "应指出二者互补：一个解释机制，一个解释空间格局"
+      - 必须至少引用 [79] 和 [81] 两个 source
+    should_refuse: false
+    notes: synthesis；考察新增 Hubei regional paper 是否能和旧 q04 evidence 结合。
+
+  - id: m16_q23
+    category: refuse
+    query: 请根据知识库给出 2026 年江苏某个具体农户地块的最终施肥处方，包括每次追肥日期和每亩用量。
+    expected_points:
+      - 应明确知识库没有该农户地块的土壤测试、作物品种、天气、产量目标和管理历史
+      - 不应给出确定的日期和每亩用量处方
+      - 可以建议需要本地土壤/作物/气象数据并参考相近研究原则
+      - 不应把论文处理方案直接当成个体农户处方
+    should_refuse: true
+    notes: 边界拒答：农业决策处方需要 site-specific 数据，不能从论文泛化到具体农户。
+
+  - id: m16_q24
+    category: refuse
+    query: 知识库能否证明华北平原花生在 AWD 交替干湿灌溉下的硝态氮淋失量是多少？
+    expected_points:
+      - 应说明知识库没有“华北平原花生 + AWD 交替干湿灌溉 + 硝态氮淋失量”的直接证据
+      - 可指出花生相关论文 [95] 关注灌溉实践和降水异常下的产量波动，不等同于 AWD 氮淋失
+      - 不应把稻田 AWD/节水灌溉或小麦玉米灌溉数据迁移成花生淋失数值
+      - 不应编造具体 kg N/ha 数字
+    should_refuse: true
+    notes: 高相似边界拒答：库中有 peanut、irrigation、rice AWD/CI 和 nitrate leaching，但组合场景不覆盖。

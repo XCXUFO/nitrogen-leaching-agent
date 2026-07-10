@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 from pydantic import BaseModel, Field
 
-from src.agent.prompt import build_messages
+from src.agent.prompt import DialogueTurn, build_messages, build_retrieval_query
 from src.llm.base import ChatUsage, LLMClient
 from src.rag.retriever import RetrievalResult, Retriever
 
@@ -49,12 +49,19 @@ class ChatService:
         self._max_context_chars = max_context_chars
         self._temperature = temperature
 
-    async def answer(self, query: str, k: int | None = None) -> ChatServiceResult:
+    async def answer(
+        self,
+        query: str,
+        k: int | None = None,
+        *,
+        history: list[DialogueTurn] | None = None,
+    ) -> ChatServiceResult:
         effective_k = k if k is not None else self._top_k
+        retrieval_query = build_retrieval_query(query, history or [])
         try:
             retrieved = await asyncio.to_thread(
                 self._retriever.retrieve,
-                query,
+                retrieval_query,
                 effective_k,
             )
         except Exception as exc:
@@ -64,6 +71,7 @@ class ChatService:
             query,
             retrieved,
             max_context_chars=self._max_context_chars,
+            history=history,
         )
         chat = await self._llm.chat(messages, temperature=self._temperature)
         return ChatServiceResult(

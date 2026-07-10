@@ -13,6 +13,9 @@
 |---|---|---|
 | `sample.txt` | ✅ | 仓库内冒烟用真实主题文本（约 1.5 KB），不可删除 |
 | `README.md` | ✅ | 本文件 |
+| `sources.md` | ✅ | 本地语料来源与整理状态 |
+| `catalog_m16.md/json` | ✅ | M1.6 整理后的文献目录（不含 PDF 正文） |
+| `rename_manifest_m16.json` | ✅ | M1.6 重命名与重复隔离记录 |
 | `*.pdf` | ❌ | 论文 PDF 受版权保护，**绝不入库**（已在 .gitignore 中排除） |
 
 ## 命名建议
@@ -27,6 +30,10 @@ data/papers/li_2023_n_leaching.pdf
 `document_id` 由索引脚本按"相对仓库根的路径去后缀 + 字符规范化"生成（见
 M1.2.3 spec §3.6.1），所以重命名 PDF 等于重建 chunk_id；如需更名，
 建议清空 collection 再重跑索引。
+
+M1.6 起新增论文统一整理为 `NNN_author_year_topic.pdf`；重复文件移到
+`data/papers_duplicates_m16/`，不会被 `--dir ../data/papers --glob '*.pdf'`
+扫到。
 
 ## 索引（sample 冒烟）
 
@@ -65,12 +72,26 @@ uv run python scripts/index_papers.py \
    `papers` 是 **collection 名**而非目录。删整个 `var/chroma` 是最直白的清空方式；
    下次 `index_papers.py` 跑起来会按 `--persist-dir` / `--collection` 自动重建。
 
-6. 重建索引（路径用 glob 展开）：
+6. 重建索引（M1.6 起推荐递归扫描目录）：
 
    ```bash
    cd backend
    uv run python scripts/index_papers.py \
-     --paths ../data/papers/*.pdf \
+     --dir ../data/papers \
+     --glob '*.pdf' \
+     --persist-dir var/chroma_m16 \
+     --collection papers \
+     --repo-root .. \
+     --embed-batch-size 16 \
+     --skip-existing
+   ```
+
+   如只想索引显式文件，仍可使用旧的 `--paths`：
+
+   ```bash
+   cd backend
+   uv run python scripts/index_papers.py \
+     --paths ../data/papers/026_liang_2016_integrated_soil_crop_whcns.pdf \
      --persist-dir var/chroma \
      --collection papers \
      --repo-root ..
@@ -81,7 +102,7 @@ uv run python scripts/index_papers.py \
    ```bash
    cd backend
    uv run python -c "from src.storage import ChromaStore; \
-     s=ChromaStore('var/chroma','papers'); print('chunks:', s.count())"
+     s=ChromaStore('var/chroma_m16','papers'); print('chunks:', s.count())"
    ```
 
 入库后即可跑 mini 评测，详见 `data/eval/README.md`。

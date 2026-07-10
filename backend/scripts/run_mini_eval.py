@@ -91,7 +91,7 @@ def main() -> int:
 
     ok = 0
     err = 0
-    with httpx.Client(timeout=args.timeout) as client, out_path.open(
+    with httpx.Client(timeout=args.timeout, trust_env=False) as client, out_path.open(
         "w", encoding="utf-8"
     ) as fh:
         for q in questions:

@@ -1,12 +1,13 @@
 # data/eval/
 
-M1.4-a Mini 评测的题集与人工评分文件。
+评测题集与人工评分文件。
 
 ## 目录约定
 
 | 文件 | 入仓 | 用途 |
 |---|---|---|
-| `mini_questions.yaml` | ✅ | Mini 评测题集（10 题），M1.4-b 时会扩展为超集 |
+| `mini_questions.yaml` | ✅ | M1.4-a 冻结 mini 题集（10 题），后续调参对照用 |
+| `m16_questions.yaml` | ✅ | M1.6 扩展语料外部题集（24 题），先跑后判，不用于预调参 |
 | `mini_eval_<runid>_judged.yaml` | ✅ | 人工评分结果（小，便于答辩追溯） |
 | `README.md` | ✅ | 本文件 |
 
@@ -27,7 +28,7 @@ questions:
     notes: 备注                # 可选，写"为什么选这道""指向哪篇论文"
 ```
 
-类别配额（M1.4-a 固定 10 题）：
+M1.4-a 类别配额（固定 10 题）：
 
 | category | 数量 | 说明 |
 |---|---|---|
@@ -37,12 +38,21 @@ questions:
 | `citation_check` | 1 | 重点核查 `[N]` 与 citations 数组对应 |
 | `refuse` | 2 | 不在范围，期望拒答 |
 
+M1.6 题集覆盖：
+
+| category | 数量 | 说明 |
+|---|---:|---|
+| `factual` | 15 | 新增论文中的单点和多点事实 |
+| `citation_check` | 3 | 重点核查数值事实与 citations 数组是否一致 |
+| `synthesis` | 4 | 要求至少两篇 source 的综合 |
+| `refuse` | 2 | 扩展语料边界附近的拒答 |
+
 ## 跑评测
 
 前置：
 
-1. `data/papers/` 已落 6–8 篇真实 PDF（参见 `data/papers/README.md`）
-2. 已清空旧索引并基于真实 PDF 重建（同上）
+1. `data/papers/` 已放入本地真实 PDF（M1.6 当前整理为 90 篇，参见 `data/papers/README.md`）
+2. 已基于目标语料重建 Chroma 索引；M1.6 demo 默认使用 `backend/var/chroma_m16`
 3. backend 已启动且 `RAG_ENABLED=true`：
 
    ```bash
@@ -60,6 +70,17 @@ uv run python scripts/run_mini_eval.py \
   --questions ../data/eval/mini_questions.yaml \
   --api http://localhost:8000 \
   --out var/eval
+```
+
+M1.6 扩展题集：
+
+```bash
+cd backend
+uv run python scripts/run_mini_eval.py \
+  --questions ../data/eval/m16_questions.yaml \
+  --api http://localhost:8000 \
+  --out var/eval \
+  --timeout 180
 ```
 
 输出：
@@ -93,8 +114,25 @@ uv run python scripts/run_mini_eval.py \
 
 未达阈值不进入 M1.5-Demo。详见迭代 spec §5.3。
 
-## 与 M1.4-b 的契约
+## M1.6 判读建议
 
-- `id` 命名稳定，M1.4-b 题集是 M1.4-a 的**超集**（追加，不重排）
+- 先跑完整 `m16_questions.yaml`，再人工写 `mini_eval_<runid>_judged.yaml`。
+- 不用 M1.6 首轮结果即时调参；先把失败分为 retrieval miss、wrong source、
+  numeric extraction error、citation mismatch、over-refusal、under-refusal。
+- `synthesis` 题要求至少两个不同 source 支撑；只答单篇论文即使事实正确也不能算完全 usable。
+- `citation_check` 题重点查答案中的 `[N]` 是否能对应 citations 数组里的实际证据。
+
+当前 M1.6 追溯文件：
+
+| runid | raw JSONL | judged YAML | 结果 |
+|---|---|---|---|
+| `20260708-174735` | `backend/var/eval/mini_eval_20260708-174735.jsonl` | `mini_eval_20260708-174735_judged.yaml` | 首轮 baseline，5/24 usable，2/2 refuse safe |
+| `20260710-161708` | `backend/var/eval/mini_eval_20260710-161708.jsonl` | `mini_eval_20260710-161708_judged.yaml` | retrieval hint pass 后，14/24 usable，2/2 refuse safe |
+| `20260710-172602` | `backend/var/eval/mini_eval_20260710-172602.jsonl` | `mini_eval_20260710-172602_judged.yaml` | follow-up numeric/synthesis alias pass 后，21/24 usable，2/2 refuse safe |
+
+## 与后续迭代的契约
+
+- `mini_questions.yaml` 的 `id` 命名稳定，不重排、不改义
+- `m16_questions.yaml` 是 M1.6 扩展语料外部 eval，不回填到旧 mini set
 - 类别字符串可以新增，但已有 5 个不重命名
 - judged 文件 schema 可以新增字段（如 LLM-as-judge 评分），不删旧字段

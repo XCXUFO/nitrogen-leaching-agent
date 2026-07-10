@@ -80,3 +80,15 @@ def test_client_forwards_timeout_and_max_retries():
 
     assert client._client.timeout == 42.0
     assert client._client.max_retries == 5
+
+
+def test_client_ignores_malformed_proxy_env(monkeypatch):
+    monkeypatch.setenv("HTTPS_PROXY", "http://127.0.0.1:\n7890")
+
+    client = DeepSeekClient(
+        api_key="x",
+        base_url="https://example",
+        model="deepseek-chat",
+    )
+
+    assert client._client is not None

@@ -21,6 +21,7 @@ import argparse
 import re
 import sys
 from pathlib import Path
+from typing import TypeVar
 
 # Ensure ``src`` is importable when invoked as ``python scripts/index_papers.py``
 _BACKEND_ROOT = Path(__file__).resolve().parent.parent
@@ -28,10 +29,11 @@ if str(_BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(_BACKEND_ROOT))
 
 from src.config import settings  # noqa: E402
-from src.rag import BGEEmbedder, chunk_text, load_text  # noqa: E402
+from src.rag import BGEEmbedder, SUPPORTED_SUFFIXES, chunk_text, load_text  # noqa: E402
 from src.storage import ChromaStore  # noqa: E402
 
 _ID_SAFE = re.compile(r"[^A-Za-z0-9一-鿿/_-]")
+_T = TypeVar("_T")
 
 
 def derive_document_id(path: Path, repo_root: Path) -> str:
@@ -44,7 +46,18 @@ def derive_document_id(path: Path, repo_root: Path) -> str:
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Offline paper indexer")
-    p.add_argument("--paths", nargs="+", required=True, type=Path)
+    p.add_argument("--paths", nargs="+", type=Path, default=[])
+    p.add_argument(
+        "--dir",
+        dest="paper_dir",
+        type=Path,
+        help="directory to scan recursively for supported paper files",
+    )
+    p.add_argument(
+        "--glob",
+        default="**/*",
+        help="glob used with --dir; defaults to recursive scan",
+    )
     p.add_argument("--persist-dir", required=True, type=Path)
     p.add_argument("--collection", default="papers")
     p.add_argument(
@@ -56,11 +69,53 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--target-size", type=int, default=300)
     p.add_argument("--max-size", type=int, default=450)
     p.add_argument("--overlap", type=int, default=60)
+    p.add_argument(
+        "--embed-batch-size",
+        type=int,
+        default=32,
+        help="number of chunks to embed/upsert per batch",
+    )
+    p.add_argument(
+        "--skip-existing",
+        action="store_true",
+        help="skip files whose document_id already has chunks in the collection",
+    )
     return p.parse_args()
+
+
+def collect_paths(paths: list[Path], paper_dir: Path | None, pattern: str) -> list[Path]:
+    """Return stable, de-duplicated input files from explicit paths and --dir."""
+    candidates = list(paths)
+    if paper_dir is not None:
+        candidates.extend(p for p in paper_dir.glob(pattern) if p.is_file())
+
+    seen: set[Path] = set()
+    selected: list[Path] = []
+    for path in sorted(candidates, key=lambda p: str(p)):
+        resolved = path.resolve()
+        if resolved in seen or not path.is_file():
+            continue
+        if path.suffix.lower() not in SUPPORTED_SUFFIXES:
+            continue
+        seen.add(resolved)
+        selected.append(path)
+    return selected
+
+
+def batched(items: list[_T], size: int) -> list[list[_T]]:
+    if size <= 0:
+        raise ValueError("batch size must be positive")
+    return [items[i : i + size] for i in range(0, len(items), size)]
 
 
 def main() -> int:
     args = parse_args()
+    paths = collect_paths(args.paths, args.paper_dir, args.glob)
+    if not paths:
+        supported = ", ".join(sorted(SUPPORTED_SUFFIXES))
+        print(f"[fatal] no input files found (supported: {supported})", file=sys.stderr)
+        return 2
+
     embedder = BGEEmbedder(model_id=settings.embedding_model)
     store = ChromaStore(args.persist_dir, args.collection)
 
@@ -68,18 +123,34 @@ def main() -> int:
     total_chunks = 0
     total_chars = 0
     truncation_warn = 0
+    skipped_docs = 0
 
-    for path in args.paths:
-        try:
-            text = load_text(path)
-        except Exception as exc:
-            print(f"[warn] skip {path}: {exc}", file=sys.stderr)
-            continue
+    print(f"[info] indexing {len(paths)} files into {args.persist_dir}", flush=True)
 
+    for doc_index, path in enumerate(paths, start=1):
+        print(f"[start] {doc_index}/{len(paths)} {path}", flush=True)
         try:
             document_id = derive_document_id(path, args.repo_root)
         except ValueError as exc:
-            print(f"[warn] skip {path}: not under repo_root ({exc})", file=sys.stderr)
+            print(
+                f"[warn] skip {path}: not under repo_root ({exc})",
+                file=sys.stderr,
+                flush=True,
+            )
+            continue
+
+        if args.skip_existing and store.has_document(document_id):
+            skipped_docs += 1
+            print(
+                f"[skip] {path}: existing chunks (document_id={document_id})",
+                flush=True,
+            )
+            continue
+
+        try:
+            text = load_text(path)
+        except Exception as exc:
+            print(f"[warn] skip {path}: {exc}", file=sys.stderr, flush=True)
             continue
 
         chunks = chunk_text(
@@ -91,29 +162,41 @@ def main() -> int:
             overlap=args.overlap,
         )
         if not chunks:
-            print(f"[warn] empty chunks for {path}, skip", file=sys.stderr)
+            print(f"[warn] empty chunks for {path}, skip", file=sys.stderr, flush=True)
             continue
 
-        vectors = embedder.embed_documents([c.text for c in chunks])
-        store.upsert(
-            ids=[c.chunk_id for c in chunks],
-            documents=[c.text for c in chunks],
-            embeddings=vectors,
-            metadatas=[c.metadata for c in chunks],
-        )
+        for batch_index, chunk_batch in enumerate(
+            batched(chunks, args.embed_batch_size),
+            start=1,
+        ):
+            vectors = embedder.embed_documents([c.text for c in chunk_batch])
+            store.upsert(
+                ids=[c.chunk_id for c in chunk_batch],
+                documents=[c.text for c in chunk_batch],
+                embeddings=vectors,
+                metadatas=[c.metadata for c in chunk_batch],
+            )
+            print(
+                f"[batch] {path}: {batch_index}/"
+                f"{(len(chunks) + args.embed_batch_size - 1) // args.embed_batch_size}",
+                flush=True,
+            )
 
         total_docs += 1
         total_chunks += len(chunks)
         total_chars += sum(len(c.text) for c in chunks)
         truncation_warn += sum(1 for c in chunks if len(c.text) > 350)
 
-        print(f"[ok] {path}: {len(chunks)} chunks (document_id={document_id})")
+        print(
+            f"[ok] {path}: {len(chunks)} chunks (document_id={document_id})",
+            flush=True,
+        )
 
     avg_chars = (total_chars / total_chunks) if total_chunks else 0.0
     chunks_per_doc = (total_chunks / total_docs) if total_docs else 0.0
     rate = (truncation_warn / total_chunks) if total_chunks else 0.0
     print(
-        f"\nsummary: {total_docs} docs, {total_chunks} chunks, "
+        f"\nsummary: {total_docs} docs, {skipped_docs} skipped, {total_chunks} chunks, "
         f"{chunks_per_doc:.1f} chunks/doc, "
         f"avg {avg_chars:.1f} chars/chunk, "
         f"~{rate:.1%} chunks > 350 chars (BGE may truncate; rough estimate)"

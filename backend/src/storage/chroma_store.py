@@ -76,3 +76,10 @@ class ChromaStore:
 
     def count(self) -> int:
         return self._collection.count()
+
+    def has_document(self, document_id: str) -> bool:
+        result = self._collection.get(
+            where={"document_id": document_id},
+            limit=1,
+        )
+        return bool(result.get("ids"))
