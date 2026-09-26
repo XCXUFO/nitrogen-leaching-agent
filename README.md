@@ -1,12 +1,16 @@
 # Nitrogen Leaching Risk Decision Agent
 
-An LLM-based RAG prototype for farmland nitrogen leaching risk decision support.
+An agricultural model learning and usage assistant, built on a literature RAG
+prototype. WHCNS is the first model targeted for substantive support.
 
 This repository contains an end-to-end research prototype that combines local
 paper ingestion, vector retrieval, optional reranking, an LLM chat API, and a
 minimal web UI with citations.
 
 ## Status
+
+Implemented baseline: **M1.6 agronomy RAG**. Next milestone: **M2.0 model
+understanding and usage assistance** (planned, not yet implemented).
 
 The project currently provides a working foundation for RAG-based agronomy QA:
 
@@ -21,6 +25,23 @@ The project currently provides a working foundation for RAG-based agronomy QA:
 This is a research and engineering prototype. It is not a production decision
 support system and should not be used as the sole basis for agricultural,
 environmental, or regulatory decisions.
+
+## Next milestone: M2.0
+
+Help beginners understand a model's purpose, assess prerequisites, prepare
+materials, and interpret one real case with traceable evidence. The assistant
+must work independently of the original platform; the existing LLM API remains
+an external dependency, so this does not mean fully offline operation.
+
+The first release focuses on three tasks: **understand WHCNS**, **prepare to use
+it**, and **interpret case results**. It includes reviewed model documentation,
+guided task state, clearer citations, one file-checking or result-reading tool,
+and a small reviewer interface. Online WHCNS execution is an optional later
+extension, not a release prerequisite.
+
+See the [M2.0 scope and acceptance plan](docs/iterations/2026-09-26-m2-0-model-assistant/spec.md).
+The existing 24-question M1.6 set is a regression baseline after targeted tuning;
+its 21/24 demo-usable result is an initial self-review, not held-out accuracy.
 
 ## Capabilities
 
@@ -97,6 +118,7 @@ Open <http://localhost:3000>.
 - [Backend setup](backend/README.md)
 - [Frontend setup](frontend/README.md)
 - [Development guide](docs/development.md)
+- [Stage check report / 阶段性检查说明](docs/STAGE_CHECK_REPORT.md)
 
 ## License
 

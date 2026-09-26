@@ -7,7 +7,7 @@
 | 文件 | 入仓 | 用途 |
 |---|---|---|
 | `mini_questions.yaml` | ✅ | M1.4-a 冻结 mini 题集（10 题），后续调参对照用 |
-| `m16_questions.yaml` | ✅ | M1.6 扩展语料外部题集（24 题），先跑后判，不用于预调参 |
+| `m16_questions.yaml` | ✅ | M1.6 扩展题集（24 题）；后续已参与定向优化，现作为回归集 |
 | `mini_eval_<runid>_judged.yaml` | ✅ | 人工评分结果（小，便于答辩追溯） |
 | `README.md` | ✅ | 本文件 |
 
@@ -114,7 +114,7 @@ uv run python scripts/run_mini_eval.py \
 
 未达阈值不进入 M1.5-Demo。详见迭代 spec §5.3。
 
-## M1.6 判读建议
+## M1.6 判读建议（首次评测时的流程）
 
 - 先跑完整 `m16_questions.yaml`，再人工写 `mini_eval_<runid>_judged.yaml`。
 - 不用 M1.6 首轮结果即时调参；先把失败分为 retrieval miss、wrong source、
@@ -130,9 +130,26 @@ uv run python scripts/run_mini_eval.py \
 | `20260710-161708` | `backend/var/eval/mini_eval_20260710-161708.jsonl` | `mini_eval_20260710-161708_judged.yaml` | retrieval hint pass 后，14/24 usable，2/2 refuse safe |
 | `20260710-172602` | `backend/var/eval/mini_eval_20260710-172602.jsonl` | `mini_eval_20260710-172602_judged.yaml` | follow-up numeric/synthesis alias pass 后，21/24 usable，2/2 refuse safe |
 
+## M2.0 评测定位
+
+M1.6 的 24 题已用于检索提示和答案优化，21/24 是开发侧自评结果，
+不再作为独立测试集或泛化准确率。旧题目与评分原件保留作回归记录。
+
+M2.0 分别准备：旧 RAG 回归集、10 个可修改的试评任务、正式比较前冻结的
+未参与调参测试集。试评任务需经熟悉模型的人确认必答要点、依据和结论边界，
+未确认项保持待审核，不能由模型生成的答案替代审核。
+
+评价正确性、完整性、证据支持和可理解性；新手试用另记任务完成、卡点、
+耗时与满意度。无法判断及超出专长单列，不当作通过。
+比较旧 RAG 与新版时固定资料与模型条件；比较手册与助手时记录材料版本、
+任务顺序和先验经验，避免练习效应被误计为助手收益。
+
+详见 [M2.0 spec](../../docs/iterations/2026-09-26-m2-0-model-assistant/spec.md)
+及 [10 个试评任务草案](../../docs/iterations/2026-09-26-m2-0-model-assistant/pilot-tasks.md)。
+
 ## 与后续迭代的契约
 
 - `mini_questions.yaml` 的 `id` 命名稳定，不重排、不改义
-- `m16_questions.yaml` 是 M1.6 扩展语料外部 eval，不回填到旧 mini set
+- `m16_questions.yaml` 保留为 M1.6 扩展语料回归集，不回填到旧 mini set
 - 类别字符串可以新增，但已有 5 个不重命名
 - judged 文件 schema 可以新增字段（如 LLM-as-judge 评分），不删旧字段

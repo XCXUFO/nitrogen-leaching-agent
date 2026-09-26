@@ -1,7 +1,8 @@
 # 本地开发指南
 
 本项目是 monorepo，包含 Python 后端 (`backend/`) 和 Next.js 前端 (`frontend/`)。
-Walking Skeleton 阶段只做一件事：**前端按钮 → 后端 `/api/health` → 显示返回 JSON**。
+当前已实现 M1.6 文献 RAG 多轮问答。下一阶段为 M2.0 模型认知与使用辅助版，
+范围与验收以 [M2.0 spec](iterations/2026-09-26-m2-0-model-assistant/spec.md) 为准。
 
 ## 前置依赖
 
@@ -59,7 +60,9 @@ pnpm install
 pnpm dev
 ```
 
-打开 <http://localhost:3000>，点击 **"测试后端连接"** 按钮，应在页面显示后端返回的 JSON。
+打开 <http://localhost:3000>，在页面的 Backend health 调试区检查后端连接。
+真实问答还需安装 RAG 依赖、准备模型与索引并启用 RAG，详见
+[后端说明](../backend/README.md)。健康检查通过不代表检索与真实模型调用通过。
 
 ## 端口约定
 
@@ -91,9 +94,12 @@ pnpm dlx shadcn@latest add <comp># 添加 shadcn 组件
 
 ## 下一步
 
-Walking Skeleton 跑通后，按里程碑推进（详见 [ARCHITECTURE.md](./ARCHITECTURE.md)）：
+保留 M1.6 基线，按相对四周推进 M2.0；专业资料未确认时标记待审核：
 
-- **M1**：基础对话闭环（RAG + LLM + 单轮问答）
-- **M2**：完整 Agent 能力
-- **M3**：WHCNS 集成
-- **M4**：评测 + 上线
+1. 固定基线与复现记录，准备 WHCNS 最小资料包、三个用户任务和 10 个试评任务。
+2. 实现首页引导、分层回答、模型档案、引用定位与任务状态。
+3. 基于一套真实案例，只选择输入检查或结果表读取中的一种工具。
+4. 提供冻结回答评审入口，组织专业审核和新手任务试用，修复并冻结版本。
+
+在线仿真、自动决策、原平台深度集成、第二个模型均不作为首版交付前提。
+详细验收、依赖和暂缓项见 [M2.0 spec](iterations/2026-09-26-m2-0-model-assistant/spec.md)。
