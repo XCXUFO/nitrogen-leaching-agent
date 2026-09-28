@@ -2,6 +2,9 @@
 
 Python 3.11 + FastAPI 后端。
 
+M2.0 新增本地 WHCNS 结果读取工具，支持氮/水平衡表及证据定位；
+尚未接入聊天 API。见 [模型文件工具使用说明](src/model_tools/README.md)。
+
 ## 目录结构
 
 ```

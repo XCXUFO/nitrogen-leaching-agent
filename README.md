@@ -10,7 +10,8 @@ minimal web UI with citations.
 ## Status
 
 Implemented baseline: **M1.6 agronomy RAG**. Next milestone: **M2.0 model
-understanding and usage assistance** (planned, not yet implemented).
+understanding and usage assistance** (in progress: material intake and a local
+WHCNS result reader are available; guided UI and review workflows are pending).
 
 The project currently provides a working foundation for RAG-based agronomy QA:
 
@@ -54,6 +55,10 @@ its 21/24 demo-usable result is an initial self-review, not held-out accuracy.
   judgement results.
 - **Frontend UI**: keep a running conversation and inspect per-answer citations
   and backend health.
+- **Local WHCNS result reader**: inspect the supplied nitrogen/water balance
+  spreadsheets with file hashes, unit checks and cell-level traceability.
+  This is a CLI tool; chat integration and model execution are not implemented.
+  See [usage](backend/src/model_tools/README.md).
 
 ## Tech Stack
 
