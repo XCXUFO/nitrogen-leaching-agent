@@ -53,7 +53,7 @@ class Settings(BaseSettings):
     public_cookie_secure: bool = True
     public_requests_per_minute: int = Field(default=12, ge=1, le=120)
     public_daily_chat_limit: int = Field(default=300, ge=1)
-    public_max_concurrent: int = Field(default=2, ge=1, le=16)
+    public_max_concurrent: int = Field(default=5, ge=1, le=16)
     public_max_output_tokens: int = Field(default=2048, ge=128, le=8192)
     public_budget_db: str = str(BASE_DIR / "var/demo/budget.sqlite3")
 
