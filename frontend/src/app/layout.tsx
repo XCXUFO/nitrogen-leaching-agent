@@ -4,9 +4,9 @@ import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "氮淋失风险决策 Agent",
+  title: "农业模型助手",
   description:
-    "LLM-based AI Agent for farmland nitrogen leaching risk decision support.",
+    "农业模型知识问答与 WHCNS 结果文件分析，结论附带依据。",
 };
 
 export default function RootLayout({

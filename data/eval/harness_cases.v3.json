@@ -1,0 +1,206 @@
+{
+  "schema_version": 1,
+  "dataset_id": "agent-harness-20260929-v3",
+  "fixture_dataset": "manual-acceptance-20260928-v1",
+  "note": "第二批验收目标；历史 v1/v2 不变。定义用例不表示已完成人工验收。",
+  "cases": [
+    {
+      "case_id": "F02",
+      "version": 3,
+      "category": "F",
+      "title": "先接收附件，分析时检查内容",
+      "preconditions": "同一有效会话；文献完成项需真实 RAG/LLM，重排序关闭。",
+      "attachment_requirements": [
+        "Nbal_out.xls"
+      ],
+      "steps": [
+        {
+          "action": "upload",
+          "instruction": "上传绑定指纹的附件",
+          "attachment": "Nbal_out.xls"
+        },
+        {
+          "action": "query",
+          "instruction": "发送问题并核对结果",
+          "input": "硝态氮最大值及日序"
+        }
+      ],
+      "expected": [
+        "上传返回 pending，显示已上传、分析时检查内容；不能提前声称业务检查通过或显示已确认记录数。",
+        "首次计算后 ready，352 条记录；最大值 3.659263849258423 kg N ha-1，日序 283，Nbal_out!C284/A284。"
+      ],
+      "priority": "P0",
+      "source": "9.28人工核验单.pdf / 9天开发交接.md / Harness 第二批规格",
+      "supersedes": "F02@1"
+    },
+    {
+      "case_id": "B02",
+      "version": 3,
+      "category": "B",
+      "title": "单位错误延迟检查且不复用旧附件",
+      "preconditions": "同一有效会话；文献完成项需真实 RAG/LLM，重排序关闭。",
+      "attachment_requirements": [
+        "Nbal_out.xls",
+        "synthetic_bad_unit.xlsx"
+      ],
+      "steps": [
+        {
+          "action": "upload",
+          "instruction": "上传绑定指纹的附件",
+          "attachment": "Nbal_out.xls"
+        },
+        {
+          "action": "query",
+          "instruction": "发送问题并核对结果",
+          "input": "硝态氮最大值"
+        },
+        {
+          "action": "upload",
+          "instruction": "上传绑定指纹的附件",
+          "attachment": "synthetic_bad_unit.xlsx"
+        },
+        {
+          "action": "query",
+          "instruction": "发送问题并核对结果",
+          "input": "硝态氮最大值"
+        }
+      ],
+      "expected": [
+        "新附件可读取时接收为 pending；分析时变为 invalid，指出单位/字段问题，不提供数值证据。",
+        "不能沿用旧表；重新上传合法表后可恢复。"
+      ],
+      "priority": "P0",
+      "source": "9.28人工核验单.pdf / 9天开发交接.md / Harness 第二批规格",
+      "supersedes": "B02@1"
+    },
+    {
+      "case_id": "B03",
+      "version": 3,
+      "category": "B",
+      "title": "分析时定位非数值单元格",
+      "preconditions": "同一有效会话；文献完成项需真实 RAG/LLM，重排序关闭。",
+      "attachment_requirements": [
+        "synthetic_bad_value.xlsx"
+      ],
+      "steps": [
+        {
+          "action": "upload",
+          "instruction": "上传绑定指纹的附件",
+          "attachment": "synthetic_bad_value.xlsx"
+        },
+        {
+          "action": "query",
+          "instruction": "发送问题并核对结果",
+          "input": "硝态氮最大值"
+        }
+      ],
+      "expected": [
+        "上传先 pending；分析时 invalid，定位 Nbal_out!C3，不输出成功计算结果。"
+      ],
+      "priority": "P0",
+      "source": "9.28人工核验单.pdf / 9天开发交接.md / Harness 第二批规格",
+      "supersedes": "B03@1"
+    },
+    {
+      "case_id": "NEW02",
+      "version": 3,
+      "category": "NEW",
+      "title": "文件事实与一般文献机理组合",
+      "preconditions": "同一有效会话；文献完成项需真实 RAG/LLM，重排序关闭。",
+      "attachment_requirements": [
+        "Nbal_out.xls"
+      ],
+      "steps": [
+        {
+          "action": "upload",
+          "instruction": "上传绑定指纹的附件",
+          "attachment": "Nbal_out.xls"
+        },
+        {
+          "action": "query",
+          "instruction": "发送问题并核对结果",
+          "input": "接下来只讨论玉米农田。氮素淋失主要受哪些因素影响？"
+        },
+        {
+          "action": "query",
+          "instruction": "发送问题并核对结果",
+          "input": "硝态氮最大值是多少，为什么可能这么高？"
+        },
+        {
+          "action": "query",
+          "instruction": "发送问题并核对结果",
+          "input": "那最小值呢？"
+        }
+      ],
+      "expected": [
+        "组合请求走 COMPOSED；真实文件数值和位置与 F02@3 一致，机理至少有实际片段和逐结论证据关联。",
+        "文献用于解释一般可能机制，不能认定本次峰值原因；作物适用性和结论支持程度需人工审核。",
+        "后续最小值继承已确认 leak_NO3，值为 0，首次日序 2，191 条并列。"
+      ],
+      "priority": "P0",
+      "source": "9.28人工核验单.pdf / 9天开发交接.md / Harness 第二批规格",
+      "supersedes": null
+    },
+    {
+      "case_id": "NEW03",
+      "version": 3,
+      "category": "NEW",
+      "title": "组合链路部分失败可追溯",
+      "preconditions": "同一有效会话；文献完成项需真实 RAG/LLM，重排序关闭。",
+      "attachment_requirements": [
+        "Nbal_out.xls"
+      ],
+      "steps": [
+        {
+          "action": "upload",
+          "instruction": "上传绑定指纹的附件",
+          "attachment": "Nbal_out.xls"
+        },
+        {
+          "action": "manual",
+          "instruction": "在隔离测试实例中禁用 RAG，或注入知识服务连接失败；不能干扰共享服务。"
+        },
+        {
+          "action": "query",
+          "instruction": "发送问题并核对结果",
+          "input": "硝态氮最大值是多少，为什么可能这么高？"
+        }
+      ],
+      "expected": [
+        "返回 partial；文件计算及证据保留，明确说明文献部分未完成，不能捏造引用。",
+        "Trace 保留失败工具、错误码、outcome 和成功证据；HTTP 200 不等于整条任务成功。"
+      ],
+      "priority": "P0",
+      "source": "9.28人工核验单.pdf / 9天开发交接.md / Harness 第二批规格",
+      "supersedes": null
+    },
+    {
+      "case_id": "NEW04",
+      "version": 3,
+      "category": "NEW",
+      "title": "不丢弃组合问题中的额外要求",
+      "preconditions": "同一有效会话；文献完成项需真实 RAG/LLM，重排序关闭。",
+      "attachment_requirements": [
+        "Nbal_out.xls"
+      ],
+      "steps": [
+        {
+          "action": "upload",
+          "instruction": "上传绑定指纹的附件",
+          "attachment": "Nbal_out.xls"
+        },
+        {
+          "action": "query",
+          "instruction": "发送问题并核对结果",
+          "input": "前十天硝态氮最大值是多少，为什么可能这么高？"
+        }
+      ],
+      "expected": [
+        "时间范围尚不支持时明确追问；不能去掉前十天后回答整表最大值，不能生成无关机理代替请求。"
+      ],
+      "priority": "P0",
+      "source": "9.28人工核验单.pdf / 9天开发交接.md / Harness 第二批规格",
+      "supersedes": null
+    }
+  ]
+}

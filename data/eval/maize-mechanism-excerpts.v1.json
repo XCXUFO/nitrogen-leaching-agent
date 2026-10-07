@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "review_status": "AI-assisted source checking; not domain-expert sign-off",
+  "purpose": "Bounded evidence for maize factor and single-event questions; never attributes Nbal_out Day 283",
+  "modes": {
+    "maize_factors": [
+      {
+        "text": "甘肃石羊河绿洲春玉米试验中，灌溉或较强降雨后的水分渗漏与硝酸盐淋洗增加相伴出现；这是该研究的事件尺度观察。",
+        "supporting_quote": "灌溉或较强降雨后均伴随水分渗漏发生，土壤\n硝酸盐淋洗量也随之增加。",
+        "source": "../data/papers/008_shi_2018_oasis_maize_irrigation_n_loss.pdf",
+        "source_sha256": "b469a1de8afb8086e8a3f08bf97b12e94a4793152d38814210d3ec0b26d203fc",
+        "chunk_id": "data/papers/008_shi_2018_oasis_maize_irrigation_n_loss::0026"
+      },
+      {
+        "text": "同一春玉米试验中，作者将苗期第二次灌水时的明显淋洗与作物当时水分和养分需求较少联系起来；生育阶段会改变对水肥输入的响应。",
+        "supporting_quote": "这与第2 次灌溉时作物处于苗期，对水分和养\n分的需求比较少有关。",
+        "source": "../data/papers/008_shi_2018_oasis_maize_irrigation_n_loss.pdf",
+        "source_sha256": "b469a1de8afb8086e8a3f08bf97b12e94a4793152d38814210d3ec0b26d203fc",
+        "chunk_id": "data/papers/008_shi_2018_oasis_maize_irrigation_n_loss::0026"
+      },
+      {
+        "text": "京郊设施菜地填闲甜玉米论文的讨论还列出灌水量、施氮量、土壤质地、根层氮含量及剖面分布等因素；这是该特定场景的文献线索，不能直接代表所有玉米田。",
+        "supporting_quote": "由于氮素损失量受灌水量、施氮量、土壤质地、\n根层土壤氮素含量及其在土壤剖面内的分布特征等\n因素的影响",
+        "source": "../data/papers/005_liang_2016_catch_maize_greenhouse_n_leaching.pdf",
+        "source_sha256": "f6411cd42238c19643f003d111ca607abf6e0af31611cd3a168f169891070478",
+        "chunk_id": "data/papers/005_liang_2016_catch_maize_greenhouse_n_leaching::0047"
+      }
+    ],
+    "peak": [
+      {
+        "text": "甘肃石羊河绿洲春玉米试验中，灌溉或较强降雨后水分渗漏与硝酸盐淋洗增加相伴出现；可据此检查本表峰值日前后的水分输入与排水，但不能断言本表发生了同样事件。",
+        "supporting_quote": "灌溉或较强降雨后均伴随水分渗漏发生，土壤\n硝酸盐淋洗量也随之增加。",
+        "source": "../data/papers/008_shi_2018_oasis_maize_irrigation_n_loss.pdf",
+        "source_sha256": "b469a1de8afb8086e8a3f08bf97b12e94a4793152d38814210d3ec0b26d203fc",
+        "chunk_id": "data/papers/008_shi_2018_oasis_maize_irrigation_n_loss::0026"
+      },
+      {
+        "text": "同一试验的苗期第二次灌水出现明显淋洗，作者将其与作物当时水肥需求较少联系起来；这提示核对生育阶段及吸收能力，不能据此判定 Day 283 的成因。",
+        "supporting_quote": "这与第2 次灌溉时作物处于苗期，对水分和养\n分的需求比较少有关。",
+        "source": "../data/papers/008_shi_2018_oasis_maize_irrigation_n_loss.pdf",
+        "source_sha256": "b469a1de8afb8086e8a3f08bf97b12e94a4793152d38814210d3ec0b26d203fc",
+        "chunk_id": "data/papers/008_shi_2018_oasis_maize_irrigation_n_loss::0026"
+      }
+    ]
+  }
+}

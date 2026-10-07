@@ -6,7 +6,16 @@ from loguru import logger
 
 from src import __version__
 from src.agent.chat_service import ChatService
-from src.api import chat, health
+from src.agent.runtime import AgentRuntime
+from src.storage.run_store import RunStore
+from src.api import chat, demo, documents, evaluation, files, health
+from src.operations.public_access import PublicAccess, public_access
+from src.evaluation.auth import load_access
+from src.evaluation.service import EvaluationService
+from src.evaluation.store import EvaluationStore
+from src.evaluation.regression import RegressionService
+from src.evaluation.versioning import build_manifest
+from pathlib import Path
 from src.config import settings
 from src.llm.deepseek import DeepSeekClient
 from src.rag import BGEEmbedder, Reranker, Retriever
@@ -19,8 +28,29 @@ configure_logging(settings.log_level)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    if not settings.deepseek_api_key:
-        raise RuntimeError("DEEPSEEK_API_KEY 未配置；请检查 backend/.env")
+    if settings.public_demo_enabled:
+        app.state.public_access = PublicAccess(settings)
+    # Freeze non-secret code, config, index, and model identities before any run.
+    app.state.version_manifest = build_manifest(settings)
+    config_hash = app.state.version_manifest["manifest_sha256"][:16]
+    run_store = RunStore(settings.agent_trace_db)
+    app.state.eval_access = None
+    if settings.eval_enabled:
+        try:
+            access = load_access(settings.eval_access_file)
+            evaluation_store = EvaluationStore(run_store)
+            evaluation_store.seed(Path(__file__).resolve().parents[2] / "data/eval")
+            app.state.evaluation = EvaluationService(evaluation_store)
+            app.state.regressions = RegressionService(app.state.evaluation)
+            app.state.eval_access = access
+        except Exception:
+            run_store.close()
+            raise RuntimeError("Evaluation initialization failed; check access file and versioned cases") from None
+    app.state.agent_runtime = AgentRuntime(
+        runs=run_store,
+        config_version=f"{settings.agent_build_version}:{config_hash}",
+        config_manifest=app.state.version_manifest,
+    )
     logger.info(
         "Backend starting | env={} | model={} | cors_origins={} | "
         "llm_timeout_s={} | llm_max_retries={}",
@@ -36,11 +66,13 @@ async def lifespan(app: FastAPI):
         model=settings.deepseek_model,
         timeout_s=settings.deepseek_timeout_s,
         max_retries=settings.deepseek_max_retries,
-    )
+        proxy=settings.deepseek_proxy,
+        output_token_limit=settings.public_max_output_tokens if settings.public_demo_enabled else None,
+    ) if settings.deepseek_api_key else None
     app.state.llm = llm
     app.state.chat_service = None
 
-    if settings.rag_enabled:
+    if settings.rag_enabled and llm is not None:
         chroma_dir = settings.rag_chroma_dir or settings.chroma_persist_dir
         try:
             embedder = BGEEmbedder(model_id=settings.embedding_model)
@@ -95,14 +127,21 @@ async def lifespan(app: FastAPI):
             )
         except Exception:
             logger.warning(
-                "RAG enabled in config but failed to initialize; /api/chat will return 503",
+                "RAG failed to initialize; knowledge chat returns 503, file chat remains available",
                 exc_info=True,
             )
     else:
-        logger.info("RAG disabled (rag_enabled=False); /api/chat returns 503")
+        logger.info("RAG or API key unavailable; file chat remains available")
 
-    yield
-    logger.info("Backend shutting down")
+    try:
+        yield
+    finally:
+        if settings.eval_enabled:
+            await app.state.regressions.shutdown()
+        run_store.close()
+        if settings.public_demo_enabled:
+            app.state.public_access.db.close()
+        logger.info("Backend shutting down")
 
 
 app = FastAPI(
@@ -121,4 +160,18 @@ app.add_middleware(
 )
 
 app.include_router(health.router, prefix="/api", tags=["health"])
+app.include_router(demo.router, prefix="/api", tags=["public-demo"])
 app.include_router(chat.router, prefix="/api", tags=["chat"])
+app.include_router(files.router, prefix="/api", tags=["files"])
+app.include_router(documents.router, prefix="/api", tags=["documents"])
+app.include_router(evaluation.router, prefix="/api", tags=["evaluation"])
+app.state.public_settings = settings
+app.middleware("http")(public_access)
+
+
+@app.middleware("http")
+async def evaluation_no_cache(request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith("/api/eval"):
+        response.headers["Cache-Control"] = "no-store"
+    return response

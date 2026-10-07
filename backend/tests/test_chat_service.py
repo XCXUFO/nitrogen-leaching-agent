@@ -162,10 +162,10 @@ async def test_answer_passes_temperature_to_llm() -> None:
 
 
 @pytest.mark.asyncio
-async def test_answer_returns_citations_for_each_retrieved() -> None:
+async def test_answer_only_returns_used_citations_in_first_appearance_order() -> None:
     service = ChatService(
         FakeRetriever([_result(1), _result(2), _result(3)]),  # type: ignore[arg-type]
-        FakeLLMClient(),
+        FakeLLMClient("结论 [3]，另一个结论 [2]，再次引用 [3]。"),
         top_k=3,
         max_context_chars=500,
         temperature=0.3,
@@ -173,16 +173,17 @@ async def test_answer_returns_citations_for_each_retrieved() -> None:
 
     result = await service.answer("query")
 
-    assert [c.index for c in result.citations] == [1, 2, 3]
-    assert [c.chunk_id for c in result.citations] == ["c1", "c2", "c3"]
+    assert [c.index for c in result.citations] == [1, 2]
+    assert [c.chunk_id for c in result.citations] == ["c3", "c2"]
     assert result.retrieved_count == 3
 
+    assert result.answer == "结论 [1]，另一个结论 [2]，再次引用 [1]。"
 
 @pytest.mark.asyncio
-async def test_answer_snippet_truncates_to_100_chars() -> None:
+async def test_answer_snippet_is_bounded_but_long_enough_to_show_supporting_context() -> None:
     service = ChatService(
-        FakeRetriever([_result(1, document="x" * 200)]),  # type: ignore[arg-type]
-        FakeLLMClient(),
+        FakeRetriever([_result(1, document="x" * 500)]),  # type: ignore[arg-type]
+        FakeLLMClient("有依据 [1]"),
         top_k=1,
         max_context_chars=500,
         temperature=0.3,
@@ -190,7 +191,7 @@ async def test_answer_snippet_truncates_to_100_chars() -> None:
 
     result = await service.answer("query")
 
-    assert len(result.citations[0].snippet) == 100
+    assert len(result.citations[0].snippet) == 400
 
 
 @pytest.mark.asyncio
@@ -258,3 +259,24 @@ async def test_answer_delegates_retriever_to_to_thread(
     assert len(inline_to_thread) == 1
     assert inline_to_thread[0][0] == retriever.retrieve
     assert inline_to_thread[0][1] == ("query", 1)
+
+
+def test_normalized_citations_merge_papers_and_preserve_code():
+    from src.agent.chat_service import Citation, normalize_citations
+    citations = [Citation(index=i, chunk_id=str(i), source='same.pdf' if i < 3 else 'other.pdf',
+                          snippet=f'excerpt {i}', score=1) for i in range(1, 4)]
+    answer, used, mapping = normalize_citations('文字 [3][2]，再次 [1]。`[99]`\n```py\na=[8]\n```', citations)
+    assert answer.startswith('文字 [1][2]，再次 [2]。')
+    assert '`[99]`' in answer and 'a=[8]' in answer
+    assert len(used) == 2
+    assert 'excerpt 1' in used[1].snippet and 'excerpt 2' in used[1].snippet
+    assert mapping == {3: 1, 2: 2, 1: 2}
+
+
+@pytest.mark.asyncio
+async def test_no_markers_or_out_of_budget_evidence_never_shows_extra_sources():
+    service = ChatService(FakeRetriever([_result(1), _result(2)]), FakeLLMClient('无依据 [2]'),
+                          top_k=2, max_context_chars=1, temperature=0)
+    result = await service.answer('query')
+    assert result.citations == []
+    assert '[2]' not in result.answer

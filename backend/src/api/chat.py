@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+import hashlib
 
 from fastapi import APIRouter, HTTPException, Request
 from loguru import logger
@@ -12,9 +13,13 @@ from openai import (
     RateLimitError,
 )
 
-from src.agent.prompt import DialogueTurn
-from src.agent.chat_service import ChatService, RAGQueryError
+from src.agent.chat_service import RAGQueryError
+from src.agent.runtime import AgentRuntime
+from src.agent.skills import KnowledgeUnavailable
+from src.agent.state import ConversationBusy, StateCapacityError
 from src.api.chat_schema import ChatRequest, ChatResponse
+from src.api.files import file_store
+from src.rag.documents import citation_metadata
 
 router = APIRouter()
 
@@ -53,32 +58,50 @@ def _fail(
     )
     return HTTPException(
         status_code=status_code,
-        detail={"code": code, "message": message if message is not None else str(exc)},
+        detail={"code": code, "message": message if message is not None else str(exc),
+                "run_id": getattr(exc, "agent_run_id", None),
+                "trace_saved": getattr(exc, "agent_trace_saved", False)},
     )
 
 
 @router.post("/chat", response_model=ChatResponse)
 async def chat(request: Request, body: ChatRequest) -> ChatResponse:
-    service: ChatService | None = getattr(request.app.state, "chat_service", None)
-    if service is None:
-        raise HTTPException(
-            status_code=503,
-            detail={
-                "code": "rag_not_configured",
-                "message": (
-                    "RAG 未启用或初始化失败；请检查 RAG_ENABLED、"
-                    "RAG_CHROMA_DIR 与离线索引是否已生成。"
-                ),
-            },
-        )
-
+    visitor = getattr(request.state, "public_visitor", None)
+    if visitor:
+        # Namespace client-selected conversation IDs by the signed visitor.
+        body = body.model_copy(update={"operator_id": "visitor_" + visitor,
+            "session_id": hashlib.sha256((visitor + ":" + (body.session_id or "default")).encode()).hexdigest()})
+        for token in ([body.file_id] if body.file_id else []) + (body.file_ids or []):
+            # Expiration is handled by the runtime so other valid files still work.
+            entry = file_store(request).entries.get(token)
+            if entry is not None and entry.owner != visitor:
+                raise HTTPException(404, detail={"code": "file_not_found", "message": "文件已过期或不可用，请重新上传。"})
+    if not hasattr(request.app.state, "agent_runtime"):
+        # Minimal ASGI embedders/tests use an isolated in-memory store. The real
+        # application configures persistent traces in its lifespan.
+        request.app.state.agent_runtime = AgentRuntime()
+    runtime: AgentRuntime = request.app.state.agent_runtime
     t0 = time.perf_counter()
     try:
-        history = [
-            DialogueTurn(role=message.role, content=message.content)
-            for message in body.history
-        ]
-        result = await service.answer(body.query, k=body.k, history=history)
+        response = await runtime.execute(body, service=getattr(request.app.state, "chat_service", None),
+                                         get_report=file_store(request).inspect)
+        response.citations = [citation.model_copy(update=citation_metadata(citation.source))
+                              for citation in response.citations]
+        return response
+    except HTTPException as exc:
+        if isinstance(exc.detail, dict):
+            exc.detail = {**exc.detail, "run_id": getattr(exc, "agent_run_id", None),
+                          "trace_saved": getattr(exc, "agent_trace_saved", False)}
+        raise
+    except KnowledgeUnavailable as exc:
+        raise _fail(status_code=503, code="rag_not_configured", layer="retrieval", exc=exc,
+                    elapsed_ms=_ms(t0), message="文献服务未启用或初始化失败；请检查 RAG 配置与离线索引。文件分析仍可使用。") from exc
+    except ConversationBusy as exc:
+        raise _fail(status_code=409, code="conversation_busy", layer="state", exc=exc,
+                    elapsed_ms=_ms(t0), message="当前对话仍有请求正在处理，请等待完成后再发送。") from exc
+    except StateCapacityError as exc:
+        raise _fail(status_code=503, code="conversation_capacity", layer="state", exc=exc,
+                    elapsed_ms=_ms(t0), message="当前对话数量已达上限，请稍后重试。") from exc
     except RAGQueryError as exc:
         raise _fail(
             status_code=503,
@@ -142,11 +165,3 @@ async def chat(request: Request, body: ChatRequest) -> ChatResponse:
             message="服务内部异常，请稍后重试",
             with_traceback=True,
         ) from exc
-
-    return ChatResponse(
-        answer=result.answer,
-        citations=result.citations,
-        usage=result.usage,
-        retrieved_count=result.retrieved_count,
-        model=result.model,
-    )

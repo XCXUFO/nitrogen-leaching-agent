@@ -52,6 +52,10 @@ def is_reference_chunk(text: str) -> bool:
 
     if starts_in_reference_section and (years >= 1 or journal_hints >= 1):
         return True
+    # Chinese bibliographies often use [10] rather than an English author line.
+    # A title containing "leaching" is not a body observation.
+    if re.search(r"(?m)^\s*\[\d{1,3}\]", text) and years >= 2 and (journal_hints >= 1 or "[J]" in text):
+        return True
     if doi_or_url and (years >= 1 or journal_hints >= 1 or author_lines >= 1):
         return True
     if author_lines >= 1 and years >= 1 and (journal_hints >= 1 or page_ranges >= 1):

@@ -6,7 +6,7 @@ from pathlib import Path
 
 from .workbooks import WorkbookError, column_letter, read_workbook
 
-TOOL_VERSION = "0.1.0"
+TOOL_VERSION = "0.2.0"
 SCHEMAS = {
     "nitrogen": {
         "sheet": "Nbal_out",
@@ -23,11 +23,16 @@ SCHEMAS = {
 }
 
 
-def summarize_result(path: Path, *, kind: str) -> dict:
+def summarize_result(path: Path, *, kind: str | None = None) -> dict:
+    book = read_workbook(path)
+    if kind is None:
+        matches = [k for k, s in SCHEMAS.items() if any(t["name"] == s["sheet"] for t in book["sheets"])]
+        if len(matches) != 1:
+            raise WorkbookError("expected exactly one Nbal_out or WtaBal_out result sheet")
+        kind = matches[0]
     if kind not in SCHEMAS:
         raise WorkbookError(f"unsupported result kind: {kind}")
     schema = SCHEMAS[kind]
-    book = read_workbook(path)
     sheet = next((s for s in book["sheets"] if s["name"] == schema["sheet"]), None)
     if sheet is None:
         raise WorkbookError(f"required sheet missing: {schema['sheet']}")
@@ -61,6 +66,11 @@ def summarize_result(path: Path, *, kind: str) -> dict:
         values = [row[c] for row in data]
         low, high = min(values), max(values)
         col = column_letter(c + 1)
+        def extreme(value):
+            index = values.index(value)
+            return {"value": value, "cell": f"{sheet['name']}!{col}{index+2}",
+                    "model_day": int(data[index][0]), "day_cell": f"{sheet['name']}!A{index+2}",
+                    "occurrences": values.count(value)}
         try:
             raw_sum = math.fsum(values)
         except OverflowError as exc:
@@ -70,8 +80,8 @@ def summarize_result(path: Path, *, kind: str) -> dict:
             "range": f"{sheet['name']}!{col}2:{col}{len(rows)}",
             "first": {"value": values[0], "cell": f"{sheet['name']}!{col}2"},
             "last": {"value": values[-1], "cell": f"{sheet['name']}!{col}{len(rows)}"},
-            "min": {"value": low, "cell": f"{sheet['name']}!{col}{values.index(low)+2}"},
-            "max": {"value": high, "cell": f"{sheet['name']}!{col}{values.index(high)+2}"},
+            "min": extreme(low),
+            "max": extreme(high),
             "raw_column_sum": raw_sum,
         })
     return {

@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "dataset_id": "agent-harness-20260929-v2",
+  "fixture_dataset": "manual-acceptance-20260928-v1",
+  "note": "升级行为的目标用例；不修改旧标准，也不表示已完成人工验收。",
+  "cases": [
+    {
+      "case_id": "F05", "version": 2, "category": "F", "title": "已确认指标的文件省略式追问",
+      "preconditions": "同一有效会话、同一有效附件；上一轮成功计算 leak_NO3。",
+      "attachment_requirements": ["Nbal_out.xls"],
+      "steps": [
+        {"action": "upload", "instruction": "上传绑定指纹的真实氮表", "attachment": "Nbal_out.xls"},
+        {"action": "query", "instruction": "确认字段", "input": "leak_NO3 最大值及对应日序"},
+        {"action": "query", "instruction": "省略字段追问", "input": "那最小值呢？"}
+      ],
+      "expected": ["继承 leak_NO3；值 0 kg N ha-1，首次日序 2，Nbal_out!C3/A3；191 条并列。", "新会话、换表、过期、指标冲突或切换知识话题后，不自动沿用该指标。"],
+      "priority": "P0", "source": "9.28人工核验单.pdf / 9天开发交接.md", "supersedes": "F05@1"
+    },
+    {
+      "case_id": "X01", "version": 2, "category": "X", "title": "带附件直接进行知识问答",
+      "preconditions": "真实 RAG/LLM 已就绪；附件仅作为可用上下文。",
+      "attachment_requirements": ["Nbal_out.xls"],
+      "steps": [
+        {"action": "upload", "instruction": "上传合法氮表", "attachment": "Nbal_out.xls"},
+        {"action": "query", "instruction": "直接提问一般机理", "input": "氮素淋失主要受哪些因素影响？"}
+      ],
+      "expected": ["进入 KNOWLEDGE，无需移除附件；没有生成文件数值证据。", "真实回答的关键引用仍须人工核查；模拟服务通过不代表文献证据通过。"],
+      "priority": "P0", "source": "9.28人工核验单.pdf / 9天开发交接.md", "supersedes": "X01@1"
+    },
+    {
+      "case_id": "X02", "version": 2, "category": "X", "title": "清空后会话状态隔离",
+      "preconditions": "已完成文件问答并设置作物约束。",
+      "attachment_requirements": ["Nbal_out.xls"],
+      "steps": [
+        {"action": "clear", "instruction": "点击清空对话"},
+        {"action": "query", "instruction": "检查附件与指标是否残留", "input": "那最小值呢？"}
+      ],
+      "expected": ["前端使用新的会话标识；当前附件、指标和作物约束不从旧会话继承。", "要求补充当前附件和指标，不引用旧表数据。"],
+      "priority": "P0", "source": "9.28人工核验单.pdf / 9天开发交接.md", "supersedes": "X02@1"
+    },
+    {
+      "case_id": "NEW01", "version": 2, "category": "NEW", "title": "无关短输入的能力引导",
+      "preconditions": "无附件或有附件均可；不依赖 RAG 服务。", "attachment_requirements": [],
+      "steps": [{"action": "query", "instruction": "发送核验单 Bad Case", "input": "1"}],
+      "expected": ["解释助手支持的文献问答和输出表分析能力，给出可执行提问示例。", "不调用知识检索，不生成引用或文件计算结果。"],
+      "priority": "P0", "source": "9.28人工核验单.pdf 第 30–32 页", "supersedes": null
+    }
+  ]
+}

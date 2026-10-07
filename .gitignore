@@ -50,6 +50,10 @@ node_modules/
 
 # Next.js
 .next/
+.next-candidate/
+.next-workbench/
+.next-demo/
+.next-chat-p00/
 out/
 next-env.d.ts
 
@@ -112,6 +116,7 @@ chroma_db/
 *.chroma/
 backend/data/chroma/
 backend/var/
+data/eval/uploads/
 
 # Model caches / weights
 models/

@@ -1,0 +1,35 @@
+{
+  "metadata_version": 1,
+  "case_id": "whcns-received-20260926-nitrogen",
+  "source_status": "same-package provenance reported by user; executable run pairing not independently verified",
+  "output": {
+    "path": "data/raw/whcns/received-2026-09-26/package/模型/Nbal_out.xls",
+    "sha256": "6bf778020c6ae752da6778bc5429d1b09bc59ea1f725462dfe20207cbef88276",
+    "sheet": "Nbal_out",
+    "field": "leak_NO3",
+    "header": "leak_NO3(kg N ha-1)",
+    "unit": "kg N ha-1"
+  },
+  "manual": {
+    "path": "data/raw/whcns/received-2026-09-26/WHCNS用户手册202508.pdf",
+    "sha256": "2d5370f2acafc4bf2b8e0a79d35899158b38e2f096b2634ad7eb213b1d444026",
+    "version_label": "WHCNS V1.0 in manual; executable version unverified",
+    "field_definition_page": 26,
+    "field_definition": "Leak_NO3: 硝态氮淋失量",
+    "daily_step_page": 4,
+    "day_definition_page": 21,
+    "day_definition": "Day 1 is the first sowing date in manage_in.xls; subsequent days increment by one"
+  },
+  "management_input": {
+    "path": "data/raw/whcns/received-2026-09-26/package/模型/manage_in.xls",
+    "sha256": "4c30b59040edc546f718310a89ba597f38cf9ffdce1fff08d35b920a4b405bd8",
+    "crop_cell": "Sheet1!A3",
+    "crop_value": "Maize",
+    "first_sowing_date_cells": "Sheet1!B3:D3",
+    "first_sowing_date_value": "2007-06-14",
+    "paired_with_output": false
+  },
+  "output_boundary_depth_cm": null,
+  "calendar_date_for_day_283": null,
+  "review_identity": "AI-assisted review based on user-provided materials; not domain-expert sign-off"
+}

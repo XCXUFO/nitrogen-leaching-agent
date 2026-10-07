@@ -36,6 +36,14 @@ def test_is_reference_chunk_keeps_body_evidence_with_citations() -> None:
     assert not is_reference_chunk(body_with_citation)
 
 
+def test_chinese_bibliography_title_does_not_count_as_mechanism_evidence() -> None:
+    reference = ("第3期 史鑫蕊等：灌水次数对绿洲春玉米田氮素损失的影响\n"
+                 "Liang Hao, Hu Kelin, et al. Nitrate leaching in maize. "
+                 "Journal of Arid Land Resources and Environment, 2016, 30(7): 114-118.\n"
+                 "[10] 杨荣，苏永中. 水氮配合对绿洲沙地农田玉米产量的影响[J]. 生态学报，2009，29(3)：1459-1469.")
+    assert is_reference_chunk(reference)
+
+
 def test_filter_reference_chunks_drops_refs_when_enough_body_candidates() -> None:
     ref = RetrievalResult("ref", REFERENCE_TEXT, 1.0, {"source": "a"})
     body_a = RetrievalResult("body-a", BODY_TEXT, 0.9, {"source": "a"})

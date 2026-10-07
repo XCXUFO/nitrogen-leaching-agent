@@ -1,3 +1,1 @@
-from src.api import chat, health
-
-__all__ = ["chat", "health"]
+"""HTTP adapters. Import routers explicitly; importing schemas has no side effects."""

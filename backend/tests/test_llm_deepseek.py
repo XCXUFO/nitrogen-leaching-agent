@@ -17,6 +17,16 @@ def _make_response(content: str | None, model: str = "deepseek-chat"):
 
 
 @pytest.mark.asyncio
+async def test_public_output_limit_caps_default_and_explicit_requests(monkeypatch):
+    client = DeepSeekClient(api_key="x", base_url="https://example", model="test", output_token_limit=256)
+    create = AsyncMock(return_value=_make_response("hello"))
+    monkeypatch.setattr(client._client.chat.completions, "create", create)
+    for requested, expected in [(None, 256), (1024, 256), (128, 128)]:
+        await client.chat([ChatMessage(role="user", content="hello")], max_tokens=requested)
+        assert create.await_args.kwargs["max_tokens"] == expected
+
+
+@pytest.mark.asyncio
 async def test_chat_maps_response_into_chat_result(monkeypatch):
     client = DeepSeekClient(api_key="x", base_url="https://example", model="deepseek-chat")
     create_mock = AsyncMock(return_value=_make_response("hello"))

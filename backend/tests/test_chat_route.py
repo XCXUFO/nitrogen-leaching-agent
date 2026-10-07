@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import httpx
+from dataclasses import replace
 from fastapi import FastAPI
 from openai import APIConnectionError, APITimeoutError
 import pytest
 
 from src.agent.chat_service import ChatServiceResult, Citation, RAGQueryError
+from src.agent.composition import MechanismClaim
 from src.agent.prompt import DialogueTurn
 from src.api import chat
 from src.llm.base import ChatUsage
@@ -41,6 +43,12 @@ class FakeChatService:
             retrieved_count=1,
             model="fake-model",
         )
+
+    async def explain_mechanisms(self, query: str, *, crop: str | None = None,
+                                 k: int | None = None, purpose: str = "general") -> ChatServiceResult:
+        result = await self.answer(query, k)
+        return replace(result, claims=[MechanismClaim(text="测试用正文机制。", citation_index=1,
+                                                      supporting_quote="synthetic test quote")])
 
 
 def _app_with_service(service: object | None) -> FastAPI:
@@ -87,7 +95,7 @@ async def test_chat_200_happy_path() -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["answer"] == "fake answer"
-    assert body["citations"][0]["chunk_id"] == "c1"
+    assert body["citations"] == []  # The fake answer has no citation markers.
     assert body["usage"]["total_tokens"] == 3
     assert service.calls == [("q", 3, [])]
 

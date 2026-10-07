@@ -14,6 +14,7 @@ _LIVE_NETWORK = _LIVE_DEEPSEEK or os.environ.get("RUN_LIVE_EMBED")
 # 模块导入期实例化，fixture 来不及。
 if not _LIVE_DEEPSEEK:
     os.environ["DEEPSEEK_API_KEY"] = "test-key-not-real"
+    os.environ["AGENT_TRACE_DB"] = ":memory:"  # Mock runs must never pollute real evaluation records.
 
 # RUN_LIVE_EMBED=1 时也保留代理：HuggingFace 首次下载 BGE 权重需要走代理。
 # DEEPSEEK 哨兵不受影响（embed 路径不依赖该 key）。

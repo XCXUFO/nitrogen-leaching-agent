@@ -1,0 +1,1 @@
+Synthetic catalog fixture for asset provenance tests. It is not a WHCNS model input.

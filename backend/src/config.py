@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from pydantic import field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -23,6 +23,7 @@ class Settings(BaseSettings):
 
     deepseek_api_key: str = ""
     deepseek_base_url: str = "https://api.deepseek.com"
+    deepseek_proxy: str | None = None
     deepseek_model: str = "deepseek-v4-flash"
     # M1.5-a demo hardening: 有界超时 + 显式有界重试，替代 SDK 默认（timeout=600s）。
     # 这是策略默认值，可被 .env 覆盖；后续 A 档延迟变化时只改这里，不牵动测试。
@@ -41,6 +42,28 @@ class Settings(BaseSettings):
     chat_top_k: int = 5
     chat_max_context_chars: int = 4000
     chat_temperature: float = 0.3
+
+    agent_trace_db: str = str(BASE_DIR / "var/agent/runs.sqlite3")
+    agent_build_version: str = "local-unversioned"
+
+    eval_enabled: bool = False
+    eval_access_file: str = str(BASE_DIR / "var/eval/access-keys.json")
+
+    public_demo_enabled: bool = False
+    public_cookie_secure: bool = True
+    public_requests_per_minute: int = Field(default=12, ge=1, le=120)
+    public_daily_chat_limit: int = Field(default=300, ge=1)
+    public_max_concurrent: int = Field(default=2, ge=1, le=16)
+    public_max_output_tokens: int = Field(default=2048, ge=128, le=8192)
+    public_budget_db: str = str(BASE_DIR / "var/demo/budget.sqlite3")
+
+    @field_validator("agent_trace_db", "eval_access_file", "public_budget_db", mode="before")
+    @classmethod
+    def normalize_agent_trace_db(cls, value: str) -> str:
+        if value == ":memory:":
+            return value
+        path = Path(value)
+        return str(path if path.is_absolute() else (BASE_DIR / path).resolve())
 
     rag_reranker_enabled: bool = False
     rag_reranker_top_k_recall: int = 20

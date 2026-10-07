@@ -4,7 +4,7 @@ import hashlib
 from datetime import date, datetime
 from io import BytesIO
 from pathlib import Path
-from zipfile import BadZipFile
+from zipfile import BadZipFile, ZipFile
 
 MAX_CELLS = 500_000
 
@@ -27,7 +27,7 @@ def _scalar(value):
     return value
 
 
-def read_workbook(path: Path) -> dict:
+def read_workbook(path: Path, *, reject_cell_errors: bool = True) -> dict:
     """Read stored values, retaining Excel coordinates and rejecting cell errors.
 
     Format comes from bytes, since some supplied .xls files are actually XLSX.
@@ -56,10 +56,12 @@ def read_workbook(path: Path) -> dict:
                     row = []
                     for c in range(sheet.ncols):
                         cell = sheet.cell(r, c)
-                        if cell.ctype == xlrd.XL_CELL_ERROR:
+                        if cell.ctype == xlrd.XL_CELL_ERROR and reject_cell_errors:
                             raise WorkbookError(f"Excel error at {sheet.name}!{column_letter(c+1)}{r+1}")
                         value = cell.value
-                        if cell.ctype in (xlrd.XL_CELL_EMPTY, xlrd.XL_CELL_BLANK):
+                        if cell.ctype == xlrd.XL_CELL_ERROR:
+                            value = xlrd.error_text_from_code.get(cell.value, "#ERROR!")
+                        elif cell.ctype in (xlrd.XL_CELL_EMPTY, xlrd.XL_CELL_BLANK):
                             value = None
                         elif cell.ctype == xlrd.XL_CELL_BOOLEAN:
                             value = bool(value)
@@ -75,19 +77,26 @@ def read_workbook(path: Path) -> dict:
         import openpyxl
 
         try:
+            with ZipFile(BytesIO(raw)) as archive:
+                if len(archive.infolist()) > 2000 or sum(i.file_size for i in archive.infolist()) > 100 * 1024 * 1024:
+                    raise WorkbookError("XLSX exceeds the expanded archive limit")
             book = openpyxl.load_workbook(BytesIO(raw), read_only=True, data_only=False, keep_links=False)
         except (ValueError, KeyError, OSError, BadZipFile, openpyxl.utils.exceptions.InvalidFileException) as exc:
             raise WorkbookError(f"invalid XLSX: {exc}") from exc
         try:
+            actual_cells = 0
             for sheet in book:
                 total_cells += (sheet.max_row or 0) * (sheet.max_column or 0)
                 if total_cells > MAX_CELLS:
                     raise WorkbookError("workbook exceeds the cell limit")
                 rows = []
                 for cells in sheet.iter_rows():
+                    actual_cells += len(cells)
+                    if actual_cells > MAX_CELLS:
+                        raise WorkbookError("workbook exceeds the cell limit")
                     row = []
                     for cell in cells:
-                        if cell.data_type == "e":
+                        if cell.data_type == "e" and reject_cell_errors:
                             raise WorkbookError(f"Excel error at {sheet.title}!{cell.coordinate}")
                         row.append(_scalar(cell.value))
                     rows.append(row)

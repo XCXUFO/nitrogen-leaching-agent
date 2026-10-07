@@ -1,0 +1,357 @@
+{
+  "version": "public-demo-v1",
+  "published_on": "2026-10-05",
+  "notice": "只读公开快照；不包含实时访客聊天。历史工程运行与合成流程评分分别标注，专业审核尚未完成。",
+  "cases": [
+    {
+      "id": "file-extrema",
+      "title": "一张结果表，得到可核对的最大值",
+      "category": "文件分析",
+      "summary": "读取已有 WHCNS 输出，使用程序计算，并给出值、单位、模型日序与单元格。",
+      "expected": [
+        "最大值约 3.6593 kg N ha-1，模型日序 283。",
+        "对应 C284/A284，不擅自换算为日历日期。"
+      ],
+      "status": "历史工程重放",
+      "review": "已保存真实运行回答；本展示未新增人工评分或专家签核。",
+      "runs": [
+        {
+          "run_id": "e660bdb3-a64e-4bf8-87e8-27e55262bd63",
+          "started_at": "2026-10-03T12:51:22.757038+00:00",
+          "input": "硝态氮最大值及日序",
+          "answer": "leak_NO3 的最大值为 3.65926384925842 kg N ha-1，对应模型日序 283。\n已核查 352 条记录。按上传表中保存的数值计算，未重算公式。模型日序不等于日历日期；程序版本、输入输出配对及手册专业审核尚未确认。此结果不代表案例已复现。",
+          "latency_ms": 17,
+          "outcome": "complete",
+          "route": "FILE_ANALYSIS",
+          "tools": [
+            {
+              "skill": "file_inspector",
+              "status": "ok"
+            },
+            {
+              "skill": "whcns_analyzer",
+              "status": "ok"
+            }
+          ],
+          "citations": [],
+          "evidence": [
+            {
+              "value": 3.659263849258423,
+              "unit": "kg N ha-1",
+              "cell": "Nbal_out!C284",
+              "day_cell": "Nbal_out!A284",
+              "model_day": 283
+            }
+          ]
+        }
+      ],
+      "source": "evidence-2026-10-03/selected-run-traces.json"
+    },
+    {
+      "id": "follow-up",
+      "title": "连续追问与附件移除",
+      "category": "多轮对话",
+      "summary": "有效附件下继承指标；附件移除后要求重新上传，避免继续引用旧表。",
+      "expected": [
+        "追问最小值返回 0，首次模型日序 2，共 191 条并列。",
+        "附件不可用时澄清，不复用旧数值。"
+      ],
+      "status": "历史工程重放",
+      "review": "已保存真实运行回答；本展示未新增人工评分或专家签核。",
+      "runs": [
+        {
+          "run_id": "e660bdb3-a64e-4bf8-87e8-27e55262bd63",
+          "started_at": "2026-10-03T12:51:22.757038+00:00",
+          "input": "硝态氮最大值及日序",
+          "answer": "leak_NO3 的最大值为 3.65926384925842 kg N ha-1，对应模型日序 283。\n已核查 352 条记录。按上传表中保存的数值计算，未重算公式。模型日序不等于日历日期；程序版本、输入输出配对及手册专业审核尚未确认。此结果不代表案例已复现。",
+          "latency_ms": 17,
+          "outcome": "complete",
+          "route": "FILE_ANALYSIS",
+          "tools": [
+            {
+              "skill": "file_inspector",
+              "status": "ok"
+            },
+            {
+              "skill": "whcns_analyzer",
+              "status": "ok"
+            }
+          ],
+          "citations": [],
+          "evidence": [
+            {
+              "value": 3.659263849258423,
+              "unit": "kg N ha-1",
+              "cell": "Nbal_out!C284",
+              "day_cell": "Nbal_out!A284",
+              "model_day": 283
+            }
+          ]
+        },
+        {
+          "run_id": "121c8706-8ef0-4f21-9bdf-a92ab30d4ae5",
+          "started_at": "2026-10-03T12:51:23.071294+00:00",
+          "input": "那最小值呢？",
+          "answer": "leak_NO3 的最小值为 0 kg N ha-1，对应模型日序 2。共有 191 条记录并列，此处列出首次出现。\n已核查 352 条记录。按上传表中保存的数值计算，未重算公式。模型日序不等于日历日期；程序版本、输入输出配对及手册专业审核尚未确认。此结果不代表案例已复现。",
+          "latency_ms": 0,
+          "outcome": "complete",
+          "route": "FILE_ANALYSIS",
+          "tools": [
+            {
+              "skill": "file_inspector",
+              "status": "ok"
+            },
+            {
+              "skill": "whcns_analyzer",
+              "status": "ok"
+            }
+          ],
+          "citations": [],
+          "evidence": [
+            {
+              "value": 0.0,
+              "unit": "kg N ha-1",
+              "cell": "Nbal_out!C3",
+              "day_cell": "Nbal_out!A3",
+              "model_day": 2
+            }
+          ]
+        },
+        {
+          "run_id": "157a6146-04d3-4b53-9370-bac19726ef06",
+          "started_at": "2026-10-03T12:51:23.473839+00:00",
+          "input": "那最小值呢？",
+          "answer": "请先上传 WHCNS 氮/水平衡输出表（.xls 或 .xlsx），再说明要查询的字段及最大值或最小值。",
+          "latency_ms": 0,
+          "outcome": "clarification",
+          "route": "CLARIFY",
+          "tools": [
+            {
+              "skill": "clarification",
+              "status": "clarification"
+            }
+          ],
+          "citations": [],
+          "evidence": []
+        }
+      ],
+      "source": "evidence-2026-10-03/selected-run-traces.json"
+    },
+    {
+      "id": "literature",
+      "title": "有出处的文献解释",
+      "category": "文献问答",
+      "summary": "回答区分研究场景与证据尺度，机制解释仍待独立领域审核。",
+      "expected": [
+        "逐条给出引用，不能将一般机制认定为某一天峰值的实际成因。"
+      ],
+      "status": "专业审核待完成",
+      "review": "已保存真实运行回答；本展示未新增人工评分或专家签核。",
+      "runs": [
+        {
+          "run_id": "c9b8ffeb-22fa-464b-a383-6e6d3d8cc768",
+          "started_at": "2026-10-03T13:36:08.840667+00:00",
+          "input": "接下来只讨论玉米农田。氮素淋失主要受哪些因素影响？",
+          "answer": "甘肃石羊河绿洲春玉米试验中，灌溉或较强降雨后的水分渗漏与硝酸盐淋洗增加相伴出现；这是该研究的事件尺度观察。 [1]\n同一春玉米试验中，作者将苗期第二次灌水时的明显淋洗与作物当时水分和养分需求较少联系起来；生育阶段会改变对水肥输入的响应。 [1]\n京郊设施菜地填闲甜玉米论文的讨论还列出灌水量、施氮量、土壤质地、根层氮含量及剖面分布等因素；这是该特定场景的文献线索，不能直接代表所有玉米田。 [2]\n\n以上是所引论文场景内的证据；模型校准或参数误差属于模拟结果局限，不是实际淋失的环境驱动因素。",
+          "latency_ms": 2,
+          "outcome": "complete",
+          "route": "KNOWLEDGE",
+          "tools": [
+            {
+              "skill": "knowledge_search",
+              "status": "ok"
+            }
+          ],
+          "citations": [
+            {
+              "index": 1,
+              "title": "灌水次数对绿洲春玉米田氮素损失及水氮利用效率的影响",
+              "excerpt": "灌溉或较强降雨后均伴随水分渗漏发生，土壤\n硝酸盐淋洗量也随之增加。\n…\n这与第2 次灌溉时作物处于苗期，对水分和养\n分的需求比较少有关。"
+            },
+            {
+              "index": 2,
+              "title": "填闲玉米对京郊设施菜地土壤氮素淋洗影响的模拟分析",
+              "excerpt": "由于氮素损失量受灌水量、施氮量、土壤质地、\n根层土壤氮素含量及其在土壤剖面内的分布特征等\n因素的影响"
+            }
+          ],
+          "evidence": []
+        }
+      ],
+      "source": "evidence-2026-10-03/selected-run-traces.json"
+    },
+    {
+      "id": "composed",
+      "title": "文件事实与可能机制分开表达",
+      "category": "组合回答",
+      "summary": "先给表中计算结果，再解释有文献支持的可能机制和缺失材料。",
+      "expected": [
+        "区分表中观察、可能机制和待核查材料。",
+        "缺少运行来源时不宣称已复现仿真。"
+      ],
+      "status": "专业审核待完成",
+      "review": "已保存真实运行回答；本展示未新增人工评分或专家签核。",
+      "runs": [
+        {
+          "run_id": "236fa241-2126-4a7b-834a-3d4f248ec60b",
+          "started_at": "2026-10-03T13:36:08.856623+00:00",
+          "input": "硝态氮最大值是多少，为什么可能这么高？",
+          "answer": "表中观察\nleak_NO3 的最大值为 3.65926384925842 kg N ha-1，对应模型日序 283。\n已核查 352 条记录。按上传表中保存的数值计算，未重算公式。随包 WHCNS 手册第 26 页将 Leak_NO3 定义为硝态氮淋失量；第 4、21 页说明模型以天为步长，Day 1 对应 manage_in 首次播种日期。本表与随包输入文件的实际运行配对、可执行程序版本和输出边界深度尚未独立核实，因此不换算日历日期或指定边界深度。此结果不代表案例已复现。\n\n为何目前不能归因\n仅凭表中模型日序 283 的极值，无法确认峰值成因。目前没有经核验与该输出配对的同期天气、灌溉、排水、施肥和土壤硝态氮记录。\n\n文献中的事件尺度线索\n甘肃石羊河绿洲春玉米试验中，灌溉或较强降雨后水分渗漏与硝酸盐淋洗增加相伴出现；可据此检查本表峰值日前后的水分输入与排水，但不能断言本表发生了同样事件。 [1]\n同一试验的苗期第二次灌水出现明显淋洗，作者将其与作物当时水肥需求较少联系起来；这提示核对生育阶段及吸收能力，不能据此判定 Day 283 的成因。 [1]\n\n下一步核查\n先核实 manage_in 与输出表是否配对及模型日序定义；确认后再换算日历日期。随后核对目标日及前后数日的 PREC、IRRI、Draining、施肥、土壤硝态氮剖面和模型配置。文献只提供其他研究场景的待核查机制，不能证明本表峰值原因；当前没有执行 WHCNS，也不据此给出施肥量。",
+          "latency_ms": 21,
+          "outcome": "complete",
+          "route": "COMPOSED",
+          "tools": [
+            {
+              "skill": "file_inspector",
+              "status": "ok"
+            },
+            {
+              "skill": "whcns_analyzer",
+              "status": "ok"
+            },
+            {
+              "skill": "knowledge_search",
+              "status": "ok"
+            }
+          ],
+          "citations": [
+            {
+              "index": 1,
+              "title": "灌水次数对绿洲春玉米田氮素损失及水氮利用效率的影响",
+              "excerpt": "灌溉或较强降雨后均伴随水分渗漏发生，土壤\n硝酸盐淋洗量也随之增加。\n…\n这与第2 次灌溉时作物处于苗期，对水分和养\n分的需求比较少有关。"
+            }
+          ],
+          "evidence": [
+            {
+              "value": 3.659263849258423,
+              "unit": "kg N ha-1",
+              "cell": "Nbal_out!C284",
+              "day_cell": "Nbal_out!A284",
+              "model_day": 283
+            }
+          ]
+        }
+      ],
+      "source": "evidence-2026-10-03/selected-run-traces.json"
+    },
+    {
+      "id": "workflow",
+      "title": "从问题登记到回归复测",
+      "category": "流程演示",
+      "summary": "隔离浏览器测试实际走通任务、执行、评分、Issue、重放与复测关联。",
+      "status": "合成评分 · 流程验证",
+      "expected": [
+        "解释助手支持的文献问答和输出表分析能力，给出可执行提问示例。",
+        "不调用知识检索，不生成引用或文件计算结果。"
+      ],
+      "review": "fail/pass 是测试脚本刻意提交的合成评分，仅验证流程，不代表真实缺陷被修复或专业准确率。",
+      "runs": [
+        {
+          "run_id": "dcb62118-17a0-4e2f-8ffc-fd8cc44b65c3",
+          "started_at": "2026-10-04T03:57:34.563718+00:00",
+          "input": "1",
+          "answer": "我可以根据本地文献回答农田氮淋失问题，并给出参考依据；也可以读取 WHCNS 氮/水平衡输出表，查询一个字段的整表最大值、最小值和对应模型日序。\n\n你可以问：\n- 玉米农田氮淋失主要受哪些因素影响？\n- 上传 Nbal_out.xls 后问：硝态氮淋失最大值及对应日序。\n\n文件功能分析的是已有输出表，目前不执行 WHCNS 模拟，也不自动制定施肥方案。",
+          "latency_ms": 6,
+          "outcome": "complete",
+          "route": "DIRECT",
+          "tools": [
+            {
+              "skill": "capability_guidance",
+              "status": "ok"
+            }
+          ],
+          "citations": [],
+          "evidence": []
+        },
+        {
+          "run_id": "6db5fb0a-19d0-4706-8669-24bc75ceec86",
+          "started_at": "2026-10-04T03:57:34.794075+00:00",
+          "input": "你好",
+          "answer": "我可以根据本地文献回答农田氮淋失问题，并给出参考依据；也可以读取 WHCNS 氮/水平衡输出表，查询一个字段的整表最大值、最小值和对应模型日序。\n\n你可以问：\n- 玉米农田氮淋失主要受哪些因素影响？\n- 上传 Nbal_out.xls 后问：硝态氮淋失最大值及对应日序。\n\n文件功能分析的是已有输出表，目前不执行 WHCNS 模拟，也不自动制定施肥方案。",
+          "latency_ms": 0,
+          "outcome": "complete",
+          "route": "DIRECT",
+          "tools": [
+            {
+              "skill": "capability_guidance",
+              "status": "ok"
+            }
+          ],
+          "citations": [],
+          "evidence": []
+        },
+        {
+          "run_id": "95412403-23d8-4448-a8ef-483ec08d755e",
+          "started_at": "2026-10-04T03:57:36.351558+00:00",
+          "input": "1",
+          "answer": "我可以根据本地文献回答农田氮淋失问题，并给出参考依据；也可以读取 WHCNS 氮/水平衡输出表，查询一个字段的整表最大值、最小值和对应模型日序。\n\n你可以问：\n- 玉米农田氮淋失主要受哪些因素影响？\n- 上传 Nbal_out.xls 后问：硝态氮淋失最大值及对应日序。\n\n文件功能分析的是已有输出表，目前不执行 WHCNS 模拟，也不自动制定施肥方案。",
+          "latency_ms": 0,
+          "outcome": "complete",
+          "route": "DIRECT",
+          "tools": [
+            {
+              "skill": "capability_guidance",
+              "status": "ok"
+            }
+          ],
+          "citations": [],
+          "evidence": []
+        },
+        {
+          "run_id": "b59d6e80-6b86-44d5-ab07-2d98bd5cba23",
+          "started_at": "2026-10-04T03:57:36.367027+00:00",
+          "input": "你好",
+          "answer": "我可以根据本地文献回答农田氮淋失问题，并给出参考依据；也可以读取 WHCNS 氮/水平衡输出表，查询一个字段的整表最大值、最小值和对应模型日序。\n\n你可以问：\n- 玉米农田氮淋失主要受哪些因素影响？\n- 上传 Nbal_out.xls 后问：硝态氮淋失最大值及对应日序。\n\n文件功能分析的是已有输出表，目前不执行 WHCNS 模拟，也不自动制定施肥方案。",
+          "latency_ms": 0,
+          "outcome": "complete",
+          "route": "DIRECT",
+          "tools": [
+            {
+              "skill": "capability_guidance",
+              "status": "ok"
+            }
+          ],
+          "citations": [],
+          "evidence": []
+        }
+      ],
+      "source": "evidence-2026-10-04-workflow-integrity.json",
+      "stages": [
+        "任务冻结用例 NEW01@2 与构建",
+        "保存真实问答和合成 fail 评分",
+        "关联原执行登记 Issue",
+        "保存回归基线并重放",
+        "新执行提交合成 pass 评分",
+        "核验运行版本并关联复测，保留原评分"
+      ],
+      "comparison": [
+        {
+          "label": "原执行",
+          "overall": "fail（合成）",
+          "execution_id": "91aea595-d70d-4bdf-95cf-ea8e9b5f421e"
+        },
+        {
+          "label": "重放执行",
+          "overall": "pass（合成）",
+          "execution_id": "50d60a49-5d16-4d25-9baf-b448258b86b1"
+        }
+      ]
+    }
+  ],
+  "assets": [
+    {
+      "filename": "Nbal_out.xls",
+      "sha256": "6bf778020c6ae752da6778bc5429d1b09bc59ea1f725462dfe20207cbef88276",
+      "description": "WHCNS 氮平衡输出示例，352 条记录；仅演示结果读取，不证明输入输出运行配对。"
+    }
+  ],
+  "sources": [
+    {
+      "name": "evidence-2026-10-03/selected-run-traces.json",
+      "sha256": "de7fe7219836b932fad2edb600dff2a635eeeb8537deccd64b8c5eca0fe7ad08"
+    },
+    {
+      "name": "evidence-2026-10-04-workflow-integrity.json",
+      "sha256": "8e3fd4b45bf558a2fa3ad40a4d8aec2845479b9fa077433b50b272a970ff8642"
+    }
+  ]
+}

@@ -2,6 +2,21 @@
 
 评测题集与人工评分文件。
 
+2026-09-29 新增 `manual_cases.v1.json`（22 条原人工核验标准）与
+`harness_cases.v2.json`（第一批升级标准）、`harness_cases.v3.json`
+（分阶段上传、组合问答与降级标准）和 `harness_cases.v4.json`
+（文章级引用与 RG04 逐步回放的新标准）。通过
+`backend/scripts/import_acceptance_cases.py` 导入原 CSV，保持 ID、步骤与期望原文。
+文件结果绑定 fixtures 的 SHA-256；原始附件不入仓。
+这些文件是 Case 数据，不是 Review 或通过率。PDF 的人工观察尚未转换为后台评分记录。
+工作台新建的 Case 草稿、修订和发布版本存于 `AGENT_TRACE_DB` 指向的 SQLite；
+不反写这些种子 JSON。发布版本保留所关联附件的路径与 SHA-256，迁移环境时须连同
+数据库及经指纹核对的原件一并备份。
+第四批验收及 PR01–PR10 的 AI 辅助复核原件归档于
+[来源清单](../../docs/iterations/2026-09-29-agent-harness/source-manifest-2026-10-03.md)，
+没有转换成领域专家签核。
+详见 [Harness 规格](../../docs/iterations/2026-09-29-agent-harness/spec.md)。
+
 ## 目录约定
 
 | 文件 | 入仓 | 用途 |

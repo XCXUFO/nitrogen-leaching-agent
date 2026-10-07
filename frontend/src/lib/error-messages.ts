@@ -8,6 +8,9 @@ const MESSAGES: Record<string, string> = {
   llm_upstream_error: "大模型服务暂时不可用，请稍后重试。",
   llm_auth_failed: "大模型 API key 配置异常，请联系管理员。",
   internal_error: "服务内部异常，请稍后重试。",
+  conversation_busy: "当前对话仍有请求正在处理，请等待完成后再发送。",
+  conversation_capacity: "当前对话数量已达上限，请稍后重试。",
+  file_analysis_failed: "文件分析暂时失败，请稍后重试。",
 };
 
 export const NETWORK_FAILURE =

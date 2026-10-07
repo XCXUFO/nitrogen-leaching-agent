@@ -15,6 +15,10 @@
 
 # next.js
 /.next/
+/.next-candidate/
+/.next-workbench/
+/.next-demo/
+/.next-chat-p00/
 /out/
 
 # production

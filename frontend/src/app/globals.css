@@ -7,7 +7,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-geist-sans), "PingFang SC", "Microsoft YaHei", sans-serif;
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -127,4 +127,39 @@
   html {
     @apply font-sans;
   }
+}
+.markdown-answer > :first-child { margin-top: 0; }
+.markdown-answer p { margin: .65rem 0; }
+.markdown-answer h1, .markdown-answer h2, .markdown-answer h3, .markdown-answer h4 { font-weight: 650; margin: 1.15rem 0 .5rem; line-height: 1.5; }
+.markdown-answer h1 { font-size: 1.35rem; }
+.markdown-answer h2 { font-size: 1.2rem; }
+.markdown-answer h3 { font-size: 1.05rem; }
+.markdown-answer ul, .markdown-answer ol { padding-left: 1.5rem; margin: .75rem 0; }
+.markdown-answer ul { list-style: disc; }
+.markdown-answer ol { list-style: decimal; }
+.markdown-answer li { margin: .35rem 0; }
+.markdown-answer blockquote { border-left: 3px solid var(--border); padding-left: 1rem; color: var(--muted-foreground); }
+.markdown-answer table { border-collapse: collapse; min-width: 100%; }
+.markdown-answer th, .markdown-answer td { padding: .5rem .75rem; border: 1px solid var(--border); text-align: left; }
+.markdown-answer th { background: var(--muted); font-weight: 600; }
+.markdown-answer :not(pre) > code { font-size: .85em; background: var(--muted); border-radius: .25rem; padding: .15rem .3rem; }
+.markdown-answer pre code { background: transparent; color: inherit; }
+.citation-mark { color: #047857; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: .35rem; padding: 0 .3rem; margin: 0 .12rem; font-size: .78rem; line-height: 1.5; }
+.citation-mark:hover, .citation-mark:focus-visible { outline: 2px solid #10b981; outline-offset: 2px; }
+
+.evaluation-workspace section,
+.evaluation-workspace fieldset.rounded-lg { background-color: var(--card); }
+.evaluation-workspace :is(input, textarea, select):focus-visible { outline: 2px solid #059669; outline-offset: 2px; }
+.evaluation-workspace button:not(:disabled),
+.evaluation-workspace summary { cursor: pointer; }
+.evaluation-workspace table tbody tr:hover { background-color: #f8fafc; }
+.evaluation-workspace pre { overflow-wrap: anywhere; }
+
+@keyframes copy-feedback-in {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.copy-feedback { display: inline-block; animation: copy-feedback-in 180ms ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .copy-feedback { animation: none; }
 }

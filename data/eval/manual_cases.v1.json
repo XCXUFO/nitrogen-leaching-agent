@@ -1,0 +1,557 @@
+{
+  "schema_version": 1,
+  "dataset_id": "manual-acceptance-20260928-v1",
+  "source": "docs/iterations/2026-09-26-m2-0-model-assistant/manual-acceptance-results.csv",
+  "source_sha256": "baffbf1c83380ae5b8b3dc5584da87dcd65cb51bbd8ac3033466a4254f115fbc",
+  "note": "历史验收标准；保留原文。CSV 的待执行状态不代表 PDF 人工观察。本文件不导入或创建 Review。",
+  "fixtures": [
+    {
+      "filename": "Nbal_out.xls",
+      "path": "data/demo/Nbal_out.xls",
+      "sha256": "6bf778020c6ae752da6778bc5429d1b09bc59ea1f725462dfe20207cbef88276"
+    },
+    {
+      "filename": "waterbal_out.xls",
+      "path": "data/raw/whcns/received-2026-09-26/package/模型/waterbal_out.xls",
+      "sha256": "708799338d7bb977f4e79057b5dd5e189545329a263165e2e006c18b1c3be992"
+    },
+    {
+      "filename": "synthetic_ties.xlsx",
+      "path": "backend/var/manual_acceptance/20260928/synthetic_ties.xlsx",
+      "sha256": "ae3c2e5b3902d5c2ef8a89fbcaa4c6e41ad8945c9acdf1238069031184aa7df6"
+    },
+    {
+      "filename": "synthetic_bad_unit.xlsx",
+      "path": "backend/var/manual_acceptance/20260928/synthetic_bad_unit.xlsx",
+      "sha256": "64447ef0dc0ccdaa64d9993fc26fc04553ee43c85a47a96cbf3a000d759f0b14"
+    },
+    {
+      "filename": "synthetic_bad_value.xlsx",
+      "path": "backend/var/manual_acceptance/20260928/synthetic_bad_value.xlsx",
+      "sha256": "6e0cf3a6170297e6f5bc3af3ea5c66046c6bbddf6b0756626bb6bf4a2aace589"
+    },
+    {
+      "filename": "synthetic_not_excel.xlsx",
+      "path": "backend/var/manual_acceptance/20260928/synthetic_not_excel.xlsx",
+      "sha256": "66c5d0b8128db3ff1914ae0482a7483d83842cc53fd7312a8f9b193e77d8cdbd"
+    }
+  ],
+  "cases": [
+    {
+      "case_id": "A01",
+      "version": 1,
+      "category": "A",
+      "title": "界面与入口",
+      "steps": [
+        {
+          "action": "manual",
+          "instruction": "打开当前版本页面。",
+          "input": null,
+          "attachment": null
+        }
+      ],
+      "preconditions": "遵循原核验单顺序及本项清空、重传要求。知识链路：RAG 开启，重排序关闭。",
+      "attachment_requirements": [],
+      "expected": [
+        "只有统一聊天输入和附件控件；没有三个功能入口；普通页面不显示检索分数、session 或健康探针。"
+      ],
+      "priority": "P0",
+      "source": "docs/iterations/2026-09-26-m2-0-model-assistant/manual-acceptance-results.csv",
+      "supersedes": null
+    },
+    {
+      "case_id": "K01",
+      "version": 1,
+      "category": "K",
+      "title": "知识首问与引用",
+      "steps": [
+        {
+          "action": "manual",
+          "instruction": "清空对话、确认无附件，输入：氮素淋失主要受哪些因素影响？请根据知识库回答并给出依据。",
+          "input": null,
+          "attachment": null
+        }
+      ],
+      "preconditions": "遵循原核验单顺序及本项清空、重传要求。知识链路：RAG 开启，重排序关闭。",
+      "attachment_requirements": [],
+      "expected": [
+        "得到针对问题的回答；至少核对一条实质性结论及其引用。引用编号和来源能对应，原文支持该结论。若没有召回资料，应明示无知识库依据，不能伪造引用；但这种结果不能代替至少一次成功的 RAG 验收。"
+      ],
+      "priority": "P0",
+      "source": "docs/iterations/2026-09-26-m2-0-model-assistant/manual-acceptance-results.csv",
+      "supersedes": null
+    },
+    {
+      "case_id": "K02",
+      "version": 1,
+      "category": "K",
+      "title": "知识上下文追问",
+      "steps": [
+        {
+          "action": "manual",
+          "instruction": "紧接 K01，不清空，输入：你刚才列出的第一个因素为什么会影响硝态氮淋失？",
+          "input": null,
+          "attachment": null
+        }
+      ],
+      "preconditions": "遵循原核验单顺序及本项清空、重传要求。知识链路：RAG 开启，重排序关闭。",
+      "attachment_requirements": [],
+      "expected": [
+        "正确承接 K01 实际列出的第一个因素；解释围绕该因素，专业事实有本轮证据支持。不要预设第一个因素一定是灌溉。"
+      ],
+      "priority": "P0",
+      "source": "docs/iterations/2026-09-26-m2-0-model-assistant/manual-acceptance-results.csv",
+      "supersedes": null
+    },
+    {
+      "case_id": "K03",
+      "version": 1,
+      "category": "K",
+      "title": "知识条件更正",
+      "steps": [
+        {
+          "action": "manual",
+          "instruction": "同一对话输入：接下来只讨论玉米农田，不讨论水稻。有哪些影响氮淋失的因素？随后输入：对上述作物，灌溉管理需要关注什么？",
+          "input": null,
+          "attachment": null
+        }
+      ],
+      "preconditions": "遵循原核验单顺序及本项清空、重传要求。知识链路：RAG 开启，重排序关闭。",
+      "attachment_requirements": [],
+      "expected": [
+        "第二问承接玉米，不误用稻田结论；证据不足时明确说明，不把不同作物结果直接迁移。"
+      ],
+      "priority": "P0",
+      "source": "docs/iterations/2026-09-26-m2-0-model-assistant/manual-acceptance-results.csv",
+      "supersedes": null
+    },
+    {
+      "case_id": "F01",
+      "version": 1,
+      "category": "F",
+      "title": "缺文件追问",
+      "steps": [
+        {
+          "action": "manual",
+          "instruction": "清空对话，无附件时输入：硝态氮淋失最大值及对应日序。",
+          "input": null,
+          "attachment": null
+        }
+      ],
+      "preconditions": "遵循原核验单顺序及本项清空、重传要求。知识链路：RAG 开启，重排序关闭。",
+      "attachment_requirements": [],
+      "expected": [
+        "请求上传氮/水平衡输出表，不编造数值，不引用历史表格回答当前文件问题。"
+      ],
+      "priority": "P0",
+      "source": "docs/iterations/2026-09-26-m2-0-model-assistant/manual-acceptance-results.csv",
+      "supersedes": null
+    },
+    {
+      "case_id": "F02",
+      "version": 1,
+      "category": "F",
+      "title": "真实表上传",
+      "steps": [
+        {
+          "action": "manual",
+          "instruction": "上传原 Nbal_out.xls，等待上传检查结束。",
+          "input": null,
+          "attachment": null
+        }
+      ],
+      "preconditions": "遵循原核验单顺序及本项清空、重传要求。知识链路：RAG 开启，重排序关闭。",
+      "attachment_requirements": [
+        "Nbal_out.xls"
+      ],
+      "expected": [
+        "显示当前附件 Nbal_out.xls，352 条记录；上传时不能重复发送或更换文件；成功后可提问。"
+      ],
+      "priority": "P0",
+      "source": "docs/iterations/2026-09-26-m2-0-model-assistant/manual-acceptance-results.csv",
+      "supersedes": null
+    },
+    {
+      "case_id": "F03",
+      "version": 1,
+      "category": "F",
+      "title": "真实表最大值",
+      "steps": [
+        {
+          "action": "manual",
+          "instruction": "保留 F02 附件，输入：硝态氮淋失最大值及对应日序。",
+          "input": null,
+          "attachment": null
+        }
+      ],
+      "preconditions": "遵循原核验单顺序及本项清空、重传要求。知识链路：RAG 开启，重排序关闭。",
+      "attachment_requirements": [
+        "Nbal_out.xls"
+      ],
+      "expected": [
+        "值约 3.659263849258423 kg N ha-1，日序 283；值单元格 Nbal_out!C284，日序 Nbal_out!A284；范围 Nbal_out!C2:C353。结论和证据一致，日序不写成日历日期。"
+      ],
+      "priority": "P0",
+      "source": "docs/iterations/2026-09-26-m2-0-model-assistant/manual-acceptance-results.csv",
+      "supersedes": null
+    },
+    {
+      "case_id": "F04",
+      "version": 1,
+      "category": "F",
+      "title": "同文件连续查询",
+      "steps": [
+        {
+          "action": "manual",
+          "instruction": "不重新上传，输入：leak_NO3 最小值及对应日序。",
+          "input": null,
+          "attachment": null
+        }
+      ],
+      "preconditions": "遵循原核验单顺序及本项清空、重传要求。知识链路：RAG 开启，重排序关闭。",
+      "attachment_requirements": [
+        "Nbal_out.xls"
+      ],
+      "expected": [
+        "值 0 kg N ha-1，首次日序 2，Nbal_out!C3 与 Nbal_out!A3；191 条并列，明确只展示首次出现。当前附件不丢失。"
+      ],
+      "priority": "P0",
+      "source": "docs/iterations/2026-09-26-m2-0-model-assistant/manual-acceptance-results.csv",
+      "supersedes": null
+    },
+    {
+      "case_id": "F05",
+      "version": 1,
+      "category": "F",
+      "title": "文件省略式追问边界",
+      "steps": [
+        {
+          "action": "manual",
+          "instruction": "继续输入：那最大值呢？等回答后再输入：leak_NO3 最大值及对应日序。",
+          "input": null,
+          "attachment": null
+        }
+      ],
+      "preconditions": "遵循原核验单顺序及本项清空、重传要求。知识链路：RAG 开启，重排序关闭。",
+      "attachment_requirements": [
+        "Nbal_out.xls"
+      ],
+      "expected": [
+        "第一问要求明确字段，不自动猜为上一字段；第二问恢复正确计算，结果同 F03。第一问追问属于当前预期限制，通过不代表已支持文件指代。"
+      ],
+      "priority": "P0",
+      "source": "docs/iterations/2026-09-26-m2-0-model-assistant/manual-acceptance-results.csv",
+      "supersedes": null
+    },
+    {
+      "case_id": "F06",
+      "version": 1,
+      "category": "F",
+      "title": "更换真实文件",
+      "steps": [
+        {
+          "action": "manual",
+          "instruction": "不清空，直接更换为 waterbal_out.xls，输入：Draining 最大值及对应日序。",
+          "input": null,
+          "attachment": null
+        }
+      ],
+      "preconditions": "遵循原核验单顺序及本项清空、重传要求。知识链路：RAG 开启，重排序关闭。",
+      "attachment_requirements": [
+        "Nbal_out.xls",
+        "waterbal_out.xls"
+      ],
+      "expected": [
+        "显示新附件且仍为 352 条；值约 12.426848411560059 mm，日序 1；WtaBal_out!I2 与 WtaBal_out!A2。不能沿用氮表、kg N ha-1 或旧证据。"
+      ],
+      "priority": "P0",
+      "source": "docs/iterations/2026-09-26-m2-0-model-assistant/manual-acceptance-results.csv",
+      "supersedes": null
+    },
+    {
+      "case_id": "F07",
+      "version": 1,
+      "category": "F",
+      "title": "可手算并列样例",
+      "steps": [
+        {
+          "action": "manual",
+          "instruction": "更换为 synthetic_ties.xlsx，输入：leak_NO3 最大值和最小值及对应日序。",
+          "input": null,
+          "attachment": null
+        }
+      ],
+      "preconditions": "遵循原核验单顺序及本项清空、重传要求。知识链路：RAG 开启，重排序关闭。",
+      "attachment_requirements": [
+        "synthetic_ties.xlsx"
+      ],
+      "expected": [
+        "仅 3 条记录。最大值 2.5、首次日序 102，C3/A3，并列 2 条；最小值 1.5、日序 101，C2/A2，并列 1 条；工作表 Nbal_out，单位 kg N ha-1。"
+      ],
+      "priority": "P0",
+      "source": "docs/iterations/2026-09-26-m2-0-model-assistant/manual-acceptance-results.csv",
+      "supersedes": null
+    },
+    {
+      "case_id": "B01",
+      "version": 1,
+      "category": "B",
+      "title": "超出范围时追问",
+      "steps": [
+        {
+          "action": "manual",
+          "instruction": "重新上传原 Nbal_out.xls；分别问：硝态氮季节总量是多少？／前10天硝态氮最大值／硝态氮浓度最大值／硝态氮和磷最大值。最后再问 F03 原问题。",
+          "input": null,
+          "attachment": null
+        }
+      ],
+      "preconditions": "遵循原核验单顺序及本项清空、重传要求。知识链路：RAG 开启，重排序关闭。",
+      "attachment_requirements": [
+        "Nbal_out.xls"
+      ],
+      "expected": [
+        "前四问均说明范围并追问，不把整表极值当作时段结果、浓度或多个指标答案。最后能恢复正常计算；已确认的范围不被模糊输出掩盖。"
+      ],
+      "priority": "P0",
+      "source": "docs/iterations/2026-09-26-m2-0-model-assistant/manual-acceptance-results.csv",
+      "supersedes": null
+    },
+    {
+      "case_id": "B02",
+      "version": 1,
+      "category": "B",
+      "title": "错误单位与旧附件清理",
+      "steps": [
+        {
+          "action": "manual",
+          "instruction": "当前已有合法表时，上传 synthetic_bad_unit.xlsx。",
+          "input": null,
+          "attachment": null
+        }
+      ],
+      "preconditions": "遵循原核验单顺序及本项清空、重传要求。知识链路：RAG 开启，重排序关闭。",
+      "attachment_requirements": [
+        "Nbal_out.xls",
+        "synthetic_bad_unit.xlsx"
+      ],
+      "expected": [
+        "拒绝上传，提示字段或精确单位不匹配；不显示新文件上传成功，也不能静默继续使用旧附件。随后重新上传合法表可恢复。"
+      ],
+      "priority": "P0",
+      "source": "docs/iterations/2026-09-26-m2-0-model-assistant/manual-acceptance-results.csv",
+      "supersedes": null
+    },
+    {
+      "case_id": "B03",
+      "version": 1,
+      "category": "B",
+      "title": "非数值定位",
+      "steps": [
+        {
+          "action": "manual",
+          "instruction": "上传 synthetic_bad_value.xlsx。",
+          "input": null,
+          "attachment": null
+        }
+      ],
+      "preconditions": "遵循原核验单顺序及本项清空、重传要求。知识链路：RAG 开启，重排序关闭。",
+      "attachment_requirements": [
+        "synthetic_bad_value.xlsx"
+      ],
+      "expected": [
+        "拒绝上传，错误中能找到 Nbal_out!C3；不输出成功计算结果。"
+      ],
+      "priority": "P0",
+      "source": "docs/iterations/2026-09-26-m2-0-model-assistant/manual-acceptance-results.csv",
+      "supersedes": null
+    },
+    {
+      "case_id": "B04",
+      "version": 1,
+      "category": "B",
+      "title": "损坏或伪装文件",
+      "steps": [
+        {
+          "action": "manual",
+          "instruction": "上传 synthetic_not_excel.xlsx。",
+          "input": null,
+          "attachment": null
+        }
+      ],
+      "preconditions": "遵循原核验单顺序及本项清空、重传要求。知识链路：RAG 开启，重排序关闭。",
+      "attachment_requirements": [
+        "synthetic_not_excel.xlsx"
+      ],
+      "expected": [
+        "提示不是有效工作簿或无法读取；页面不崩溃，重新上传合法表能继续。"
+      ],
+      "priority": "P0",
+      "source": "docs/iterations/2026-09-26-m2-0-model-assistant/manual-acceptance-results.csv",
+      "supersedes": null
+    },
+    {
+      "case_id": "X01",
+      "version": 1,
+      "category": "X",
+      "title": "两条链路切换",
+      "steps": [
+        {
+          "action": "manual",
+          "instruction": "上传合法氮表，问：氮素淋失主要受哪些因素影响？收到回复后点“移除附件”，原样再问一次。",
+          "input": null,
+          "attachment": null
+        }
+      ],
+      "preconditions": "遵循原核验单顺序及本项清空、重传要求。知识链路：RAG 开启，重排序关闭。",
+      "attachment_requirements": [
+        "Nbal_out.xls"
+      ],
+      "expected": [
+        "带附件时说明当前文件工具支持范围，并提示移除附件进行知识问答；移除后进入知识问答并返回论文回答/引用，不再生成文件计算证据。旧消息仍可保留。"
+      ],
+      "priority": "P0",
+      "source": "docs/iterations/2026-09-26-m2-0-model-assistant/manual-acceptance-results.csv",
+      "supersedes": null
+    },
+    {
+      "case_id": "X02",
+      "version": 1,
+      "category": "X",
+      "title": "清空对话",
+      "steps": [
+        {
+          "action": "manual",
+          "instruction": "已有数轮消息和合法附件时点击“清空”，再输入 F01 的缺文件问题。",
+          "input": null,
+          "attachment": null
+        }
+      ],
+      "preconditions": "遵循原核验单顺序及本项清空、重传要求。知识链路：RAG 开启，重排序关闭。",
+      "attachment_requirements": [
+        "Nbal_out.xls"
+      ],
+      "expected": [
+        "已发送消息和当前附件消失；新问题要求重新上传，不沿用旧附件。此处不要求清除尚未发送的草稿，也不宣称立即删除后端摘要。"
+      ],
+      "priority": "P0",
+      "source": "docs/iterations/2026-09-26-m2-0-model-assistant/manual-acceptance-results.csv",
+      "supersedes": null
+    },
+    {
+      "case_id": "X03",
+      "version": 1,
+      "category": "X",
+      "title": "刷新行为",
+      "steps": [
+        {
+          "action": "manual",
+          "instruction": "上传合法表并完成一问后刷新浏览器。",
+          "input": null,
+          "attachment": null
+        }
+      ],
+      "preconditions": "遵循原核验单顺序及本项清空、重传要求。知识链路：RAG 开启，重排序关闭。",
+      "attachment_requirements": [
+        "Nbal_out.xls"
+      ],
+      "expected": [
+        "当前版本的已发送消息及附件不会自动恢复；页面已说明附件刷新后需重传；重新上传后可继续，不能把旧消息当文件事实。"
+      ],
+      "priority": "P0",
+      "source": "docs/iterations/2026-09-26-m2-0-model-assistant/manual-acceptance-results.csv",
+      "supersedes": null
+    },
+    {
+      "case_id": "X04",
+      "version": 1,
+      "category": "X",
+      "title": "基本输入与等待状态",
+      "steps": [
+        {
+          "action": "manual",
+          "instruction": "分别尝试空白问题、超过 1000 字的问题；正常发送时观察按钮与等待提示。",
+          "input": null,
+          "attachment": null
+        }
+      ],
+      "preconditions": "遵循原核验单顺序及本项清空、重传要求。知识链路：RAG 开启，重排序关闭。",
+      "attachment_requirements": [],
+      "expected": [
+        "空白和超长输入不能提交；发送中不能重复提交；成功或失败后恢复可操作，不永久停在等待状态。"
+      ],
+      "priority": "P0",
+      "source": "docs/iterations/2026-09-26-m2-0-model-assistant/manual-acceptance-results.csv",
+      "supersedes": null
+    },
+    {
+      "case_id": "O01",
+      "version": 1,
+      "category": "O",
+      "title": "附件到期",
+      "steps": [
+        {
+          "action": "manual",
+          "instruction": "上传合法表，记录成功时间；保持页面不刷新，超过 30 分钟后输入 F03 问题。",
+          "input": null,
+          "attachment": null
+        }
+      ],
+      "preconditions": "遵循原核验单顺序及本项清空、重传要求。知识链路：RAG 开启，重排序关闭。",
+      "attachment_requirements": [
+        "Nbal_out.xls"
+      ],
+      "expected": [
+        "提示文件过期/不可用并要求重传，不虚构旧文件结果。重新上传后恢复。"
+      ],
+      "priority": "P1",
+      "source": "docs/iterations/2026-09-26-m2-0-model-assistant/manual-acceptance-results.csv",
+      "supersedes": null
+    },
+    {
+      "case_id": "O02",
+      "version": 1,
+      "category": "O",
+      "title": "上传体积",
+      "steps": [
+        {
+          "action": "manual",
+          "instruction": "选择一份超过 10 MiB 的测试 .xlsx 副本，不使用重要原件。",
+          "input": null,
+          "attachment": null
+        }
+      ],
+      "preconditions": "遵循原核验单顺序及本项清空、重传要求。知识链路：RAG 开启，重排序关闭。",
+      "attachment_requirements": [],
+      "expected": [
+        "明确提示超过大小限制，没有成功附件或计算结果。"
+      ],
+      "priority": "P1",
+      "source": "docs/iterations/2026-09-26-m2-0-model-assistant/manual-acceptance-results.csv",
+      "supersedes": null
+    },
+    {
+      "case_id": "O03",
+      "version": 1,
+      "category": "O",
+      "title": "故障与重试",
+      "steps": [
+        {
+          "action": "manual",
+          "instruction": "在可控本地环境停止后端后提问；记录错误，再恢复同一版本后端并重试。",
+          "input": null,
+          "attachment": null
+        }
+      ],
+      "preconditions": "遵循原核验单顺序及本项清空、重传要求。知识链路：RAG 开启，重排序关闭。",
+      "attachment_requirements": [
+        "Nbal_out.xls"
+      ],
+      "expected": [
+        "错误可见、页面不崩溃、可继续操作；知识问答可重试。若原请求带附件，重启后应先提示失效，再重传恢复。重试可能重复展示用户提问，单独记为体验问题。"
+      ],
+      "priority": "P1",
+      "source": "docs/iterations/2026-09-26-m2-0-model-assistant/manual-acceptance-results.csv",
+      "supersedes": null
+    }
+  ]
+}

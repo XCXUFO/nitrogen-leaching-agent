@@ -1,7 +1,8 @@
 # 模型文件工具
 
 首个工具：WHCNS 氮/水平衡结果读取器。纯本地解析，不调用 LLM、不执行 WHCNS。
-当前为命令行与 Python 模块，尚未接入 `/api/chat` 或网页。
+已通过 `/api/files` 上传和 `/api/chat` 附件字段接入同一个网页对话窗口。
+网页支持整表单字段极值和对应日序；CLI 继续提供完整列统计。
 
 ## 依赖
 
@@ -70,3 +71,16 @@ XLS 使用保存的值（包括可能的公式缓存），不会重算公式；X
 
 测试使用合成表格，覆盖单位/缺项/公式/错误值/日序检查、定位、XLSX 误标扩展名、
 两种结果结构、CLI 错误和防覆盖。真实 XLS 通过本地材料独立核对，不将案例原件加入测试仓库。
+
+## 聊天上传接口
+
+`POST /api/files?filename=Nbal_out.xls`，请求体为原始字节，Content-Type 为
+`application/octet-stream`；返回 `file_id`、文件名、类型、行数和有效期。
+将 `file_id` 与 `query` 一起发送至原 `/api/chat` JSON 接口。
+文件回答返回 `route=file` 和独立 `file_evidence`；需追问时 `route=clarification`，
+无附件的一般知识问答维持 `route=knowledge` 和原论文 citations。
+
+安装 `model-tools` extra 后，文件链路无需 DeepSeek key 或 RAG 配置。
+使用单个 uvicorn worker；内存摘要最多 32 份，每份 30 分钟，重启即失效。
+文件上传上限 10 MiB，临时原件解析后删除；摘要不会上传给 LLM。
+随机 ID 是临时访问凭据，不能当作用户身份认证。刷新页面需重新上传。

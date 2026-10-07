@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "dataset_id": "agent-harness-20261003-v4",
+  "fixture_dataset": "manual-acceptance-20260928-v1",
+  "note": "新增文章级引用与逐步回放验收版本；历史标准和评分保持原样。新增用例尚待人工执行与评分。",
+  "cases": [
+    {
+      "case_id": "K01",
+      "version": 4,
+      "category": "K",
+      "title": "知识首问的文章级引用与摘录",
+      "preconditions": "真实 RAG 已启用；以普通用户界面及开发者 Trace 分别核对。",
+      "attachment_requirements": [],
+      "steps": [
+        {"action": "query", "instruction": "询问玉米农田氮素淋失的影响因素", "input": "玉米农田氮素淋失主要受哪些因素影响？"},
+        {"action": "manual", "instruction": "展开引用并检查题名、摘录、原文支持、场景边界及开发者详情中的 chunk_id"}
+      ],
+      "expected": [
+        "默认展示文章题名或来源和足够辨识的正文摘录，chunk_id 放在开发者详情；不能用目录或参考文献题名作为机制依据。",
+        "每条机制按研究作物、场景和时间尺度核对；模拟误差单列为模型局限。"
+      ],
+      "priority": "P1",
+      "source": "docs/iterations/2026-09-29-agent-harness/next-work-2026-10-03.md",
+      "supersedes": "K01@1"
+    },
+    {
+      "case_id": "RG04",
+      "version": 1,
+      "category": "X",
+      "title": "回归自动执行到首个人工步骤",
+      "preconditions": "已保存含三轮自动 query、第四步 manual 的基线；开发者有重放权限。",
+      "attachment_requirements": [],
+      "steps": [
+        {"action": "manual", "instruction": "保存含三轮自动提问和第四步人工操作的回归基线，启动一次重放并打开比较页"},
+        {"action": "manual", "instruction": "核对前三轮各有独立新 Run，第四步显示待人工/受阻，且基线与旧评分未变"}
+      ],
+      "expected": [
+        "前三轮按顺序重放并保存独立 Run；到第四步停止，明确标记 blocked_step 及待人工说明，不跳过该步。",
+        "新重放不自动判通过；历史基线 Run、旧评分和人工备注不可覆盖。"
+      ],
+      "priority": "P1",
+      "source": "docs/iterations/2026-09-29-agent-harness/next-work-2026-10-03.md",
+      "supersedes": "docs/iterations/2026-09-29-agent-harness/acceptance-04.md#RG04"
+    }
+  ]
+}

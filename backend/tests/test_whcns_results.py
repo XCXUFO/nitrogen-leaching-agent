@@ -34,7 +34,8 @@ def test_mislabeled_xls_read_by_content_and_statistics_are_traceable(tmp_path):
     assert report["sha256"] == hashlib.sha256(path.read_bytes()).hexdigest()
     nitrate = next(c for c in report["columns"] if c["header"].startswith("leak_NO3"))
     assert nitrate["raw_column_sum"] == 2
-    assert nitrate["max"] == {"value": 1.5, "cell": "Nbal_out!C3"}
+    assert nitrate["max"] == {"value": 1.5, "cell": "Nbal_out!C3", "model_day": 2,
+                              "day_cell": "Nbal_out!A3", "occurrences": 1}
     assert nitrate["range"] == "Nbal_out!C2:C3"
     mineralization = next(c for c in report["columns"] if c["header"].startswith("N-mine"))
     assert mineralization["min"]["value"] == -1  # Do not blindly reject negative net values.
