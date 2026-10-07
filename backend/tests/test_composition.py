@@ -6,8 +6,6 @@ import hashlib
 import re
 from pathlib import Path
 
-import fitz
-
 import pytest
 
 from src.agent.chat_service import ChatService
@@ -217,6 +215,7 @@ def test_curated_quotes_are_present_in_unchanged_source_pdfs():
     sources = [(card, root / card["source"].removeprefix("../")) for card in cards]
     if any(not source.is_file() for _, source in sources):
         pytest.skip("Source PDFs are private local verification assets")
+    fitz = pytest.importorskip("fitz")
     for card, source in sources:
         assert hashlib.sha256(source.read_bytes()).hexdigest() == card["source_sha256"]
         document = "".join(page.get_text() for page in fitz.open(source))

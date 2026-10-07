@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-10-07T04:56:57.328356+00:00",
-  "base_commit": "63f96b74068ff768e74d709bffe1e51ef100c934",
-  "source_sha256": "394c0ea2ad6fea3e3ff35c119b2c43cd6690fa6b5a9a0a408a4f64d8748896c4",
-  "build_version": "delivery-20261007-394c0ea2ad6f",
+  "created_at": "2026-10-07T05:15:09.962510+00:00",
+  "base_commit": "8921652489068396e5a02804677aa92b45e66a13",
+  "source_sha256": "a1645ed0adac71339d6114d27befe74039214f54a0c33fa78aa77bc45248ea07",
+  "build_version": "delivery-20261007-a1645ed0adac",
   "file_count": 219,
   "files": {
     ".env.example": "6f4428ff9983e53ea3ecb4d22ad7bc528769084ec8733822c5201b1190340266",
@@ -107,7 +107,7 @@
     "backend/tests/test_chat_service.py": "36ba9f7e3862ab8fc276051cf072089cea03ca2a7be9a5c8e27f68cf1492ba99",
     "backend/tests/test_chroma_store.py": "5969cfb37a91e10251510cfdcbfbefe005a23699c117849fa8811050e54bbd8f",
     "backend/tests/test_chunker.py": "afc57cef2baf6010348da3684845bbc0ba0d5446a91fec82887e662d76a1db7a",
-    "backend/tests/test_composition.py": "5df1949d21e0458de3c2e7581c9b3bef46d3441106f02381271714a9f6bf2778",
+    "backend/tests/test_composition.py": "e3ad9e8b8c7ff6bff3442ec50d9029217481964956b3aa8c3178c698594fcf9c",
     "backend/tests/test_config.py": "2c57c739bff856ba630b5ac4f34a3ad392a0d5c090d70d67da5ed383347b9ede",
     "backend/tests/test_documents.py": "faf9f4859788b2b1092491141541d5f4c0c359298099724fd3f517a5287ed1fc",
     "backend/tests/test_embedder.py": "743fdb6e579caac30c2b7feb2da8063c600910c44e81a648c2160cf4e5668a2b",
