@@ -1,7 +1,10 @@
 """Bounded, ephemeral uploads. Tokens are capabilities, not user-supplied paths."""
 from __future__ import annotations
 
+from src.evaluation.auth import front_owner
+
 import asyncio
+import hashlib
 import secrets
 import time
 from dataclasses import dataclass, field
@@ -16,12 +19,14 @@ from typing import Literal
 
 from src.model_tools.whcns_results import summarize_result
 from src.model_tools.workbooks import WorkbookError, read_workbook
+from src.api.session_documents import DOCUMENT_SUFFIXES, DocumentError, inspect_document
 
 router = APIRouter()
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
-TTL_SECONDS = 1800
-MAX_FILES = 32
-MAX_STORED_BYTES = 64 * 1024 * 1024
+TTL_SECONDS = 24 * 60 * 60
+MAX_FILES = 256
+MAX_STORED_BYTES = 128 * 1024 * 1024
+MAX_SESSION_FILES = 10
 
 
 class FileReceipt(BaseModel):
@@ -36,22 +41,47 @@ class FileReceipt(BaseModel):
 
 
 class FileStatusRequest(BaseModel):
-    file_ids: list[Annotated[str, Field(min_length=1, max_length=100)]] = Field(max_length=5)
+    file_ids: list[Annotated[str, Field(min_length=1, max_length=100)]] = Field(max_length=MAX_SESSION_FILES)
+    session_id: str | None = Field(default=None, min_length=1, max_length=100, pattern=r"^[A-Za-z0-9_-]+$")
+
+
+def conversation_key(visitor: str | None, session_id: str | None) -> str | None:
+    if session_id is None:
+        return None
+    return hashlib.sha256((visitor + ":" + session_id).encode()).hexdigest() if visitor else session_id
 
 
 @router.post("/files/status")
 async def file_status(request: Request, body: FileStatusRequest, response: Response):
-    """Check capabilities without parsing or renewing them; never expose another visitor's files."""
+    """Check and renew active capabilities without exposing another visitor's files."""
     store = file_store(request)
     store.prune()
-    visitor = getattr(request.state, "public_visitor", None)
+    visitor = front_owner(request)
     response.headers["Cache-Control"] = "no-store"
     statuses = []
+    session = conversation_key(visitor, body.session_id)
     for token in dict.fromkeys(body.file_ids):
         entry = store.entries.get(token)
-        available = entry is not None and (visitor is None or entry.owner == visitor)
+        available = (entry is not None and (entry.owner is None or entry.owner == visitor)
+                     and (entry.session_id is None or entry.session_id == session))
+        if available:
+            store.get(token)  # Active tabs renew their lease.
         statuses.append({"file_id": token, "status": "available" if available else "expired"})
     return {"files": statuses}
+
+
+@router.post("/files/release")
+async def release_files(request: Request, body: FileStatusRequest):
+    store = file_store(request)
+    visitor = front_owner(request)
+    session = conversation_key(visitor, body.session_id)
+    released = 0
+    for token in dict.fromkeys(body.file_ids):
+        entry = store.entries.get(token)
+        if entry and (entry.owner is None or entry.owner == visitor) and (entry.session_id is None or entry.session_id == session):
+            store.entries.pop(token, None)
+            released += 1
+    return {"released": released}
 
 
 @dataclass
@@ -64,7 +94,9 @@ class FileEntry:
     report: dict | None = None
     error: str | None = None
     owner: str | None = None
+    session_id: str | None = None
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+    document_bytes: int = 0
 
     def state(self) -> dict:
         return {"filename": self.filename,
@@ -82,15 +114,23 @@ class FileStore:
         now = time.monotonic()
         self.entries = {k: v for k, v in self.entries.items() if v.expires_at > now}
 
-    def put(self, raw: bytes, profile: dict) -> str:
+    def put(self, raw: bytes, profile: dict, *, owner: str | None = None,
+            session_id: str | None = None) -> str:
         self.prune()
+        if session_id and sum(entry.session_id == session_id for entry in self.entries.values()) >= MAX_SESSION_FILES:
+            raise failure(422, "too_many_files", "每个会话最多上传 10 份文件。")
         if len(self.entries) >= MAX_FILES:
             raise failure(503, "file_store_full", "临时文件空间已满，请稍后重试。")
-        if sum(len(entry.raw or b"") for entry in self.entries.values()) + len(raw) > MAX_STORED_BYTES:
+        document = profile.get("kind") == "document"
+        # Compressed documents retain extracted text after their raw bytes are discarded.
+        retained_bytes = len(profile["text"].encode("utf-8")) if document else len(raw)
+        if sum(len(entry.raw or b"") + entry.document_bytes for entry in self.entries.values()) + retained_bytes > MAX_STORED_BYTES:
             raise failure(503, "file_store_full", "临时附件容量已满，请稍后重试。")
         token = secrets.token_urlsafe(32)
-        self.entries[token] = FileEntry(time.monotonic() + TTL_SECONDS, profile["file"], raw,
-                                        profile["sha256"], profile["format"])
+        self.entries[token] = FileEntry(time.monotonic() + TTL_SECONDS, profile["file"], None if document else raw,
+                                        profile["sha256"], profile["format"], report=profile if document else None,
+                                        owner=owner, session_id=session_id,
+                                        document_bytes=retained_bytes if document else 0)
         return token
 
     def get(self, token: str) -> FileEntry:
@@ -130,6 +170,15 @@ class FileStore:
                 raise HTTPException(status_code=422, detail={"code": "invalid_result_file",
                                     "message": entry.error, "attachment": entry.state()})
             return entry.report
+
+    def documents(self, tokens: list[str]) -> list[dict]:
+        self.prune()
+        reports = []
+        for token in dict.fromkeys(tokens):
+            entry = self.entries.get(token)
+            if entry and entry.format in {suffix.removeprefix(".") for suffix in DOCUMENT_SUFFIXES}:
+                reports.append(self.get(token).report)
+        return reports
 
 
 async def finish_thread(function, *args):
@@ -185,12 +234,16 @@ def inspect_upload(raw: bytes, filename: str) -> dict:
 
 
 @router.post("/files", response_model=FileReceipt)
-async def upload_file(request: Request, filename: str = Query(..., min_length=1, max_length=200)):
+async def upload_file(request: Request, filename: str = Query(..., min_length=1, max_length=200),
+                      session_id: Annotated[str | None, Query(min_length=1, max_length=100,
+                                                     pattern=r"^[A-Za-z0-9_-]+$")] = None):
+    visitor = front_owner(request)
     # Never use a client path for storage, including Windows paths on Linux.
     filename = filename.replace("\\", "/").rsplit("/", 1)[-1]
-    if (Path(filename).suffix.lower() not in {".xls", ".xlsx"}
+    suffix = Path(filename).suffix.lower()
+    if (suffix not in {".xls", ".xlsx"} | DOCUMENT_SUFFIXES
             or any(ord(c) < 32 or ord(c) == 127 for c in filename)):
-        raise failure(415, "unsupported_file", "请上传 .xls 或 .xlsx 格式的 WHCNS 氮/水平衡输出表。")
+        raise failure(415, "unsupported_file", "支持 .xls、.xlsx、.txt、.md、.pdf、.doc、.docx 文件。")
     store = file_store(request)
     async with store.upload_slots:
         raw = bytearray()
@@ -199,14 +252,18 @@ async def upload_file(request: Request, filename: str = Query(..., min_length=1,
                 raise failure(413, "file_too_large", "文件超过 10 MiB，请使用较小的结果表。")
             raw.extend(chunk)
         try:
-            profile = await finish_thread(inspect_upload, bytes(raw), filename)
+            profile = await finish_thread(inspect_upload if suffix in {".xls", ".xlsx"} else inspect_document,
+                                          bytes(raw), filename)
         except ImportError as exc:
             raise failure(503, "file_tools_unavailable", "文件读取依赖未安装，请联系管理员安装 model-tools。") from exc
         except WorkbookError as exc:
             raise failure(422, "invalid_result_file", f"结果表校验失败：{exc}") from exc
+        except DocumentError as exc:
+            raise failure(422, "invalid_document", str(exc)) from exc
         except Exception as exc:
             logger.opt(exception=exc).warning("Workbook parsing failed")
             raise failure(422, "invalid_result_file", "文件无法读取，请检查工作簿是否损坏。") from exc
-        token = store.put(bytes(raw), profile)
-        store.entries[token].owner = getattr(request.state, "public_visitor", None)
-    return FileReceipt(file_id=token, filename=filename, sha256=profile["sha256"], format=profile["format"])
+        token = store.put(bytes(raw), profile, owner=visitor,
+                          session_id=conversation_key(visitor, session_id))
+    return FileReceipt(file_id=token, filename=filename, sha256=profile["sha256"], format=profile["format"],
+                       kind=profile.get("kind"), status="ready" if profile.get("kind") == "document" else "pending")

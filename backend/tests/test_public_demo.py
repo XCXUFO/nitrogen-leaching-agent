@@ -50,7 +50,7 @@ def test_all_management_routes_require_real_credentials(app):
     with TestClient(app) as client:
         # Includes every current management mutation and read, not just UI buttons.
         for route in app.routes:
-            if not getattr(route, "path", "").startswith("/api/eval"):
+            if not getattr(route, "path", "").startswith("/api/eval") or route.path in {"/api/eval/login", "/api/eval/logout"}:
                 continue
             import re
             path = re.sub(r"\{[^}]+\}", "unpublished-private-record", route.path)
@@ -118,3 +118,24 @@ def test_published_example_matches_advertised_fingerprint(app):
         asset = client.get("/api/demo/catalog").json()["assets"][0]
         raw = client.get("/api/demo/examples/nitrogen").content
         assert hashlib.sha256(raw).hexdigest() == asset["sha256"]
+
+
+def test_internal_identity_survives_public_visitor_middleware(app):
+    from src.evaluation.auth import password_hash
+    account = app.state.eval_access.users[0]
+    account.username = 'cau_dev'
+    account.password_hash = password_hash('CauDev123456')
+    with TestClient(app) as client:
+        # Establish the normal public visitor cookie first.
+        assert client.post('/api/chat', json={'query': '你好', 'session_id': 'same-ui'}).status_code == 200
+        token = client.post('/api/eval/login', json={'username': 'cau_dev', 'password': 'CauDev123456'}).json()['token']
+        headers = {'Authorization': 'Bearer ' + token}
+        assert client.post('/api/chat', headers=headers, json={'query': '你好', 'session_id': 'same-ui', 'operator_id': 'visitor_spoofed'}).status_code == 200
+        sessions = app.state.agent_runtime.runs.sessions()['items']
+        assert len(sessions) == 2
+        assert {item['operator_id'] for item in sessions} >= {'private-admin'}
+        response = client.post('/api/files?filename=note.txt&session_id=same-ui', headers=headers, content=b'Internal notes with public demo enabled.')
+        assert response.status_code == 200
+        token_id = response.json()['file_id']
+        assert client.post('/api/files/status', headers=headers, json={'file_ids': [token_id], 'session_id': 'same-ui'}).json()['files'][0]['status'] == 'available'
+        assert client.post('/api/files/status', json={'file_ids': [token_id], 'session_id': 'same-ui'}).json()['files'][0]['status'] == 'expired'

@@ -1,0 +1,130 @@
+{
+  "base_commit": "399b130c5379069cb703fcd0e79e0bca1f17b478",
+  "captured_on": "2026-09-29",
+  "files": [
+    {
+      "path": ".env.example",
+      "sha256": "1d1beceab13820b0a9b2cbead9992340ee608cbcf5eb3e152cf7ac56d973d787"
+    },
+    {
+      "path": "README.md",
+      "sha256": "7b5354485641c63904f18a5828a86d24759b8cefa329410ba8223cc0d9516afb"
+    },
+    {
+      "path": "backend/README.md",
+      "sha256": "f76395aed2f20e43d603480efba473b834e03418c6a11a8b21f4cbe51935359d"
+    },
+    {
+      "path": "backend/src/agent/file_chat.py",
+      "sha256": "dabcf22c881e08d715150b55302dfedba8012d950584b9a31f5877f5720400c1"
+    },
+    {
+      "path": "backend/src/api/chat.py",
+      "sha256": "ba51b37d565df4ea7709b0671464b35d1d5a2f3e10fe89180174ef18a3ee4cf9"
+    },
+    {
+      "path": "backend/src/api/chat_schema.py",
+      "sha256": "99125b687823b2cd60fe96156a063b7a866df9fdc284507241db7375068195c5"
+    },
+    {
+      "path": "backend/src/api/files.py",
+      "sha256": "a450290ea7114522d1f226a822d7fed0ac402af6527448d41f0c5b560872ae75"
+    },
+    {
+      "path": "backend/src/config.py",
+      "sha256": "ec644d032e4527c90381353e5adcae1849afbb7014f3b01bc8f0e4042ef7d491"
+    },
+    {
+      "path": "backend/src/llm/deepseek.py",
+      "sha256": "e95beb019abbe82be7a8b9d9ae24177188816f2a7508e20d68dd597ba75ae511"
+    },
+    {
+      "path": "backend/src/main.py",
+      "sha256": "9398681de1ca24d5a918fa56e9d1bfcd9571de0575f5b9108a21e0f60e026f00"
+    },
+    {
+      "path": "backend/src/model_tools/README.md",
+      "sha256": "6cb1203379e0e9b009e3fe465d0be69308c6c33846196f77a999088ebbd07e87"
+    },
+    {
+      "path": "backend/src/model_tools/whcns_results.py",
+      "sha256": "d4295d0d16e22ffdf7731c6a81dae4e8f9162366192dd1c38e3f54732e8d37df"
+    },
+    {
+      "path": "backend/src/model_tools/workbooks.py",
+      "sha256": "a964d362a6094abba8d6062e987a8f14a8499d5792f90717c9ba839d71bfe41e"
+    },
+    {
+      "path": "backend/tests/test_file_chat.py",
+      "sha256": "6541580a4d4e91adbe8f6ea8a49cbb8cf6dfeaf66f200335e4f6f3c4d2d13f34"
+    },
+    {
+      "path": "backend/tests/test_whcns_results.py",
+      "sha256": "28580ec8a2015d65b5d81ceba37b3687062d5224ad0228af45f9c66d4023d922"
+    },
+    {
+      "path": "docs/ARCHITECTURE.md",
+      "sha256": "059c12204d3bfdf87ee51e3dc204892551f8142396128f28b4a615c108c8153a"
+    },
+    {
+      "path": "docs/iterations/2026-09-26-m2-0-model-assistant/chat-report.md",
+      "sha256": "1affbe135f6da302aa84035841954663f239854041ec1076493b375a31c8e2af"
+    },
+    {
+      "path": "docs/iterations/2026-09-26-m2-0-model-assistant/manual-acceptance-results.csv",
+      "sha256": "baffbf1c83380ae5b8b3dc5584da87dcd65cb51bbd8ac3033466a4254f115fbc"
+    },
+    {
+      "path": "docs/iterations/2026-09-26-m2-0-model-assistant/manual-acceptance.md",
+      "sha256": "4112ed374b4c94bd0437f110dc8b98f6cb8592661c17f5c27a725e8a3651fd54"
+    },
+    {
+      "path": "docs/iterations/2026-09-26-m2-0-model-assistant/pilot-tasks.md",
+      "sha256": "a965de9976ccb33f8c9d62164acf4f1c13eb17763442877a1d8108c818fbdbe3"
+    },
+    {
+      "path": "docs/iterations/2026-09-26-m2-0-model-assistant/report.md",
+      "sha256": "1d7b43e90fdb0ab0336fbb9b8d977877d6f12659e0951fa390d1fa8afee5b6db"
+    },
+    {
+      "path": "docs/iterations/2026-09-26-m2-0-model-assistant/spec.md",
+      "sha256": "1d6b839d29d05b917fda06fa86f6ff369e3bc7a535c1f2e02d36c8b0eb17ca82"
+    },
+    {
+      "path": "frontend/README.md",
+      "sha256": "fda1fa9a6c408be1c1fc42192366b471551420ac917cf0324cfefd18b3102aeb"
+    },
+    {
+      "path": "frontend/src/app/layout.tsx",
+      "sha256": "bb27d706aeb58ac384807e8567bae1ece24ee81732c91124325b9073a1c8cf14"
+    },
+    {
+      "path": "frontend/src/app/page.tsx",
+      "sha256": "45daa402b0a58983d617cdcfa527a44a281eab33a018313af533689819d75d07"
+    },
+    {
+      "path": "frontend/src/components/chat/chat-error.tsx",
+      "sha256": "d073abfda31995046179982b7862147dd5ff76fb1d4ee9dfa356112c4025d7f9"
+    },
+    {
+      "path": "frontend/src/components/chat/chat-form.tsx",
+      "sha256": "09cf435d3ae1c9fec5dd9c1ebda6e94f6e292dd500bd1db4348bec93014f2c2d"
+    },
+    {
+      "path": "frontend/src/components/chat/citation-list.tsx",
+      "sha256": "e93a8fc8efb0da7f8f50fd1f77be9e2c4ce5da35946e588e92a759e791a6d17d"
+    },
+    {
+      "path": "frontend/src/components/chat/file-evidence.tsx",
+      "sha256": "32d8a18fedb3a6b2aa2e5621fe550f3cd7113957f7a0156295e82508a57a4e60"
+    },
+    {
+      "path": "frontend/src/lib/api.ts",
+      "sha256": "ab5a843976bfa881630b821b1e85ed2aa5b87d3761a6cee4a83dd95be69952eb"
+    },
+    {
+      "path": "frontend/src/lib/types.ts",
+      "sha256": "5efafe8178b99e49a1fab4d0b1d5e98fa05c61031df2543c629f3ae68a32fc88"
+    }
+  ]
+}

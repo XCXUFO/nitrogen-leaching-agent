@@ -1,0 +1,23 @@
+{
+  "replayed_at": "2026-10-03T13:10:23.483863+00:00",
+  "source": "data/raw/whcns/received-2026-09-26/package/模型/Nbal_out.xls",
+  "session_id": "ed2747d1-42b5-43a0-860f-73d75f4b46e9",
+  "upload_status": "pending",
+  "rounds": [
+    {
+      "question": "接下来只讨论玉米农田。氮素淋失主要受哪些因素影响？",
+      "response": {
+        "http_status": 502,
+        "detail": {
+          "detail": {
+            "code": "llm_unreachable",
+            "message": "Connection error.",
+            "run_id": "84d5f6a1-5e6f-4a44-ab5a-024434a923a1",
+            "trace_saved": true
+          }
+        }
+      }
+    }
+  ],
+  "review_status": "unreviewed; no professional pass assigned"
+}

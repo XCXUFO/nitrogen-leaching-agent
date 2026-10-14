@@ -1,5 +1,7 @@
+import asyncio
+
 import httpx
-from openai import AsyncOpenAI
+from openai import APITimeoutError, AsyncOpenAI
 
 from src.llm.base import ChatMessage, ChatResult, ChatUsage, LLMClient
 
@@ -32,6 +34,9 @@ class DeepSeekClient(LLMClient):
         )
         self._model = model
         self._output_token_limit = output_token_limit
+        # SDK timeouts apply per network operation. Bound the whole call too,
+        # including retries and a response that keeps delivering small chunks.
+        self._request_timeout_s = timeout_s * (max_retries + 1) + 10
 
     async def chat(
         self,
@@ -39,6 +44,26 @@ class DeepSeekClient(LLMClient):
         *,
         temperature: float = 0.3,
         max_tokens: int | None = None,
+    ) -> ChatResult:
+        return await self._chat(messages, temperature=temperature, max_tokens=max_tokens)
+
+    async def chat_json(
+        self,
+        messages: list[ChatMessage],
+        *,
+        temperature: float = 0,
+        max_tokens: int | None = None,
+    ) -> ChatResult:
+        """Extract fields without spending the output budget on reasoning."""
+        return await self._chat(messages, temperature=temperature, max_tokens=max_tokens, json_mode=True)
+
+    async def _chat(
+        self,
+        messages: list[ChatMessage],
+        *,
+        temperature: float,
+        max_tokens: int | None,
+        json_mode: bool = False,
     ) -> ChatResult:
         request_kwargs = {
             "model": self._model,
@@ -49,8 +74,15 @@ class DeepSeekClient(LLMClient):
             max_tokens = min(max_tokens or self._output_token_limit, self._output_token_limit)
         if max_tokens is not None:
             request_kwargs["max_tokens"] = max_tokens
+        if json_mode:
+            request_kwargs["response_format"] = {"type": "json_object"}
+            request_kwargs["extra_body"] = {"thinking": {"type": "disabled"}}
 
-        response = await self._client.chat.completions.create(**request_kwargs)
+        try:
+            async with asyncio.timeout(self._request_timeout_s):
+                response = await self._client.chat.completions.create(**request_kwargs)
+        except TimeoutError as exc:
+            raise APITimeoutError(request=httpx.Request("POST", str(self._client.base_url))) from exc
         choice = response.choices[0]
         return ChatResult(
             content=choice.message.content or "",

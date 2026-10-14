@@ -4,6 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from src.agent.case_ids import CaseId, MAX_CASE_IDS
 from src.agent.chat_service import Citation
 from src.agent.contracts import AnswerSection, AttachmentState, Evidence, Route, RunWarning
 from src.llm.base import ChatUsage
@@ -23,12 +24,14 @@ class ChatHistoryMessage(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    query: str = Field(..., min_length=1, max_length=1000)
+    query: str = Field(..., min_length=1, max_length=24000)
+    case_skill: Literal["reference", "explain"] | None = None
+    case_ids: list[CaseId] = Field(default_factory=list, max_length=MAX_CASE_IDS)
     k: int | None = Field(default=None, ge=1, le=20)
     session_id: str | None = Field(default=None, min_length=1, max_length=100, pattern=r"^[A-Za-z0-9_-]+$")
     operator_id: str | None = Field(default=None, min_length=1, max_length=100, pattern=r"^[A-Za-z0-9_-]+$")
     file_id: str | None = Field(default=None, min_length=1, max_length=100)
-    file_ids: list[str] | None = Field(default=None, max_length=5)
+    file_ids: list[str] | None = Field(default=None, max_length=10)
     history: list[ChatHistoryMessage] = Field(default_factory=list, max_length=12)
 
     @field_validator("file_ids")
@@ -76,7 +79,14 @@ class FileEvidence(BaseModel):
     schema_id: str
 
 
+class CaseReference(BaseModel):
+    id: str
+    title: str
+    source: str = ""
+
+
 class ChatResponse(BaseModel):
+    case_references: list[CaseReference] = Field(default_factory=list)
     answer: str
     citations: list[Citation]
     usage: ChatUsage

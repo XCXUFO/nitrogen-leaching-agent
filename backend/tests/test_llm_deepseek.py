@@ -6,6 +6,30 @@ import pytest
 from src.llm import ChatMessage, DeepSeekClient
 
 
+@pytest.mark.asyncio
+async def test_whole_model_call_deadline_cancels_upstream(monkeypatch):
+    import asyncio
+    from openai import APITimeoutError
+
+    client = DeepSeekClient(api_key="x", base_url="https://example", model="test")
+    client._request_timeout_s = 0.01
+    cancelled = asyncio.Event()
+
+    async def stalled(**kwargs):
+        try:
+            await asyncio.Event().wait()
+        finally:
+            cancelled.set()
+
+    monkeypatch.setattr(client._client.chat.completions, "create", stalled)
+    try:
+        with pytest.raises(APITimeoutError):
+            await client.chat([ChatMessage(role="user", content="hello")])
+        assert cancelled.is_set()
+    finally:
+        await client._client.close()
+
+
 def _make_response(content: str | None, model: str = "deepseek-chat"):
     return SimpleNamespace(
         choices=[SimpleNamespace(message=SimpleNamespace(content=content))],
@@ -14,6 +38,18 @@ def _make_response(content: str | None, model: str = "deepseek-chat"):
             prompt_tokens=10, completion_tokens=20, total_tokens=30
         ),
     )
+
+
+@pytest.mark.asyncio
+async def test_json_extraction_disables_thinking_and_requests_json(monkeypatch):
+    client = DeepSeekClient(api_key="x", base_url="https://example", model="test")
+    create = AsyncMock(return_value=_make_response('{"title":"Paper"}'))
+    monkeypatch.setattr(client._client.chat.completions, "create", create)
+    result = await client.chat_json([ChatMessage(role="user", content="Extract JSON fields")], max_tokens=1800)
+    assert result.content == '{"title":"Paper"}'
+    assert create.await_args.kwargs["response_format"] == {"type": "json_object"}
+    assert create.await_args.kwargs["extra_body"] == {"thinking": {"type": "disabled"}}
+    assert create.await_args.kwargs["max_tokens"] == 1800
 
 
 @pytest.mark.asyncio

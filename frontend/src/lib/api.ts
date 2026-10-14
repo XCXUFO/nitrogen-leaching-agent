@@ -1,3 +1,4 @@
+import { accountHeaders, expireAccount, readAccount } from "./account-storage";
 import type {
   BackendErrorDetail,
   ChatHistoryMessage,
@@ -67,12 +68,13 @@ export async function postChat(
   if (fileIds !== undefined) body.file_ids = fileIds;
   if (operatorId !== undefined) body.operator_id = operatorId;
 
+  const auth = accountHeaders();
   let response: Response;
   try {
     response = await fetch(`${apiBaseUrl}/api/chat`, {
       method: "POST",
       credentials: "include",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...auth },
       body: JSON.stringify(body),
       signal,
     });
@@ -84,12 +86,12 @@ export async function postChat(
     return (await response.json()) as ChatResponse;
   }
 
-  return readResponse<ChatResponse>(response);
+  return readResponse<ChatResponse>(response, auth.Authorization?.slice(7));
 }
 
-export async function uploadFile(file: File, onProgress?: (percent: number) => void): Promise<FileReceipt> {
-  if (!/\.xlsx?$/i.test(file.name)) {
-    throw new ApiError("unsupported_file", null, "请选择 .xls 或 .xlsx 文件。");
+export async function uploadFile(file: File, onProgress?: (percent: number) => void, sessionId?: string): Promise<FileReceipt> {
+  if (!/\.(?:xls|xlsx|txt|md|pdf|doc|docx)$/i.test(file.name)) {
+    throw new ApiError("unsupported_file", null, "支持 .xls、.xlsx、.txt、.md、.pdf、.doc、.docx 文件。");
   }
   if (file.size > 10 * 1024 * 1024) {
     throw new ApiError("file_too_large", null, "文件不能超过 10 MiB。");
@@ -97,7 +99,11 @@ export async function uploadFile(file: File, onProgress?: (percent: number) => v
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.withCredentials = true;
-    xhr.open("POST", `${apiBaseUrl}/api/files?filename=${encodeURIComponent(file.name)}`);
+    const params = new URLSearchParams({ filename: file.name });
+    if (sessionId) params.set("session_id", sessionId);
+    xhr.open("POST", `${apiBaseUrl}/api/files?${params}`);
+    const account = readAccount();
+    if (account) xhr.setRequestHeader("Authorization", `Bearer ${account.token}`);
     xhr.setRequestHeader("Content-Type", "application/octet-stream"); xhr.timeout = 60000;
     xhr.upload.onprogress = (event) => { if (event.lengthComputable) onProgress?.(Math.round(event.loaded / event.total * 100)); };
     xhr.onerror = () => reject(new ApiError("network", null, NETWORK_FAILURE));
@@ -105,25 +111,38 @@ export async function uploadFile(file: File, onProgress?: (percent: number) => v
     xhr.onabort = () => reject(new ApiError("upload_cancelled", null, "上传已取消。"));
     xhr.onload = () => {
       if (!xhr.status) { reject(new ApiError("network", null, NETWORK_FAILURE)); return; }
-      readResponse<FileReceipt>(new Response(xhr.responseText, { status: xhr.status })).then(resolve, reject);
+      readResponse<FileReceipt>(new Response(xhr.responseText, { status: xhr.status }), account?.token).then(resolve, reject);
     };
     xhr.send(file);
   });
 }
 
-export async function checkSessionFiles(fileIds: string[]): Promise<{ files: { file_id: string; status: "available" | "expired" }[] }> {
+export async function checkSessionFiles(fileIds: string[], sessionId?: string): Promise<{ files: { file_id: string; status: "available" | "expired" }[] }> {
+  const auth = accountHeaders();
   let response: Response;
   try {
     response = await fetch(`${apiBaseUrl}/api/files/status`, {
       method: "POST", credentials: "include", cache: "no-store",
-      headers: { "Content-Type": "application/json" }, body: JSON.stringify({ file_ids: fileIds }),
+      headers: { "Content-Type": "application/json", ...auth }, body: JSON.stringify({ file_ids: fileIds, session_id: sessionId }),
     });
   } catch (err) { throw new ApiError("network", null, NETWORK_FAILURE, err); }
-  return readResponse(response);
+  return readResponse(response, auth.Authorization?.slice(7));
 }
 
-async function readResponse<T>(response: Response): Promise<T> {
+export async function releaseSessionFiles(fileIds: string[], sessionId: string, onPageHide = false): Promise<void> {
+  if (!fileIds.length) return;
+  const url = `${apiBaseUrl}/api/files/release`;
+  const body = JSON.stringify({ file_ids: fileIds, session_id: sessionId });
+  if (onPageHide && !readAccount() && navigator.sendBeacon?.(url, new Blob([body], { type: "application/json" }))) return;
+  try {
+    await fetch(url, { method: "POST", credentials: "include", keepalive: onPageHide,
+      headers: { "Content-Type": "application/json", ...accountHeaders() }, body });
+  } catch { /* A failed cleanup is bounded by the server lease. */ }
+}
+
+async function readResponse<T>(response: Response, token?: string): Promise<T> {
   if (response.ok) return (await response.json()) as T;
+  if (response.status === 401 && token) expireAccount(token);
   const data = (await safeJson(response)) as
     | { detail?: BackendErrorDetail | string | Array<{ msg?: string }> }
     | null;
@@ -142,7 +161,7 @@ async function readResponse<T>(response: Response): Promise<T> {
     throw new ApiError(
       data.detail.code,
       response.status,
-      ["public_demo_limit", "public_origin_denied", "invalid_result_file", "file_too_large", "unsupported_file", "file_not_found", "file_store_full", "file_tools_unavailable"].includes(data.detail.code)
+      ["case_capacity", "case_library_unavailable", "case_ai_unavailable", "case_answer_invalid", "public_demo_limit", "public_origin_denied", "invalid_result_file", "invalid_document", "too_many_files", "file_too_large", "unsupported_file", "file_not_found", "file_store_full", "file_tools_unavailable"].includes(data.detail.code)
         ? data.detail.message : translateErrorCode(data.detail.code),
     );
   }

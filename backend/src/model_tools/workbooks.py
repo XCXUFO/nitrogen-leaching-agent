@@ -27,6 +27,43 @@ def _scalar(value):
     return value
 
 
+def _xlsx_extent(sheet) -> tuple[int, int]:
+    """Bound actual coordinates before openpyxl allocates rectangular rows.
+
+    Exporters can write stale/missing <dimension> metadata. Checking it alone
+    can silently truncate data; blindly resetting it permits huge sparse rows.
+    The XML pass uses the same source/parser as the installed openpyxl reader.
+    """
+    from openpyxl.utils.cell import coordinate_to_tuple
+    from openpyxl.xml.functions import iterparse
+
+    row_number = column = max_row = max_column = count = 0
+    try:
+        with sheet._get_source() as source:
+            for event, element in iterparse(source, events=("start", "end")):
+                tag = element.tag.rsplit("}", 1)[-1]
+                if event == "start" and tag == "row":
+                    next_row = int(element.get("r", row_number + 1))
+                    if next_row <= row_number:
+                        raise WorkbookError("XLSX rows must be ordered and unique")
+                    row_number, column = next_row, 0
+                    max_row = max(max_row, row_number)
+                elif event == "start" and tag == "c":
+                    r, c = coordinate_to_tuple(element.get("r")) if element.get("r") else (row_number, column + 1)
+                    if r != row_number or r < 1 or c <= column:
+                        raise WorkbookError("XLSX cell coordinates must match ordered rows and columns")
+                    column = c
+                    max_column = max(max_column, column)
+                    count += 1
+                if max_row * max(1, max_column) > MAX_CELLS or count > MAX_CELLS:
+                    raise WorkbookError("workbook exceeds the cell limit")
+                if event == "end":
+                    element.clear()
+    except (ValueError, KeyError) as exc:
+        raise WorkbookError(f"invalid XLSX coordinates: {exc}") from exc
+    return max_row, max_column
+
+
 def read_workbook(path: Path, *, reject_cell_errors: bool = True) -> dict:
     """Read stored values, retaining Excel coordinates and rejecting cell errors.
 
@@ -86,11 +123,12 @@ def read_workbook(path: Path, *, reject_cell_errors: bool = True) -> dict:
         try:
             actual_cells = 0
             for sheet in book:
-                total_cells += (sheet.max_row or 0) * (sheet.max_column or 0)
+                nrows, ncols = _xlsx_extent(sheet)
+                total_cells += nrows * ncols
                 if total_cells > MAX_CELLS:
                     raise WorkbookError("workbook exceeds the cell limit")
                 rows = []
-                for cells in sheet.iter_rows():
+                for cells in (sheet.iter_rows(min_row=1, max_row=nrows, min_col=1, max_col=ncols) if nrows and ncols else []):
                     actual_cells += len(cells)
                     if actual_cells > MAX_CELLS:
                         raise WorkbookError("workbook exceeds the cell limit")
@@ -100,7 +138,7 @@ def read_workbook(path: Path, *, reject_cell_errors: bool = True) -> dict:
                             raise WorkbookError(f"Excel error at {sheet.title}!{cell.coordinate}")
                         row.append(_scalar(cell.value))
                     rows.append(row)
-                sheets.append({"name": sheet.title, "rows": rows, "nrows": len(rows), "ncols": sheet.max_column or 0})
+                sheets.append({"name": sheet.title, "rows": rows, "nrows": len(rows), "ncols": ncols})
         finally:
             book.close()
         file_format = "xlsx"

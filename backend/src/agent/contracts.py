@@ -7,7 +7,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 HARNESS_VERSION = "0.2.0"
-SkillName = Literal["knowledge_search", "whcns_analyzer", "file_inspector", "clarification", "capability_guidance"]
+SkillName = Literal["knowledge_search", "whcns_analyzer", "file_inspector", "clarification", "capability_guidance", "case_reference", "case_explanation"]
 
 
 class Contract(BaseModel):
@@ -38,12 +38,15 @@ class TaskState(Contract):
     current_metric: str | None = None
     current_operation: list[Literal["min", "max"]] = Field(default_factory=list)
     last_tool: SkillName | None = None
+    current_case_ids: list[str] = Field(default_factory=list, max_length=30)
+    case_context_text: str = Field(default="", max_length=24000)
+    case_clarification_pending: bool = False
     expires_at: float = 0
 
 
 class Evidence(Contract):
     evidence_id: str
-    source_type: Literal["file", "literature"]
+    source_type: Literal["file", "literature", "case"]
     source_id: str
     claim_or_value: str | float
     unit: str | None = None

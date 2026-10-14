@@ -13,7 +13,15 @@ class Principal(Contract):
 
 
 class AccessEntry(Principal):
-    token_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    token_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    username: str | None = Field(default=None, min_length=1, max_length=80, pattern=r"^[A-Za-z0-9_-]+$")
+    password_hash: str | None = Field(default=None, pattern=r"^scrypt\$[0-9a-f]{32}\$[0-9a-f]{64}$")
+
+    @model_validator(mode="after")
+    def valid_credentials(self):
+        if bool(self.username) != bool(self.password_hash) or not (self.token_sha256 or self.password_hash):
+            raise ValueError("an access key or username/password hash pair is required")
+        return self
 
 
 class AccessFile(Contract):
@@ -21,9 +29,16 @@ class AccessFile(Contract):
 
     @model_validator(mode="after")
     def unique_users_and_keys(self):
-        if len({u.tester_id for u in self.users}) != len(self.users) or len({u.token_sha256 for u in self.users}) != len(self.users):
+        keys = [u.token_sha256 for u in self.users if u.token_sha256]
+        names = [u.username for u in self.users if u.username]
+        if len({u.tester_id for u in self.users}) != len(self.users) or len(set(keys)) != len(keys) or len(set(names)) != len(names):
             raise ValueError("identities and access keys must be unique")
         return self
+
+
+class LoginInput(Contract):
+    username: str = Field(min_length=1, max_length=80)
+    password: str = Field(min_length=1, max_length=128)
 
 
 class StartExecution(Contract):

@@ -1,0 +1,53 @@
+{
+  "scope": "Selected files for public demo work; not a full repository or deployment manifest. Existing uncommitted work retained.",
+  "recorded_at": "2026-10-05T12:54:37.861789+00:00",
+  "frontend_build_id": "yhAidxdIE_JLe1q2wDoug",
+  "validation": {
+    "backend_full": {
+      "passed": 367,
+      "skipped": 4
+    },
+    "subsequent_llm_and_versioning": {
+      "passed": 9
+    },
+    "browser_existing_chat": 13,
+    "browser_existing_navigation": 3,
+    "browser_public_demo_final": 4,
+    "frontend_build": "passed",
+    "eslint": "passed"
+  },
+  "limitations": [
+    "No public deployment performed.",
+    "Browser service used isolated databases and disabled RAG; no live LLM quality or connectivity conclusion.",
+    "Workflow scores in the public archive are synthetic and explicitly labeled."
+  ],
+  "sha256": {
+    ".env.example": "9d13a02adb0fc5e91305c1194aabe2934b9d6d5b40a399d495f8edc632285295",
+    ".gitignore": "81ccddc12f45ed593b6821e5c57abb06b4abc313199583a01d4116d19fbcfe61",
+    "README.md": "7a5da2585f3532051d41e8f683aa2762dec2785ebab3a6796dcb9bb725d92cca",
+    "backend/src/config.py": "07e576ea9d921841d60726f576de815738c6efe9987ebb9d92ab55c06f682dec",
+    "backend/src/main.py": "11e4fe8f65139de5d54f9bf49a098f82f5c072bafbd8097ea6805f484a101cfd",
+    "backend/src/api/chat.py": "1dfbba4fe608260d804959ad073b8a18a92c013d6dac0a481adb29f294434f9d",
+    "backend/src/api/files.py": "c8adf2bffb26ef47e2efe787b716b7f147e122ed24d9b5104c70e56bb77ca59f",
+    "backend/src/api/demo.py": "1fbd97faed764b09ab25ddce99360930cb5a8d287e81d1eacd6f169538c97afc",
+    "backend/src/llm/deepseek.py": "45a82ebc0b3b943e8677191be5398f961be9565946522cfc14f72639371f7d2b",
+    "backend/src/evaluation/versioning.py": "3a9f2a81bf90aee66e3672d203c59ba174620cf63facbef7d3598b18bd996e3d",
+    "backend/src/operations/public_access.py": "021ef715df90e1a494e84bdf37ad6f041c135e0d7f8f230deade32d544475de3",
+    "backend/scripts/build_demo_catalog.py": "c60081ca455aebfeafe60d77d91673fab573b5401deb9e207fd4bc2ae9868a0c",
+    "backend/tests/test_public_demo.py": "b6dbabd3a62b707de9d3771c4de7927e1bee9ec5fbe7454b493cdc4c8e8acd73",
+    "backend/tests/test_llm_deepseek.py": "c44747c9f770e5464a50db3dd19e495bc1cd320f33b300c0bca077ec6ef57cb5",
+    "frontend/.env.local.example": "7a8d0539edb830da9ceeaa578024906b1f7d9758329c98fb4b9b1686fda0a6a1",
+    "frontend/next.config.ts": "ae8c439b908107c7806b25cdaf034ddd275ca2bae4307e32b8adf3578ae02c7b",
+    "frontend/tsconfig.json": "af83616685136238766fc51da30be2a0071b33f8c6bc225a1e9072d2686ced39",
+    "frontend/src/app/globals.css": "7a48e3433e3d5722a9f6a3ec809fc320e1a11085de2ba45246f605a91ab10d8c",
+    "frontend/src/app/page.tsx": "80b0eccd4dc2c94df5a6dc7a5cbca776f93e96242a61e3b8352d18e25520d83a",
+    "frontend/src/app/showcase/[[...path]]/page.tsx": "01a25b578a07c2cfa682b096078128d5775acdcea9587ce720ad6457eaa584f5",
+    "frontend/src/lib/api.ts": "350c3f7319d62b58010c0ba6b3e9f6cff53f0d3566bfe4c0de121a1966bcae4d",
+    "frontend/src/components/evaluation-shell.tsx": "7fbd503b22cfa4fded9316df556bba0e7dc0026298de4bb36bdd392f901ef63d",
+    "frontend/src/components/demo-workspace.tsx": "7e9136d07a8386640ffa56335e1279885d6af24027db91907d155464432d1c31",
+    "frontend/tests/public-demo.spec.ts": "e242526e512b3e9bb981c0a132f7ba3c28f9d44bbd2c5c0079a760f9b94646b3",
+    "data/demo/catalog.json": "ad49f71ae2fbef8baf1e4cc840afb77d4cf3a94f94ea05b2a9d7e0c3159792e6",
+    "data/demo/Nbal_out.xls": "6bf778020c6ae752da6778bc5429d1b09bc59ea1f725462dfe20207cbef88276",
+    "docs/public-demo.md": "7b9bc2e0a3e9370ab3c508c6c093bcd53c8d916157c5da9ad5c8f0fc5b3a4680"
+  }
+}

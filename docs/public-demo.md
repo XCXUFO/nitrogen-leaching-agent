@@ -53,7 +53,11 @@ NEXT_PUBLIC_API_BASE_URL=
 BACKEND_INTERNAL_URL=http://127.0.0.1:8000
 ```
 
-空的公开 API 地址表示同源，避免浏览器访问面试官电脑的 localhost。Next 提供内部 API 转发供本地/简单部署使用。生产反向代理宜将 `/api/` 直接转发后端，并仅信任该代理注入的客户端地址；应用本身忽略任意 `X-Forwarded-For`。若全部请求经 Next 转发且未配置可信代理，限频会合并为代理 IP，限制更保守而非失效。不要将 Uvicorn 的代理信任范围设为所有公网来源。
+空的公开 API 地址表示同源，避免浏览器访问面试官电脑的 localhost。Next 提供内部 API 转发供本地/简单部署使用，等待上限为 300 秒；聊天处理总上限为 240 秒。服务器反向代理的读取超时应至少为 300 秒。
+
+生产反向代理宜将 `/api/` 直接转发后端，在最外层用 `proxy_set_header X-Forwarded-For $remote_addr` 覆盖客户端传来的头，并覆盖 `X-Forwarded-Proto`；Uvicorn 只信任该代理地址（同机为 `--forwarded-allow-ips=127.0.0.1`），后端端口不开放公网。若有 CDN 或其他上游代理，须先明确真实客户端地址的信任链，不能直接照搬这一单层配置。仅在业务代码中不读取转发头不足以防伪造，因为 Uvicorn 可以提前改写 `request.client`。
+
+本地 `start_delivery.py` 使用 `--no-proxy-headers`，防止直接访问 Next 的调用方伪造 IP；此模式按代理连接地址共享限频。服务器应沿用经核验的入口及进程管理配置，不把本地启动脚本当成生产进程守护。
 
 前端生产构建可使用独立目录，避免覆盖现有服务：
 
@@ -67,7 +71,7 @@ NITROGEN_NEXT_DIST_DIR=.next-demo pnpm start
 
 ## 对外上线前的交付检查
 
-1. 配置正式域名、HTTPS、进程守护和重启恢复；从外网及手机访问。`backend/scripts/start_delivery.py` 是本机脚本，绑定 `127.0.0.1` 并覆盖代理、重排与评测设置，不能直接当作公网启动配置。
+1. 配置正式域名、HTTPS、进程守护和重启恢复；从外网及手机访问。`backend/scripts/start_delivery.py` 是本机脚本，绑定 `127.0.0.1`、启用评测和离线加载、禁用代理头解析，不能直接当作公网启动配置。
 2. 配置可用的模型服务、RAG 索引和本地模型。后端启动后请求 `GET /api/health` 检查进程，再请求 `GET /api/ready`；公开模式下后者在知识服务初始化失败时返回 503。随后执行一次真实文献问答并核对引用，因为就绪接口不能验证外部模型 API 与回答质量。本轮隔离浏览器服务不调用外部模型，不证明线上模型连通性。
 3. 保留私有评测数据及密钥，启用公开保护，检查管理接口拒绝匿名写入、Cookie 为 Secure。
 4. 备份私有数据库、公开预算库和原始资产；发布前冻结源码与构建，失败时恢复上一构建。`backend/scripts/create_delivery_manifest.py` 可为工作区代码、锁文件、公开示例与展示数据生成 SHA-256 清单。模型权重、Chroma 索引和论文 PDF 不在 Git 或该清单内，需单独核对并传输。

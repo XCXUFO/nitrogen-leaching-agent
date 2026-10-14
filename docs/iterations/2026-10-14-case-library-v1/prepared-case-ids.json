@@ -1,0 +1,42 @@
+{
+  "prepared_at": "2026-10-14T09:29:02.419575+00:00",
+  "source": "示范区种植方式信息补充.docx",
+  "cases": [
+    {
+      "id": "C-E7E6B68B19284E2E",
+      "title": "山东庆云示范区冬小麦—夏玉米轮作水肥记录",
+      "enabled": 0,
+      "revision": 1
+    },
+    {
+      "id": "C-E2F38D7D1E624300",
+      "title": "天津武清示范区设施番茄水肥记录",
+      "enabled": 0,
+      "revision": 1
+    },
+    {
+      "id": "C-97FF601C63AF4219",
+      "title": "天津武清示范区设施黄瓜水肥记录",
+      "enabled": 0,
+      "revision": 1
+    },
+    {
+      "id": "C-DFB2675981784E30",
+      "title": "山西清徐示范区玉米水肥记录",
+      "enabled": 0,
+      "revision": 1
+    },
+    {
+      "id": "C-3622480B1BD84A62",
+      "title": "山西清徐示范区高粱试验种植记录",
+      "enabled": 0,
+      "revision": 1
+    },
+    {
+      "id": "C-C3CEF20169984B29",
+      "title": "黑龙江肇东示范区玉米水肥记录",
+      "enabled": 0,
+      "revision": 1
+    }
+  ]
+}

@@ -35,9 +35,9 @@ test('fresh P00 session uses real nitrogen and water workbooks throughout the co
   await expect(page.getByLabel('问题输入')).toHaveValue('');
   await send('你能做什么？');
   const root = resolve(process.cwd(), '../data/demo');
-  const input = page.getByLabel('附加结果表');
+  const input = page.getByLabel('选择会话文件');
   await input.setInputFiles(['Nbal_out.xls', 'waterbal_out.xls'].map(name => ({ name, mimeType: 'application/vnd.ms-excel', buffer: readFileSync(resolve(root, name)) })));
-  await expect(page.getByText(/已上传 · 提问时自动分析/)).toHaveCount(2);
+  await expect(page.getByLabel('会话文件列表').getByText('已上传', { exact: true })).toHaveCount(2);
   const maximum = await send('硝态氮最大值及日序');
   expect(maximum.file_evidence[0].value).toBeCloseTo(3.65926384925842, 12);
   expect(maximum.file_evidence[0].cell).toBe('Nbal_out!C284');

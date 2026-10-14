@@ -33,8 +33,8 @@ test('live new conversation and Nbal_out attachment evidence', async ({ page }) 
   await page.screenshot({ path: '/tmp/ui02-before.png' });
 
   const source = resolve(process.cwd(), '../data/demo/Nbal_out.xls');
-  await page.getByLabel('附加结果表').setInputFiles({ name: 'Nbal_out.xls', mimeType: 'application/vnd.ms-excel', buffer: readFileSync(source) });
-  await expect(page.getByText('已上传 · 提问时自动分析')).toBeVisible();
+  await page.getByLabel('选择会话文件').setInputFiles({ name: 'Nbal_out.xls', mimeType: 'application/vnd.ms-excel', buffer: readFileSync(source) });
+  await expect(page.getByLabel('会话文件列表').getByText('已上传', { exact: true })).toBeVisible();
   await page.getByLabel('问题输入').fill('硝态氮最大值及日序');
   await page.getByRole('button', { name: '发送', exact: true }).click();
   await expect.poll(() => responses.length).toBe(3);
@@ -42,14 +42,14 @@ test('live new conversation and Nbal_out attachment evidence', async ({ page }) 
   await page.getByLabel('问题输入').fill('那最小值呢？');
   await page.getByRole('button', { name: '发送', exact: true }).click();
   await expect.poll(() => responses.length).toBe(4);
-  await expect(page.getByText('本会话可引用：Nbal_out.xls')).toBeVisible();
+  await expect(page.getByLabel('会话文件列表').getByText('Nbal_out.xls', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: '移除附件', exact: true })).toHaveCount(0);
   await page.screenshot({ path: '/tmp/ui06-after.png' });
   await page.getByRole('button', { name: /收起文件：Nbal_out.xls/ }).click();
   await page.getByLabel('问题输入').fill('那最小值呢？');
   await page.getByRole('button', { name: '发送', exact: true }).click();
   await expect.poll(() => responses.length).toBe(5);
-  await expect(page.getByText('本会话可引用：Nbal_out.xls')).toHaveCount(0);
+  await expect(page.getByLabel('会话文件列表').getByText('Nbal_out.xls', { exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: '新对话' }).click();
   await page.getByLabel('问题输入').fill('那最小值呢？');
   await page.getByRole('button', { name: '发送', exact: true }).click();

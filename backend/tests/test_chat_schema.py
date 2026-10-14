@@ -17,9 +17,9 @@ def test_chat_request_query_must_not_be_blank() -> None:
 
 
 def test_chat_request_query_max_length() -> None:
-    ChatRequest(query="x" * 1000)
+    ChatRequest(query="x" * 24000)
     with pytest.raises(ValidationError):
-        ChatRequest(query="x" * 1001)
+        ChatRequest(query="x" * 24001)
 
 
 def test_chat_request_strips_query() -> None:

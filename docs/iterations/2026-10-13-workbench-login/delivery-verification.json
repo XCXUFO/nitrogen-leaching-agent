@@ -1,0 +1,41 @@
+{
+  "build_version": "delivery-20261013-3f83ae575e90",
+  "accounts": [
+    {
+      "username": "cau_dev",
+      "role": "developer",
+      "login_and_logout": "passed"
+    },
+    {
+      "username": "cau_expert1",
+      "role": "reviewer",
+      "login_and_logout": "passed"
+    },
+    {
+      "username": "cau_expert2",
+      "role": "reviewer",
+      "login_and_logout": "passed"
+    },
+    {
+      "username": "cau_tester1",
+      "role": "tester",
+      "login_and_logout": "passed"
+    },
+    {
+      "username": "cau_tester2",
+      "role": "tester",
+      "login_and_logout": "passed"
+    },
+    {
+      "username": "cau_tester3",
+      "role": "tester",
+      "login_and_logout": "passed"
+    }
+  ],
+  "old_keys_rejected": true,
+  "unchanged_database_tables": {
+    "runs": 19,
+    "literature": 6,
+    "public-budget": 2
+  }
+}

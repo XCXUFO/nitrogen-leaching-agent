@@ -36,6 +36,7 @@ export function AnswerCard({ response, scope }: { response: ChatResponse; scope:
     {response.outcome === "partial" && <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900">部分完成：已保留可用结果，尚未完成的部分见说明。</p>}
     <div ref={answer} tabIndex={-1} className="outline-none text-sm leading-7"><MarkdownAnswer content={response.answer.replace(/^(表中观察|为何目前不能归因|文献中的事件尺度线索|下一步核查|文献支持的可能机制|适用边界与下一步)$/gm, "### $1")} indices={response.citations.map((c) => c.index)} onCitation={showCitation} /></div>
     <CitationList citations={response.citations} scope={scope} activeIndex={active} onBack={() => { answer.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }); answer.current?.focus({ preventScroll: true }); }} />
+    {!!response.case_references?.length && <div className="space-y-2 rounded-lg border p-3 text-sm"><h3 className="font-medium">参考案例</h3>{response.case_references.map((item) => <div key={item.id}><p>{item.title} · {item.id}</p>{item.source && <p className="whitespace-pre-wrap break-words text-xs text-muted-foreground">来源：{item.source}</p>}</div>)}</div>}
     <FileEvidenceList evidence={response.file_evidence ?? []} />
   </article>;
 }

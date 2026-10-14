@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import time
 import hashlib
+import asyncio
 
 from fastapi import APIRouter, HTTPException, Request
 from loguru import logger
@@ -19,9 +20,11 @@ from src.agent.skills import KnowledgeUnavailable
 from src.agent.state import ConversationBusy, StateCapacityError
 from src.api.chat_schema import ChatRequest, ChatResponse
 from src.api.files import file_store
+from src.evaluation.auth import front_principal
 from src.rag.documents import citation_metadata
 
 router = APIRouter()
+CHAT_REQUEST_TIMEOUT_S = 240.0
 
 
 def _ms(t0: float) -> int:
@@ -67,15 +70,23 @@ def _fail(
 @router.post("/chat", response_model=ChatResponse)
 async def chat(request: Request, body: ChatRequest) -> ChatResponse:
     visitor = getattr(request.state, "public_visitor", None)
-    if visitor:
+    internal = front_principal(request)
+    if internal:
+        visitor = "internal_" + internal.tester_id
+        body = body.model_copy(update={"operator_id": internal.tester_id,
+            "session_id": hashlib.sha256((visitor + ":" + (body.session_id or "default")).encode()).hexdigest()})
+    elif visitor:
         # Namespace client-selected conversation IDs by the signed visitor.
         body = body.model_copy(update={"operator_id": "visitor_" + visitor,
             "session_id": hashlib.sha256((visitor + ":" + (body.session_id or "default")).encode()).hexdigest()})
-        for token in ([body.file_id] if body.file_id else []) + (body.file_ids or []):
-            # Expiration is handled by the runtime so other valid files still work.
-            entry = file_store(request).entries.get(token)
-            if entry is not None and entry.owner != visitor:
-                raise HTTPException(404, detail={"code": "file_not_found", "message": "文件已过期或不可用，请重新上传。"})
+    elif not request.url.path.startswith("/api/eval/") and body.operator_id and not body.operator_id.startswith("visitor_"):
+        body = body.model_copy(update={"operator_id": None})
+    for token in ([body.file_id] if body.file_id else []) + (body.file_ids or []):
+        # Expiration is handled by the runtime so other valid files still work.
+        entry = file_store(request).entries.get(token)
+        if entry is not None and ((entry.owner is not None and entry.owner != visitor)
+                                  or (entry.session_id is not None and entry.session_id != body.session_id)):
+            raise HTTPException(404, detail={"code": "file_not_found", "message": "文件已过期或不可用，请重新上传。"})
     if not hasattr(request.app.state, "agent_runtime"):
         # Minimal ASGI embedders/tests use an isolated in-memory store. The real
         # application configures persistent traces in its lifespan.
@@ -83,9 +94,15 @@ async def chat(request: Request, body: ChatRequest) -> ChatResponse:
     runtime: AgentRuntime = request.app.state.agent_runtime
     t0 = time.perf_counter()
     try:
-        response = await runtime.execute(body, service=getattr(request.app.state, "chat_service", None),
-                                         get_report=file_store(request).inspect)
-        response.citations = [citation.model_copy(update=citation_metadata(citation.source))
+        response = await asyncio.wait_for(runtime.execute(body, service=getattr(request.app.state, "chat_service", None),
+                                         get_report=file_store(request).inspect,
+                                         get_documents=file_store(request).documents,
+                                         case_store=getattr(request.app.state, "case_library", None),
+                                         llm=getattr(request.app.state, "llm", None)), timeout=CHAT_REQUEST_TIMEOUT_S)
+        response.citations = [citation.model_copy(update=(
+            {"title": citation.source.rsplit("/", 1)[-1], "author_hint": None, "year": None,
+             "document_id": citation.source.split("/", 3)[2], "document_available": False}
+            if citation.source.startswith("session://") else citation_metadata(citation.source)))
                               for citation in response.citations]
         return response
     except HTTPException as exc:
@@ -93,6 +110,12 @@ async def chat(request: Request, body: ChatRequest) -> ChatResponse:
             exc.detail = {**exc.detail, "run_id": getattr(exc, "agent_run_id", None),
                           "trace_saved": getattr(exc, "agent_trace_saved", False)}
         raise
+    except TimeoutError as exc:
+        # Runtime cancellation releases the conversation lease before wait_for returns.
+        for name in ("agent_run_id", "agent_trace_saved"):
+            setattr(exc, name, getattr(exc.__cause__, name, None))
+        raise _fail(status_code=504, code="request_timeout", layer="runtime", exc=exc,
+                    elapsed_ms=_ms(t0), message="本次处理超时，请稍后重试。") from exc
     except KnowledgeUnavailable as exc:
         raise _fail(status_code=503, code="rag_not_configured", layer="retrieval", exc=exc,
                     elapsed_ms=_ms(t0), message="文献服务未启用或初始化失败；请检查 RAG 配置与离线索引。文件分析仍可使用。") from exc

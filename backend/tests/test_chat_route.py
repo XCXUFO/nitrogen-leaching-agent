@@ -86,6 +86,30 @@ async def test_chat_503_when_service_none() -> None:
 
 
 @pytest.mark.asyncio
+async def test_request_deadline_releases_conversation_and_preserves_trace(monkeypatch):
+    import asyncio
+
+    class SlowService(FakeChatService):
+        async def answer(self, *args, **kwargs):
+            await asyncio.Event().wait()
+
+    monkeypatch.setattr(chat, "CHAT_REQUEST_TIMEOUT_S", 0.02)
+    app = _app_with_service(SlowService())
+    payload = {"query": "土壤质地影响氮素迁移吗？", "session_id": "timeout-retry"}
+    try:
+        response = await _post(app, payload)
+        assert response.status_code == 504
+        detail = response.json()["detail"]
+        assert detail["code"] == "request_timeout"
+        assert detail["run_id"] and detail["trace_saved"] is True
+        app.state.chat_service = FakeChatService()
+        retry = await _post(app, payload)
+        assert retry.status_code == 200
+    finally:
+        app.state.agent_runtime.runs.close()
+
+
+@pytest.mark.asyncio
 async def test_chat_200_happy_path() -> None:
     service = FakeChatService()
     app = _app_with_service(service)
@@ -142,7 +166,7 @@ async def test_chat_422_when_query_missing() -> None:
 async def test_chat_422_when_query_too_long() -> None:
     app = _app_with_service(FakeChatService())
 
-    response = await _post(app, {"query": "x" * 1001})
+    response = await _post(app, {"query": "x" * 24001})
 
     assert response.status_code == 422
 

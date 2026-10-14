@@ -1,0 +1,260 @@
+{
+  "checked_at": "2026-10-14",
+  "command": "pnpm audit --prod --json",
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 8,
+      "moderate": 51,
+      "high": 45,
+      "critical": 4
+    },
+    "dependencies": 556,
+    "devDependencies": 0,
+    "optionalDependencies": 0,
+    "totalDependencies": 556
+  },
+  "next_advisories": [
+    {
+      "module_name": "next",
+      "severity": "high",
+      "title": "Next.js Vulnerable to Denial of Service with Server Components",
+      "vulnerable_versions": ">=16.0.0 <16.2.5",
+      "patched_versions": ">=16.2.5",
+      "url": "https://github.com/advisories/GHSA-8h8q-6873-q5fj"
+    },
+    {
+      "module_name": "next",
+      "severity": "high",
+      "title": "Next.js has a Middleware / Proxy bypass in App Router applications via segment-prefetch routes - Incomplete Fix Follow-Up",
+      "vulnerable_versions": ">=16.0.0 <16.2.6",
+      "patched_versions": ">=16.2.6",
+      "url": "https://github.com/advisories/GHSA-26hh-7cqf-hhc6"
+    },
+    {
+      "module_name": "next",
+      "severity": "low",
+      "title": "Next.js's Middleware / Proxy redirects can be cache-poisoned",
+      "vulnerable_versions": ">=16.0.0 <16.2.5",
+      "patched_versions": ">=16.2.5",
+      "url": "https://github.com/advisories/GHSA-3g8h-86w9-wvmq"
+    },
+    {
+      "module_name": "next",
+      "severity": "moderate",
+      "title": "Next.js vulnerable to cross-site scripting in App Router applications using CSP nonces",
+      "vulnerable_versions": ">=16.0.0 <16.2.5",
+      "patched_versions": ">=16.2.5",
+      "url": "https://github.com/advisories/GHSA-ffhc-5mcf-pf4q"
+    },
+    {
+      "module_name": "next",
+      "severity": "low",
+      "title": "Next.js vulnerable to cache poisoning via collisions in React Server Component cache-busting",
+      "vulnerable_versions": ">=16.0.0 <16.2.5",
+      "patched_versions": ">=16.2.5",
+      "url": "https://github.com/advisories/GHSA-vfv6-92ff-j949"
+    },
+    {
+      "module_name": "next",
+      "severity": "moderate",
+      "title": "Next.js has cross-site scripting in beforeInteractive scripts with untrusted input",
+      "vulnerable_versions": ">=16.0.0 <16.2.5",
+      "patched_versions": ">=16.2.5",
+      "url": "https://github.com/advisories/GHSA-gx5p-jg67-6x7h"
+    },
+    {
+      "module_name": "next",
+      "severity": "high",
+      "title": "Next.js vulnerable to Denial of Service via connection exhaustion in applications using Cache Components",
+      "vulnerable_versions": ">=16.0.0 <16.2.5",
+      "patched_versions": ">=16.2.5",
+      "url": "https://github.com/advisories/GHSA-mg66-mrh9-m8jx"
+    },
+    {
+      "module_name": "next",
+      "severity": "moderate",
+      "title": "Next.js has a Denial of Service in the Image Optimization API",
+      "vulnerable_versions": ">=16.0.0 <16.2.5",
+      "patched_versions": ">=16.2.5",
+      "url": "https://github.com/advisories/GHSA-h64f-5h5j-jqjh"
+    },
+    {
+      "module_name": "next",
+      "severity": "high",
+      "title": "Next.js vulnerable to server-side request forgery in applications using WebSocket upgrades",
+      "vulnerable_versions": ">=16.0.0 <16.2.5",
+      "patched_versions": ">=16.2.5",
+      "url": "https://github.com/advisories/GHSA-c4j6-fc7j-m34r"
+    },
+    {
+      "module_name": "next",
+      "severity": "high",
+      "title": "Next.js has a Middleware / Proxy bypass through dynamic route parameter injection",
+      "vulnerable_versions": ">=16.0.0 <16.2.5",
+      "patched_versions": ">=16.2.5",
+      "url": "https://github.com/advisories/GHSA-492v-c6pp-mqqv"
+    },
+    {
+      "module_name": "next",
+      "severity": "moderate",
+      "title": "Next.js vulnerable to cache poisoning in React Server Component responses",
+      "vulnerable_versions": ">=16.0.0 <16.2.5",
+      "patched_versions": ">=16.2.5",
+      "url": "https://github.com/advisories/GHSA-wfc6-r584-vfw7"
+    },
+    {
+      "module_name": "next",
+      "severity": "high",
+      "title": "Next.js has a Middleware / Proxy bypass in App Router applications via segment-prefetch routes",
+      "vulnerable_versions": ">=16.0.0 <16.2.5",
+      "patched_versions": ">=16.2.5",
+      "url": "https://github.com/advisories/GHSA-267c-6grr-h53f"
+    },
+    {
+      "module_name": "next",
+      "severity": "high",
+      "title": "Next.js has a Middleware / Proxy bypass in Pages Router applications using i18n",
+      "vulnerable_versions": ">=16.0.0 <16.2.5",
+      "patched_versions": ">=16.2.5",
+      "url": "https://github.com/advisories/GHSA-36qx-fr4f-26g5"
+    },
+    {
+      "module_name": "next",
+      "severity": "high",
+      "title": "Next.js: Middleware / Proxy bypass in App Router applications using Turbopack and single locale",
+      "vulnerable_versions": ">=16.0.0 <16.2.11",
+      "patched_versions": ">=16.2.11",
+      "url": "https://github.com/advisories/GHSA-6gpp-xcg3-4w24"
+    },
+    {
+      "module_name": "next",
+      "severity": "high",
+      "title": "Next.js: Denial of Service in App Router using Server Actions",
+      "vulnerable_versions": ">=16.0.0 <16.2.11",
+      "patched_versions": ">=16.2.11",
+      "url": "https://github.com/advisories/GHSA-m99w-x7hq-7vfj"
+    },
+    {
+      "module_name": "next",
+      "severity": "high",
+      "title": "Next.js: Server-Side Request Forgery in Server Actions on custom servers",
+      "vulnerable_versions": ">=16.0.0 <16.2.11",
+      "patched_versions": ">=16.2.11",
+      "url": "https://github.com/advisories/GHSA-89xv-2m56-2m9x"
+    },
+    {
+      "module_name": "next",
+      "severity": "moderate",
+      "title": "Next.js: Cache confusion of response bodies for requests with bodies",
+      "vulnerable_versions": ">=16.0.0 <16.2.11",
+      "patched_versions": ">=16.2.11",
+      "url": "https://github.com/advisories/GHSA-68g3-v927-f742"
+    },
+    {
+      "module_name": "next",
+      "severity": "moderate",
+      "title": "Next.js: Cache confusion of response bodies for requests with bodies containing invalid UTF-8 byte sequences",
+      "vulnerable_versions": ">=16.0.0 <16.2.11",
+      "patched_versions": ">=16.2.11",
+      "url": "https://github.com/advisories/GHSA-4633-3j49-mh5q"
+    },
+    {
+      "module_name": "next",
+      "severity": "moderate",
+      "title": "Next.js: Unbounded Server Action payload in Edge runtime",
+      "vulnerable_versions": ">=16.0.0 <16.2.11",
+      "patched_versions": ">=16.2.11",
+      "url": "https://github.com/advisories/GHSA-4c39-4ccg-62r3"
+    },
+    {
+      "module_name": "next",
+      "severity": "high",
+      "title": "Next.js: Server-Side Request Forgery in rewrites via attacker-controlled destination hostname",
+      "vulnerable_versions": ">=16.0.0 <16.2.11",
+      "patched_versions": ">=16.2.11",
+      "url": "https://github.com/advisories/GHSA-p9j2-gv94-2wf4"
+    },
+    {
+      "module_name": "next",
+      "severity": "moderate",
+      "title": "Next.js: Denial of Service in the Image Optimization API using SVGs",
+      "vulnerable_versions": ">=16.0.0 <16.2.11",
+      "patched_versions": ">=16.2.11",
+      "url": "https://github.com/advisories/GHSA-q8wf-6r8g-63ch"
+    },
+    {
+      "module_name": "next",
+      "severity": "moderate",
+      "title": "Next.js: Unauthenticated disclosure of internal Server Function endpoints",
+      "vulnerable_versions": ">=16.0.0 <16.2.11",
+      "patched_versions": ">=16.2.11",
+      "url": "https://github.com/advisories/GHSA-955p-x3mx-jcvp"
+    },
+    {
+      "module_name": "next",
+      "severity": "critical",
+      "title": "Next.js: Unauthenticated Remote Code Execution on windows-hosted servers",
+      "vulnerable_versions": ">=16.0.0 <16.3.3",
+      "patched_versions": ">=16.3.3",
+      "url": "https://github.com/advisories/GHSA-p293-qw3h-jr36"
+    },
+    {
+      "module_name": "next",
+      "severity": "critical",
+      "title": "Next.js: Unauthenticated Remote Code Execution in Image Optimization API when AVIF files are used",
+      "vulnerable_versions": ">=16.0.0 <16.3.3",
+      "patched_versions": ">=16.3.3",
+      "url": "https://github.com/advisories/GHSA-2xp9-vwfh-vxw4"
+    },
+    {
+      "module_name": "next",
+      "severity": "critical",
+      "title": "Next.js: Remote Code Execution in next/og ImageResponse",
+      "vulnerable_versions": ">=16.2.0 <16.3.6",
+      "patched_versions": ">=16.3.6",
+      "url": "https://github.com/advisories/GHSA-vcvr-r3jv-pc5j"
+    },
+    {
+      "module_name": "next",
+      "severity": "moderate",
+      "title": "Next.js has cache poisoning of SSG and ISR pages in self-hosted applications",
+      "vulnerable_versions": ">=16.0.0 <16.3.8",
+      "patched_versions": ">=16.3.8",
+      "url": "https://github.com/advisories/GHSA-4jqv-mc3x-m676"
+    },
+    {
+      "module_name": "next",
+      "severity": "low",
+      "title": "Next.js has information disclosure in development server's Model Context Protocol endpoint",
+      "vulnerable_versions": ">=16.0.0 <16.3.8",
+      "patched_versions": ">=16.3.8",
+      "url": "https://github.com/advisories/GHSA-39w2-rjm5-chcv"
+    },
+    {
+      "module_name": "next",
+      "severity": "moderate",
+      "title": "Next.js has information disclosure in App Router metadata image routes via dynamicParams bypass",
+      "vulnerable_versions": ">=16.0.0 <16.3.8",
+      "patched_versions": ">=16.3.8",
+      "url": "https://github.com/advisories/GHSA-f87g-xv8r-7p7x"
+    },
+    {
+      "module_name": "next",
+      "severity": "moderate",
+      "title": "Next.js has cache poisoning in SSG/ISR rendering that leads to cross-user content substitution and persistent denial of service",
+      "vulnerable_versions": ">=16.0.0 <16.3.8",
+      "patched_versions": ">=16.3.8",
+      "url": "https://github.com/advisories/GHSA-mcj8-r9mp-w47p"
+    },
+    {
+      "module_name": "next",
+      "severity": "high",
+      "title": "Next.js has Server-Side Request Forgery in Image Optimization",
+      "vulnerable_versions": ">=16.0.0 <16.3.8",
+      "patched_versions": ">=16.3.8",
+      "url": "https://github.com/advisories/GHSA-cjq9-62q9-8jv4"
+    }
+  ],
+  "note": "Version matches, not confirmed exploitability in this application."
+}

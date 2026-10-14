@@ -18,7 +18,7 @@ test('two real workbooks stay separate across selection and removal', async ({ p
   });
   await page.goto('/');
   const base = resolve(process.cwd(), '../data/demo');
-  await page.getByLabel('附加结果表').setInputFiles([
+  await page.getByLabel('选择会话文件').setInputFiles([
     { name: 'Nbal_out.xls', mimeType: 'application/vnd.ms-excel', buffer: readFileSync(resolve(base, 'Nbal_out.xls')) },
     { name: 'waterbal_out.xls', mimeType: 'application/vnd.ms-excel', buffer: readFileSync(resolve(base, 'waterbal_out.xls')) },
   ]);

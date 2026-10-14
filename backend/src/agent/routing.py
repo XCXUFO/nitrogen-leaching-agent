@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import re
 
+from src.agent.case_ids import case_ids_in
 from src.agent.contracts import Route, RouteDecision
 from src.agent.file_chat import needs_file
 from src.agent.composition import MECHANISM_INTENT
@@ -48,6 +49,13 @@ def decide(query: str, *, has_file: bool) -> RouteDecision:
         return RouteDecision(route=Route.DIRECT, reason_code="capability_request", skills=["capability_guidance"])
     if OUT_OF_SCOPE.fullmatch(query):
         return RouteDecision(route=Route.OUT_OF_SCOPE, reason_code="outside_supported_domain", skills=["capability_guidance"])
+    explanation = bool(re.search(r"解释|通俗|看不懂|什么意思|含义", query))
+    case_id = bool(case_ids_in(query))
+    reference = bool(re.search(r"类似案例|参考.{0,6}(?:案例|措施)|(?:案例|措施).{0,6}参考|有没有.{0,8}(?:案例|措施)|别人.{0,15}怎么做|找.{0,6}案例", query))
+    if reference:
+        return RouteDecision(route=Route.KNOWLEDGE, reason_code="case_reference_intent", skills=["case_reference"])
+    if case_id or (explanation and re.search(r"案例|措施|报告|这段|以下|如下|文字|文本|[:：\n]", query)):
+        return RouteDecision(route=Route.KNOWLEDGE, reason_code="case_explanation_intent", skills=["case_explanation"])
     explicit_file = bool(FILE_REFERENCE.search(query))
     statistic = bool(STATISTIC.search(query))
     composed = statistic and bool(MECHANISM_INTENT.search(query))

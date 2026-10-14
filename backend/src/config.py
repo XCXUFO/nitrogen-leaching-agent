@@ -48,6 +48,10 @@ class Settings(BaseSettings):
 
     eval_enabled: bool = False
     eval_access_file: str = str(BASE_DIR / "var/eval/access-keys.json")
+    case_library_db: str = str(BASE_DIR / "var/case-library/cases.sqlite3")
+    literature_db: str = str(BASE_DIR / "var/literature/library.sqlite3")
+    literature_files_dir: str = str(BASE_DIR / "var/literature/files")
+    literature_max_pdf_mb: int = Field(default=100, ge=1, le=500)
 
     public_demo_enabled: bool = False
     public_cookie_secure: bool = True
@@ -57,7 +61,7 @@ class Settings(BaseSettings):
     public_max_output_tokens: int = Field(default=2048, ge=128, le=8192)
     public_budget_db: str = str(BASE_DIR / "var/demo/budget.sqlite3")
 
-    @field_validator("agent_trace_db", "eval_access_file", "public_budget_db", mode="before")
+    @field_validator("agent_trace_db", "eval_access_file", "public_budget_db", "literature_db", "literature_files_dir", "case_library_db", mode="before")
     @classmethod
     def normalize_agent_trace_db(cls, value: str) -> str:
         if value == ":memory:":

@@ -72,7 +72,7 @@ test('retry does not duplicate user turn or history, clear rotates conversation'
   await page.goto('/'); await send(page, '失败后重试');
   await page.getByRole('button', { name: '重试', exact: true }).click();
   await expect(page.getByText('恢复成功')).toBeVisible();
-  await expect(page.getByText('失败后重试', { exact: true })).toHaveCount(1);
+  await expect(page.getByLabel('对话记录').getByText('失败后重试', { exact: true })).toHaveCount(1);
   expect(requests[0].history).toEqual(requests[1].history);
   await page.getByRole('button', { name: '新对话' }).click();
   await send(page, '新会话');
@@ -86,12 +86,16 @@ test('dragged attachments, invalid files and expired attachment clear stale stat
   await page.goto('/');
   const transfer = await page.evaluateHandle(() => { const data = new DataTransfer(); data.items.add(new File(['fixture'], 'Nbal_out.xlsx')); return data; });
   await page.getByRole('form', { name: '聊天输入区' }).dispatchEvent('drop', { dataTransfer: transfer });
-  await expect(page.getByText('已上传 · 提问时自动分析')).toBeVisible();
+  const fileList = page.getByLabel('会话文件列表');
+  await expect(fileList.getByText('已上传', { exact: true })).toBeVisible();
+  await expect(fileList).not.toContainText('自动查找相关内容');
+  await expect(fileList).not.toContainText('提问时自动分析');
+  await expect(fileList).not.toContainText('test ·');
   await send(page, '硝态氮最大值');
   await expect(page.getByLabel('对话记录').getByRole('alert')).toBeVisible();
   await expect(page.getByRole('button', { name: '移除附件', exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: '重试', exact: true })).toHaveCount(0);
-  await page.getByLabel('附加结果表').setInputFiles({ name: 'wrong.pdf', mimeType: 'application/pdf', buffer: Buffer.from('x') });
+  await page.getByLabel('选择会话文件').setInputFiles({ name: 'wrong.exe', mimeType: 'application/octet-stream', buffer: Buffer.from('x') });
   await expect(page.locator('footer').getByRole('alert')).toContainText('.xls');
 });
 
@@ -103,6 +107,39 @@ test('IME composition does not accidentally submit Ctrl+Enter', async ({ page })
   expect(calls).toBe(0);
   await page.getByLabel('问题输入').press('Control+Enter');
   await expect(page.getByText('完成', { exact: true })).toBeVisible(); expect(calls).toBe(1);
+});
+
+test('question input grows to its old limit and returns to one line after sending', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 700 });
+  await page.route('**/api/chat', route => route.fulfill({ json: reply('完成') }));
+  await page.goto('/');
+  const input = page.getByLabel('问题输入');
+  const height = () => input.evaluate((element) => element.getBoundingClientRect().height);
+  await expect.poll(height).toBe(24);
+  await input.fill('第一行\n第二行');
+  await expect.poll(height).toBe(48);
+  await input.fill(Array.from({ length: 12 }, (_, index) => `第 ${index + 1} 行`).join('\n'));
+  await expect.poll(height).toBe(160);
+  await input.fill('短问题');
+  await expect.poll(height).toBe(24);
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await input.fill('输入内容随窗口宽度变化自动换行并调整高度'.repeat(2));
+  await expect.poll(height).toBe(24);
+  await page.setViewportSize({ width: 320, height: 700 });
+  await expect.poll(height).toBeGreaterThan(24);
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await expect.poll(height).toBe(24);
+  await input.fill('短问题');
+  await page.setViewportSize({ width: 320, height: 700 });
+  await page.getByRole('button', { name: '发送', exact: true }).click();
+  await expect(input).toHaveValue('');
+  await expect.poll(height).toBe(24);
+  await expect(page.getByText('完成', { exact: true })).toBeVisible();
+  await expect(page.getByText('研究原型', { exact: false })).toHaveCount(0);
+  const hint = await page.getByText('Ctrl/⌘+↵').boundingBox();
+  const sendButton = await page.getByRole('button', { name: '发送', exact: true }).boundingBox();
+  expect(hint && sendButton && Math.abs((hint.y + hint.height / 2) - (sendButton.y + sendButton.height / 2))).toBeLessThan(8);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
 test('sent files stay available when collapsed and new conversation clears context', async ({ page }) => {
@@ -127,9 +164,9 @@ test('sent files stay available when collapsed and new conversation clears conte
     } });
   });
   await page.goto('/');
-  await page.getByLabel('附加结果表').setInputFiles({ name: 'Nbal_out.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: Buffer.from('test') });
+  await page.getByLabel('选择会话文件').setInputFiles({ name: 'Nbal_out.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: Buffer.from('test') });
   await send(page, '硝态氮最大值及日序');
-  await expect(page.getByText('本会话可引用：Nbal_out.xlsx')).toBeVisible();
+  await expect(page.getByLabel('会话文件列表').getByText('Nbal_out.xlsx', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: '移除附件', exact: true })).toHaveCount(0);
   await send(page, '那最小值呢？');
   await expect.poll(() => requests.length).toBe(2);
@@ -164,10 +201,10 @@ test('all session files are sent automatically and duplicate bytes are skipped b
     return route.fulfill({ json: reply('已分析相关文件') });
   });
   await page.goto('/');
-  const input = page.getByLabel('附加结果表');
+  const input = page.getByLabel('选择会话文件');
   const file = (name: string, text: string) => ({ name, mimeType: 'application/octet-stream', buffer: Buffer.from(text) });
   await input.setInputFiles([file('same.xlsx', 'a'), file('same.xlsx', 'b')]);
-  await expect(page.getByText('已上传 · 提问时自动分析', { exact: false })).toHaveCount(2);
+  await expect(page.getByLabel('会话文件列表').getByText('已上传', { exact: true })).toHaveCount(2);
   await expect(page.getByRole('radio')).toHaveCount(0);
   await input.setInputFiles(file('renamed.xlsx', 'a'));
   await expect(page.getByText(/已跳过重复文件/)).toBeVisible();
@@ -179,7 +216,7 @@ test('all session files are sent automatically and duplicate bytes are skipped b
   await input.setInputFiles(file('again.xlsx', 'a'));
   await expect(page.getByText(/已跳过重复文件：again.xlsx/)).toBeVisible();
   expect(uploads).toBe(2);
-  await input.setInputFiles(file('wrong.pdf', 'x'));
+  await input.setInputFiles(file('wrong.exe', 'x'));
   await expect(page.locator('footer').getByRole('alert')).toContainText('.xls');
   await send(page, '那最小值呢？');
   await expect.poll(() => requests.length).toBe(2);
@@ -194,7 +231,7 @@ test('all session files are sent automatically and duplicate bytes are skipped b
   await expect(page.getByLabel('会话文件列表')).toHaveCount(0);
 });
 
-test('session count and combined size reject only excess files', async ({ page }) => {
+test('ten mixed session files stay available across uploads and an eleventh is rejected', async ({ page }) => {
   let uploaded = 0;
   await page.route('**/api/files?*', route => {
     uploaded++;
@@ -203,22 +240,19 @@ test('session count and combined size reject only excess files', async ({ page }
       sha256: `hash-${uploaded}`, format: 'xlsx', kind: null, rows: null, expires_in_seconds: 1800 } });
   });
   await page.goto('/');
-  const input = page.getByLabel('附加结果表');
-  const file = (name: string, size: number) => ({ name, mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: Buffer.alloc(size) });
-  await input.setInputFiles([file('a.xlsx', 9 * 1024 * 1024), file('b.xlsx', 9 * 1024 * 1024),
-    file('c.xlsx', 9 * 1024 * 1024), file('d.xlsx', 9 * 1024 * 1024)]);
-  await expect(page.getByText('已上传 · 提问时自动分析', { exact: false }).nth(3)).toBeVisible({ timeout: 30000 });
-  await input.setInputFiles(file('too-much.xlsx', 5 * 1024 * 1024));
-  await expect(page.locator('footer').getByRole('alert')).toContainText('40 MiB');
-  expect(uploaded).toBe(4);
-  await input.setInputFiles(file('e.xlsx', 1024));
-  await expect(page.getByText('已上传 · 提问时自动分析', { exact: false }).nth(4)).toBeVisible();
-  await input.setInputFiles(file('sixth.xlsx', 1024));
-  await expect(page.locator('footer').getByRole('alert').last()).toContainText('5 份');
-  expect(uploaded).toBe(5);
-  await input.setInputFiles(file('oversize.xlsx', 10 * 1024 * 1024 + 1));
+  const input = page.getByLabel('选择会话文件');
+  const file = (name: string) => ({ name, mimeType: 'application/octet-stream', buffer: Buffer.from(name) });
+  await input.setInputFiles(['xls', 'xlsx', 'txt', 'md', 'pdf', 'doc', 'docx'].map((ext, index) => file(`file-${index}.${ext}`)));
+  await expect(page.getByLabel('会话文件列表').getByText('已上传', { exact: true })).toHaveCount(7);
+  await input.setInputFiles(['eighth.txt', 'ninth.pdf', 'tenth.docx'].map(file));
+  await expect(page.getByLabel('会话文件列表').getByText('已上传', { exact: true })).toHaveCount(10);
+  expect(await page.getByLabel('会话文件列表').evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
+  await input.setInputFiles(file('eleventh.md'));
+  await expect(page.locator('footer').getByRole('alert').last()).toContainText('10 份');
+  expect(uploaded).toBe(10);
+  await input.setInputFiles({ name: 'oversize.xlsx', mimeType: 'application/octet-stream', buffer: Buffer.alloc(10 * 1024 * 1024 + 1) });
   await expect(page.locator('footer').getByRole('alert').last()).toContainText('10 MiB');
-  expect(uploaded).toBe(5);
+  expect(uploaded).toBe(10);
 });
 
 test('server-valid files survive the original deadline and still deduplicate after adding another file', async ({ page }) => {
@@ -236,20 +270,20 @@ test('server-valid files survive the original deadline and still deduplicate aft
   });
   await page.goto('/');
   const file = (name: string, content: string) => ({ name, mimeType: 'application/octet-stream', buffer: Buffer.from(content) });
-  await page.getByLabel('附加结果表').setInputFiles(file('first.xlsx', 'first'));
-  await expect(page.getByText('已上传 · 提问时自动分析', { exact: false })).toBeVisible();
+  await page.getByLabel('选择会话文件').setInputFiles(file('first.xlsx', 'first'));
+  await expect(page.getByLabel('会话文件列表').getByText('已上传', { exact: true })).toBeVisible();
   await page.evaluate(() => { const start = Date.now(); Date.now = () => start + 29 * 60000; });
   await send(page, '硝态氮最大值');
   await expect(page.getByText('附件可用', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: /收起文件：first.xlsx/ }).click();
   await page.evaluate(() => { const start = Date.now(); Date.now = () => start + 2 * 60000; });
-  await page.getByLabel('附加结果表').setInputFiles(file('second.xlsx', 'second'));
-  await expect(page.getByText('已上传 · 提问时自动分析', { exact: false })).toBeVisible();
+  await page.getByLabel('选择会话文件').setInputFiles(file('second.xlsx', 'second'));
+  await expect(page.getByLabel('会话文件列表').getByText('已上传', { exact: true })).toBeVisible();
   await send(page, '那最小值呢？');
   await expect.poll(() => requests.length).toBe(2);
   expect(requests[1].file_ids).toEqual(['expiry-1', 'expiry-2']);
   await expect(page.getByText('附件可用', { exact: true })).toHaveCount(2);
-  await page.getByLabel('附加结果表').setInputFiles(file('renamed.xlsx', 'first'));
+  await page.getByLabel('选择会话文件').setInputFiles(file('renamed.xlsx', 'first'));
   await expect(page.getByText(/已跳过重复文件：renamed.xlsx/)).toBeVisible();
   expect(uploads).toBe(2);
 });
@@ -268,16 +302,16 @@ test('server-expired files can be reuploaded while status failures preserve the 
     : route.fulfill({ json: { files: [{ file_id: 'expiry-1', status: 'expired' }] } }));
   await page.goto('/');
   const file = { name: 'same.xlsx', mimeType: 'application/octet-stream', buffer: Buffer.from('same') };
-  await page.getByLabel('附加结果表').setInputFiles(file);
-  await expect(page.getByText('已上传 · 提问时自动分析', { exact: false })).toBeVisible();
-  await page.getByLabel('附加结果表').setInputFiles(file);
+  await page.getByLabel('选择会话文件').setInputFiles(file);
+  await expect(page.getByLabel('会话文件列表').getByText('已上传', { exact: true })).toBeVisible();
+  await page.getByLabel('选择会话文件').setInputFiles(file);
   await expect(page.getByText('暂时无法核验附件', { exact: true })).toBeVisible();
-  await expect(page.getByText('已上传 · 提问时自动分析', { exact: false })).toBeVisible();
+  await expect(page.getByLabel('会话文件列表').getByText('已上传', { exact: true })).toBeVisible();
   expect(uploads).toBe(1);
   statusFails = false;
-  await page.getByLabel('附加结果表').setInputFiles(file);
+  await page.getByLabel('选择会话文件').setInputFiles(file);
   await expect(page.getByText(/会话文件已失效：same.xlsx/)).toBeVisible();
-  await expect(page.getByText('已上传 · 提问时自动分析', { exact: false })).toHaveCount(1);
+  await expect(page.getByLabel('会话文件列表').getByText('已上传', { exact: true })).toHaveCount(1);
   expect(uploads).toBe(2);
   await expect(page.getByText(/已跳过重复文件/)).toHaveCount(0);
 });

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import "./globals.css";
+import { AccountSessionProvider } from "@/components/account-session";
 
 export const metadata: Metadata = {
   title: "农业模型助手",
@@ -19,7 +20,7 @@ export default function RootLayout({
       lang="zh-CN"
       className={`${GeistSans.variable} ${GeistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col"><AccountSessionProvider>{children}</AccountSessionProvider></body>
     </html>
   );
 }

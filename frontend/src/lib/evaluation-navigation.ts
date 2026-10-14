@@ -2,6 +2,9 @@ import type { Evaluator } from "./evaluation-api";
 
 export const evaluationModules = [
   { key: "overview", title: "工作台总览", group: "工作台", description: "查看评测进展，继续当前工作。", roles: ["developer", "tester", "reviewer"] },
+  { key: "literature", title: "文献管理", group: "资料与证据", description: "上传、登记、查找和维护学术论文。", roles: ["developer", "tester", "reviewer"] },
+  { key: "case-library", title: "案例与措施", group: "资料与证据", description: "录入案例与措施，生成解释并验证 Skill 效果。", roles: ["developer", "tester", "reviewer"] },
+  { key: "literature-tags", title: "标签管理", group: "资料与证据", description: "维护分类维度和多级标签。", roles: ["developer", "tester", "reviewer"] },
   { key: "tasks", title: "任务管理", group: "评测管理", description: "组织用例版本，跟踪执行和评分进度。", roles: ["developer", "tester", "reviewer"] },
   { key: "cases", title: "用例库", group: "评测管理", description: "维护测试步骤、通过标准和用例版本。", roles: ["developer", "tester", "reviewer"] },
   { key: "executions", title: "执行记录", group: "评测管理", description: "按用例完成测试，保存回答、证据和评分。", roles: ["developer", "tester", "reviewer"] },

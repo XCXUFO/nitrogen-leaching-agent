@@ -121,7 +121,7 @@ async def test_concurrent_inspection_of_one_file_is_computed_once(tmp_path, monk
     assert results[0] == results[1] and len(calls) == 1
 
 
-def test_status_uses_server_expiry_without_parsing_renewing_or_creating_runs(client, tmp_path, monkeypatch):
+def test_status_renews_active_files_without_parsing_or_creating_runs(client, tmp_path, monkeypatch):
     from types import SimpleNamespace
     tick = [100.0]
     monkeypatch.setattr(files, 'time', SimpleNamespace(monotonic=lambda: tick[0]))
@@ -134,9 +134,11 @@ def test_status_uses_server_expiry_without_parsing_renewing_or_creating_runs(cli
     result = client.post('/api/files/status', json={'file_ids': [token, 'missing']})
     assert result.status_code == 200 and result.headers['cache-control'] == 'no-store'
     assert result.json()['files'] == [{'file_id': token, 'status': 'available'}, {'file_id': 'missing', 'status': 'expired'}]
-    assert store.entries[token].expires_at == deadline and store.entries[token].report is None
-    tick[0] = deadline + 1
+    assert store.entries[token].expires_at == tick[0] + files.TTL_SECONDS
+    assert store.entries[token].expires_at > deadline and store.entries[token].report is None
+    tick[0] = store.entries[token].expires_at + 1
     assert client.post('/api/files/status', json={'file_ids': [token]}).json()['files'][0]['status'] == 'expired'
     assert token not in store.entries
-    assert client.post('/api/files/status', json={'file_ids': ['x'] * 6}).status_code == 422
+    assert client.post('/api/files/status', json={'file_ids': ['x'] * 10}).status_code == 200
+    assert client.post('/api/files/status', json={'file_ids': ['x'] * 11}).status_code == 422
     assert client.post('/api/files/status', json={'file_ids': ['']}).status_code == 422

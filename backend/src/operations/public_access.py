@@ -70,7 +70,7 @@ async def public_access(request, call_next):
     if not settings.public_demo_enabled:
         return await call_next(request)
     path = request.url.path
-    protected = path in {"/api/chat", "/api/files", "/api/files/status"} and request.method == "POST"
+    protected = path in {"/api/chat", "/api/files", "/api/files/status", "/api/files/release"} and request.method == "POST"
     if not protected:
         return await call_next(request)
     origin = request.headers.get("origin")

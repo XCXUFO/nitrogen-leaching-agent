@@ -1,0 +1,10 @@
+Archived reproduction run: 2026-10-13 review
+Command from backend/: .venv/bin/python -m pytest ../docs/iterations/2026-10-13-preseal-review/reproductions.py -q -s
+Assertions intentionally confirm defects, not acceptance criteria.
+
+SPACE_FILENAME: 未找到可用的文件：A.xlsx。请上传对应文件；已失效的文件需要重新上传。
+OMITTED_FILES: file 0.5
+DOCUMENT_QA_WITHOUT_RAG: 503 rag_not_configured
+FALSE_READINESS: {'status': 'ready'} rag_query_failed
+PUBLIC_RETURNED_SESSION: clarification conversation id changed
+5 passed, 4 warnings in 7.86s

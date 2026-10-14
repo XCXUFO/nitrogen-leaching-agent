@@ -15,6 +15,7 @@ test('conversation records filter, paginate and reveal both turns with their tra
     const url = new URL(route.request().url());
     const path = url.pathname.replace('/api/eval', '');
     if (path === '/me') return route.fulfill({ json: { tester_id: 'dev', role: 'developer' } });
+    if (path === '/login') return route.fulfill({ json: { token: 'mock-session-token', user: { tester_id: 'dev', role: 'developer' } } });
     if (path === '/sessions') {
       searches.push(url.searchParams);
       const filtered = url.searchParams.get('information') === 'none';
@@ -27,7 +28,8 @@ test('conversation records filter, paginate and reveal both turns with their tra
     return route.fulfill({ json: [] });
   });
   await page.goto('/evaluation/runs');
-  await page.getByLabel('评测访问密钥').fill('isolated-token');
+  await page.getByLabel('账号', { exact: true }).fill('cau_mock');
+  await page.getByLabel('密码', { exact: true }).fill('CauMock123');
   await page.getByRole('button', { name: '进入工作台' }).click();
   await expect(page.getByText('共查到 50 条会话记录')).toBeVisible();
   await page.getByLabel('每页条数').selectOption('10');

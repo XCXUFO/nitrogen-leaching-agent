@@ -1,3 +1,4 @@
+import { fillTestAccount } from './evaluation-login-helper';
 import { test, expect } from '@playwright/test';
 
 test('isolated catalog: asset, draft and immutable Case publication', async ({ page }) => {
@@ -11,7 +12,7 @@ test('isolated catalog: asset, draft and immutable Case publication', async ({ p
     await route.fulfill({ response, headers: { ...response.headers(), 'access-control-allow-origin': '*' } });
   });
   await page.goto('/evaluation/assets');
-  await page.getByLabel('评测访问密钥').fill('browser-test-developer-token-0000000000000000');
+  await fillTestAccount(page);
   await page.getByRole('button', { name: '进入工作台' }).click();
   await page.getByLabel('资产路径').fill('data/raw/whcns/received-2026-09-26/package/模型/Nbal_out.xls');
   await page.getByLabel('资产来源').fill('isolated browser catalog test');

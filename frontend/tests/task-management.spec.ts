@@ -1,21 +1,17 @@
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { fillTestAccount } from './evaluation-login-helper';
 import { expect, test } from '@playwright/test';
 
 test.skip(!process.env.EVAL_TEST_API || !process.env.TASK_MANAGEMENT_LIVE, 'Requires isolated backend and a temporary copied database.');
 
 test('two-case task is prepared once and opens historical executions', async ({ page }) => {
   const api = process.env.EVAL_TEST_API!;
-  const credentials = process.env.EVAL_TEST_TOKEN ? '' : readFileSync(resolve(process.cwd(), '../backend/var/eval/access-credentials.txt'), 'utf8');
-  const token = process.env.EVAL_TEST_TOKEN ?? credentials.split('\n').find((line) => line.startsWith('local-developer '))?.split(':')[1].trim();
-  if (!token) throw new Error('Local developer test identity missing');
   await page.route('**/api/eval/**', async (route) => {
     const url = new URL(route.request().url());
     const response = await route.fetch({ url: `${api}${url.pathname}${url.search}` });
     await route.fulfill({ response, headers: { ...response.headers(), 'access-control-allow-origin': '*' } });
   });
   await page.goto('/evaluation/tasks/new');
-  await page.getByLabel('评测访问密钥').fill(token);
+  await fillTestAccount(page);
   await page.getByRole('button', { name: '进入工作台' }).click();
   await expect(page.getByRole('heading', { name: '任务管理' })).toBeVisible();
   await page.getByLabel('任务用例 NEW01@2').check();

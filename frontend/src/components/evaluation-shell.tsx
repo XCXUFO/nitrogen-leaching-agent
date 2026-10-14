@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useRef, useState, type Dispatch, type SetStateAction, type FormEvent, type ReactNode } from "react";
-import { Activity, ArrowLeft, BookOpen, ChevronLeft, ChevronRight, ClipboardList, Database, FlaskConical, LayoutDashboard, ListChecks, LogOut, Menu, PanelLeftClose, PanelLeftOpen, RotateCcw, ShieldCheck, TriangleAlert, X } from "lucide-react";
-import { evaluationRequest, type Evaluator } from "@/lib/evaluation-api";
+import { Activity, ArrowLeft, BookOpen, ChevronLeft, ChevronRight, ClipboardList, Database, FlaskConical, LayoutDashboard, ListChecks, LogOut, Menu, PanelLeftClose, PanelLeftOpen, RotateCcw, ShieldCheck, Tags, TriangleAlert, X } from "lucide-react";
+import { type Evaluator } from "@/lib/evaluation-api";
 import { canViewModule, evaluationHref, evaluationModules } from "@/lib/evaluation-navigation";
+
+import { useAccountSession } from "./account-session";
 
 const Session = createContext<{ token: string; user: Evaluator } | null>(null);
 type TaskReturn = { pathname: string; taskId: string } | null;
@@ -23,13 +25,16 @@ export function useEvaluationSession() {
   if (!session) throw new Error("Evaluation session required");
   return session;
 }
-const icons = [LayoutDashboard, ClipboardList, BookOpen, ListChecks, RotateCcw, ShieldCheck, TriangleAlert, Database, Activity];
+const icons = [LayoutDashboard, BookOpen, BookOpen, Tags, ClipboardList, BookOpen, ListChecks, RotateCcw, ShieldCheck, TriangleAlert, Database, Activity];
 const roles = { developer: "开发者", tester: "测试者", reviewer: "领域审核人" };
 
 export function EvaluationShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const [session, setSession] = useState<{ token: string; user: Evaluator } | null>(null);
-  const [credential, setCredential] = useState("");
+  const account = useAccountSession();
+  const { session, ready } = account;
+  const router = useRouter();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
@@ -43,13 +48,26 @@ export function EvaluationShell({ children }: { children: ReactNode }) {
   const backHref = taskId ? evaluationHref("tasks", taskId) : evaluationHref(currentModule?.key ?? "overview");
   const backLabel = taskId ? "返回所属任务" : `返回${title}`;
 
+  useEffect(() => {
+    if (session && new URLSearchParams(window.location.search).get("returnTo") === "/") router.replace("/");
+  }, [session, router]);
+
   async function login(event: FormEvent) {
     event.preventDefault(); setBusy(true); setError("");
     try {
-      const token = credential.trim();
-      const user = await evaluationRequest<Evaluator>(token, "/me");
-      setSession({ token, user }); setCredential("");
+      await account.login(username.trim(), password); setPassword("");
     } catch (problem) { setError(problem instanceof Error ? problem.message : "登录失败"); }
+    finally { setBusy(false); }
+  }
+
+  async function logout() {
+    if (!ready) return <main className="flex min-h-dvh items-center justify-center" role="status">正在恢复登录状态…</main>;
+
+  if (!session) return;
+    setBusy(true); setError("");
+    try {
+      await account.logout(); setPassword("");
+    } catch (problem) { setError(problem instanceof Error ? problem.message : "退出失败，请重试。"); }
     finally { setBusy(false); }
   }
 
@@ -74,17 +92,22 @@ export function EvaluationShell({ children }: { children: ReactNode }) {
     </nav>;
   }
 
+  if (!ready) return <main className="flex min-h-dvh items-center justify-center" role="status">正在恢复登录状态…</main>;
+
   if (!session) return <main className="flex min-h-dvh items-center justify-center bg-slate-50 px-5 py-12">
     <div className="w-full max-w-md space-y-6">
       <Link href="/" className="inline-flex items-center gap-2 text-sm text-slate-500"><ArrowLeft size={16} />返回对话</Link>
-      <Link href="/showcase" className="block rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">访客无需密钥：查看只读评测后台 →</Link>
+      <Link href="/showcase" className="block rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">访客无需登录：查看只读评测后台 →</Link>
       <form onSubmit={login} className="space-y-5 rounded-2xl border bg-white p-8 shadow-sm">
         <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-700 text-white"><FlaskConical size={23} /></div>
         <div><h1 className="text-2xl font-semibold">评测管理工作台</h1><p className="mt-2 text-sm text-muted-foreground">管理任务、执行评测与专业审核。</p></div>
-        <label className="block space-y-2 text-sm font-medium"><span>评测访问密钥</span>
-          <input type="password" autoComplete="off" required value={credential} onChange={(e) => setCredential(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-3" /></label>
-        <p className="text-xs leading-5 text-muted-foreground">使用管理员分配的密钥。站内切换保持登录；刷新后重新验证，并返回当前页面。</p>
-        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+        <label className="block space-y-2 text-sm font-medium"><span>账号</span>
+          <input type="text" name="username" autoComplete="username" autoCapitalize="none" spellCheck={false} required maxLength={80} value={username} onChange={(e) => setUsername(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-3" /></label>
+        <label className="block space-y-2 text-sm font-medium"><span>密码</span>
+          <input type="password" name="password" autoComplete="current-password" required maxLength={128} value={password} onChange={(e) => setPassword(e.target.value)} className="w-full rounded-lg border bg-background px-3 py-3" /></label>
+        <p className="text-xs leading-5 text-muted-foreground">使用分配的账号和密码登录，系统自动识别开发者、领域审核人或测试者身份。暂不开放注册。</p>
+        <p className="text-xs leading-5 text-muted-foreground">当前窗口内，前台与工作台共享登录状态，切换页面和刷新均无需重复登录。</p>
+        {(error || account.error) && <p role="alert" className="text-sm text-destructive">{error || account.error}</p>}
         <button disabled={busy} className="w-full rounded-lg bg-emerald-700 px-4 py-3 text-sm font-medium text-white hover:bg-emerald-800 disabled:opacity-50">{busy ? "正在验证…" : "进入工作台"}</button>
       </form>
     </div>
@@ -114,12 +137,13 @@ export function EvaluationShell({ children }: { children: ReactNode }) {
           </nav>
         </div>
         <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
-          <Link href="/" className="hidden hover:text-emerald-700 sm:inline">返回对话</Link>
-          <span className="max-w-40 truncate">{session.user.tester_id}</span><span className="rounded-full bg-slate-100 px-2 py-1">{roles[session.user.role]}</span>
-          <button className="rounded p-1.5 hover:bg-slate-100" aria-label="退出登录" onClick={() => setSession(null)}><LogOut size={16} /></button>
+          <Link href="/" className="hover:text-emerald-700">返回对话</Link>
+          <span className="max-w-40 truncate">{session.username}</span><span className="rounded-full bg-slate-100 px-2 py-1">{roles[session.user.role]}</span>
+          <button disabled={busy} className="rounded p-1.5 hover:bg-slate-100 disabled:opacity-50" aria-label="退出登录" onClick={logout}><LogOut size={16} /></button>
         </div>
       </header>
       <main id="evaluation-content" className="min-w-0 space-y-5 p-4 sm:p-7">
+        {(error || account.error) && <p role="alert" className="text-sm text-destructive">{error || account.error}</p>}
         <div className="flex items-start gap-3">
           {detail && <Link aria-label={backLabel} title={backLabel} href={backHref} className="mt-0.5 rounded-lg border bg-white p-2"><ChevronLeft size={18} /></Link>}
           <div><h1 className="text-2xl font-semibold tracking-tight text-slate-900">{title}{detail ? detail === "new" ? " · 新建" : detail === "drafts" ? " · 草稿" : " · 详情" : ""}</h1>

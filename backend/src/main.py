@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -8,7 +9,7 @@ from src import __version__
 from src.agent.chat_service import ChatService
 from src.agent.runtime import AgentRuntime
 from src.storage.run_store import RunStore
-from src.api import chat, demo, documents, evaluation, files, health
+from src.api import case_library, chat, demo, documents, evaluation, files, health, literature
 from src.operations.public_access import PublicAccess, public_access
 from src.evaluation.auth import load_access
 from src.evaluation.service import EvaluationService
@@ -33,8 +34,12 @@ async def lifespan(app: FastAPI):
     # Freeze non-secret code, config, index, and model identities before any run.
     app.state.version_manifest = build_manifest(settings)
     config_hash = app.state.version_manifest["manifest_sha256"][:16]
+    from src.storage.case_library import CaseStore
+    app.state.case_library = CaseStore(settings.case_library_db)
     run_store = RunStore(settings.agent_trace_db)
     app.state.eval_access = None
+    app.state.literature = None
+    app.state.literature_cleanup = None
     if settings.eval_enabled:
         try:
             access = load_access(settings.eval_access_file)
@@ -43,6 +48,12 @@ async def lifespan(app: FastAPI):
             app.state.evaluation = EvaluationService(evaluation_store)
             app.state.regressions = RegressionService(app.state.evaluation)
             app.state.eval_access = access
+            app.state.literature = literature.LiteratureStore(settings.literature_db, settings.literature_files_dir)
+            async def clean_literature_uploads():
+                while True:
+                    await asyncio.sleep(3600)
+                    app.state.literature.prune_uploads()
+            app.state.literature_cleanup = asyncio.create_task(clean_literature_uploads())
         except Exception:
             run_store.close()
             raise RuntimeError("Evaluation initialization failed; check access file and versioned cases") from None
@@ -94,6 +105,13 @@ async def lifespan(app: FastAPI):
                 numeric_boost_weight=settings.rag_numeric_boost_weight,
                 numeric_boost_band=settings.rag_numeric_boost_band,
             )
+            # Exercise the offline retrieval path once before declaring readiness.
+            # This loads embedding/reranker weights and checks index dimensions;
+            # no external LLM request is made by startup or health probes.
+            if await asyncio.to_thread(store.count) == 0:
+                raise RuntimeError("Configured knowledge index is empty")
+            if not await asyncio.to_thread(retriever.retrieve, "农田氮淋失", 1):
+                raise RuntimeError("Knowledge index returned no startup evidence")
             chat_top_k = (
                 settings.rag_reranker_top_n
                 if settings.rag_reranker_enabled
@@ -138,6 +156,13 @@ async def lifespan(app: FastAPI):
     finally:
         if settings.eval_enabled:
             await app.state.regressions.shutdown()
+            app.state.literature_cleanup.cancel()
+            try:
+                await app.state.literature_cleanup
+            except asyncio.CancelledError:
+                pass
+            app.state.literature.close()
+        app.state.case_library.close()
         run_store.close()
         if settings.public_demo_enabled:
             app.state.public_access.db.close()
@@ -165,6 +190,8 @@ app.include_router(chat.router, prefix="/api", tags=["chat"])
 app.include_router(files.router, prefix="/api", tags=["files"])
 app.include_router(documents.router, prefix="/api", tags=["documents"])
 app.include_router(evaluation.router, prefix="/api", tags=["evaluation"])
+app.include_router(case_library.router, prefix="/api", tags=["case-library"])
+app.include_router(literature.router, prefix="/api", tags=["literature"])
 app.state.public_settings = settings
 app.middleware("http")(public_access)
 
@@ -172,6 +199,6 @@ app.middleware("http")(public_access)
 @app.middleware("http")
 async def evaluation_no_cache(request, call_next):
     response = await call_next(request)
-    if request.url.path.startswith("/api/eval"):
+    if request.url.path.startswith(("/api/eval", "/api/case-library")):
         response.headers["Cache-Control"] = "no-store"
     return response

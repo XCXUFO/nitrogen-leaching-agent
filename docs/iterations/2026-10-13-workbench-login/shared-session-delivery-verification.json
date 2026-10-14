@@ -1,0 +1,29 @@
+{
+  "build_version": "delivery-20261013-02f448bb285e",
+  "accounts": [
+    {
+      "username": "cau_dev",
+      "front_back_reload_showcase_logout": "passed"
+    },
+    {
+      "username": "cau_expert1",
+      "front_back_reload_showcase_logout": "passed"
+    },
+    {
+      "username": "cau_expert2",
+      "front_back_reload_showcase_logout": "passed"
+    },
+    {
+      "username": "cau_tester1",
+      "front_back_reload_showcase_logout": "passed"
+    },
+    {
+      "username": "cau_tester2",
+      "front_back_reload_showcase_logout": "passed"
+    },
+    {
+      "username": "cau_tester3",
+      "front_back_reload_showcase_logout": "passed"
+    }
+  ]
+}

@@ -21,12 +21,14 @@ export function CitationList({ citations, scope = "sources", activeIndex, onBack
 }) {
   const documents = groupCitations(citations);
   if (!documents.length) return null;
+  const hasSessionFile = documents.some(({ citation }) => citation.source.startsWith("session://"));
+  const heading = hasSessionFile ? "参考依据" : "文献依据";
   return <details className="rounded-xl border bg-muted/20 px-4 py-3 text-xs">
-    <summary className="cursor-pointer font-medium">文献依据 · {documents.length} 篇</summary>
+    <summary className="cursor-pointer font-medium">{heading} · {documents.length} {hasSessionFile ? "份" : "篇"}</summary>
     <ul className="mt-3 space-y-3">{documents.map(({ citation: c, indices }) => (
       <li id={`${scope}-citation-${c.index}`} tabIndex={-1} key={c.index} className={`scroll-mt-24 space-y-2 rounded-lg border p-3 outline-none focus:ring-2 focus:ring-ring ${activeIndex != null && indices.includes(activeIndex) ? "border-emerald-500 bg-emerald-50/40" : "bg-background"}`}>
         <p className="break-words font-medium">{indices.map((index) => `[${index}]`).join(" ")} {c.title?.trim() || "文献标题暂缺"}</p>
-        <p className="break-words text-muted-foreground">作者：{c.author_hint?.trim() || "暂缺"} · 年份：{c.year?.trim() || "暂缺"}</p>
+        {!c.source.startsWith("session://") && <p className="break-words text-muted-foreground">作者：{c.author_hint?.trim() || "暂缺"} · 年份：{c.year?.trim() || "暂缺"}</p>}
         <blockquote className="whitespace-pre-wrap break-words border-l-2 border-emerald-200 pl-3 leading-6 text-muted-foreground">{c.snippet}</blockquote>
         <DocumentActions citation={c} />
         {onBack && <button type="button" className="underline" onClick={onBack}>返回回答</button>}

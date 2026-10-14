@@ -1,0 +1,24 @@
+{
+  "browser_exit": 1,
+  "delay": {
+    "direct": {
+      "status": 200,
+      "seconds": 32.02,
+      "body": "{\"completed\":true}"
+    },
+    "proxied": {
+      "status": 500,
+      "seconds": 30.04,
+      "body": "Internal Server Error"
+    }
+  },
+  "spoofed_ip_statuses": [
+    200,
+    429,
+    200
+  ],
+  "observed_client": {
+    "host": "198.51.100.99",
+    "xff": "198.51.100.99"
+  }
+}

@@ -8,7 +8,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from src.api.chat import chat
 from src.api.chat_schema import ChatHistoryMessage, ChatRequest
 from src.api.files import file_store, upload_file
-from src.evaluation.auth import current_user, require_developer
+from src.evaluation.auth import current_user, login, require_developer, sessions as login_sessions
+from src.evaluation.contracts import LoginInput
 from src.evaluation.contracts import AssetInput, AssetPairInput, AssessmentInput, CaseDraftBatchInput, CaseDraftInput, CaseDraftRevision, CasePublishInput, EvaluationQuery, IssueInput, IssueUpdateInput, ManualAction, Principal, RegressionInput, RetestInput, ReviewAssignmentInput, ReviewResolutionInput, ReviewInput, StartExecution, TaskInput
 from src.evaluation.service import EvaluationService
 from src.evaluation.store import fail
@@ -32,6 +33,16 @@ def knowledge_config() -> dict:
 @router.get("/me")
 def me(user: Principal = Depends(current_user)):
     return user
+
+
+@router.post("/login")
+def account_login(request: Request, body: LoginInput):
+    return login(request, body)
+
+
+@router.post("/logout", status_code=204)
+def account_logout(request: Request):
+    login_sessions(request).revoke(request.headers.get("authorization", "").partition(" ")[2])
 
 
 @router.get("/config")

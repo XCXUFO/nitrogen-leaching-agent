@@ -10,6 +10,7 @@ from src.agent.prompt import DialogueTurn, build_messages, build_retrieval_query
 from src.agent.curated_evidence import excerpts
 from src.agent.composition import MECHANISM_SYSTEM, PEAK_MECHANISM_SYSTEM, MechanismClaim, MechanismEvidenceError, is_event_mechanism_source, is_mechanism_source, supports_crop, validate_claims
 from src.rag.reference_filter import is_reference_chunk
+from src.agent.session_context import select_session_chunks
 from src.rag.source_labels import article_label
 from src.llm.base import ChatMessage, ChatUsage, LLMClient
 from src.rag.retriever import RetrievalResult, Retriever
@@ -66,9 +67,11 @@ class ChatService:
         k: int | None = None,
         *,
         history: list[DialogueTurn] | None = None,
+        session_documents: list[dict] | None = None,
     ) -> ChatServiceResult:
         effective_k = k if k is not None else self._top_k
         retrieval_query = build_retrieval_query(query, history or [])
+        session_hits = select_session_chunks(query, session_documents or [])
         try:
             retrieved = await asyncio.to_thread(
                 self._retriever.retrieve,
@@ -76,13 +79,15 @@ class ChatService:
                 effective_k,
             )
         except Exception as exc:
-            raise RAGQueryError("retriever query failed") from exc
+            if not session_hits:
+                raise RAGQueryError("retriever query failed") from exc
+            retrieved = []
 
-        usable = [item for item in retrieved if not is_reference_chunk(item.document)]
+        usable = session_hits + [item for item in retrieved if not is_reference_chunk(item.document)]
         messages = build_messages(
             query,
             usable,
-            max_context_chars=self._max_context_chars,
+            max_context_chars=max(self._max_context_chars, 12_000) if session_hits else self._max_context_chars,
             history=history,
         )
         chat = await self._llm.chat(messages, temperature=self._temperature)
@@ -92,7 +97,7 @@ class ChatService:
             answer=answer,
             citations=citations,
             usage=chat.usage,
-            retrieved_count=len(retrieved),
+            retrieved_count=len(retrieved) + len(session_hits),
             model=chat.model,
         )
 

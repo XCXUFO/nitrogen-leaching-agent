@@ -290,7 +290,7 @@ def test_registry_publishes_validated_contracts():
     registry = build_registry(None, lambda token: {})
     descriptions = registry.describe()
     assert {item["name"] for item in descriptions} == {
-        "knowledge_search", "whcns_analyzer", "file_inspector", "clarification", "capability_guidance"}
+        "knowledge_search", "whcns_analyzer", "file_inspector", "clarification", "capability_guidance", "case_reference", "case_explanation"}
     assert all(item["input_schema"]["additionalProperties"] is False for item in descriptions)
 
 

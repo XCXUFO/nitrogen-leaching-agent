@@ -13,13 +13,14 @@ from fastapi import HTTPException
 from loguru import logger
 from openai import APIConnectionError, APIError, APITimeoutError, AuthenticationError, RateLimitError
 
+from src.agent.case_ids import MAX_CASE_IDS, case_ids_in
 from src.agent.chat_service import ChatService, RAGQueryError, normalize_citations
 from src.agent.contracts import AnswerSection, AttachmentState, Evidence, Route, RunTrace, RunWarning, SkillName, StateSnapshot, TaskState, ToolCall
 from src.agent.composition import METRIC_TERMS, MechanismEvidenceError, split_composed
 from src.agent.file_chat import FIELD_ALIASES, parse_file_request, reply, requested_fields
 from src.model_tools.whcns_results import SCHEMAS
 from src.agent.prompt import DialogueTurn
-from src.agent.routing import FOLLOWUP, GUIDANCE, crop_scope, decide
+from src.agent.routing import FOLLOWUP, GUIDANCE, STATISTIC, crop_scope, decide
 from src.agent.skills import KnowledgeUnavailable, SkillRegistry, build_registry
 from src.agent.state import ConversationBusy, StateCapacityError, StateStore
 from src.api.chat_schema import ChatRequest, ChatResponse
@@ -80,6 +81,10 @@ def collect_evidence(response: ChatResponse, run_id: str) -> list[Evidence]:
                         "AI-assisted source checking" if response.model == "curated-excerpts-v1" else "unreviewed retrieval"},
             status="curated" if response.model == "curated-excerpts-v1" else "retrieved",
         ))
+    for item in response.case_references:
+        evidence.append(Evidence(evidence_id=f"{run_id}:case:{item.id}", source_type="case",
+                                 source_id=item.id, claim_or_value=item.title, status="retrieved",
+                                 provenance={"source": item.source, "title": item.title}))
     return evidence
 
 
@@ -108,7 +113,9 @@ class AgentRuntime:
                                              latency_ms=int((time.perf_counter() - started) * 1000)))
 
     async def execute(self, body: ChatRequest, *, service: ChatService | None,
-                      get_report: Callable[[str], Awaitable[dict]]) -> ChatResponse:
+                      get_report: Callable[[str], Awaitable[dict]],
+                      get_documents: Callable[[list[str]], list[dict]] | None = None,
+                      case_store=None, llm=None) -> ChatResponse:
         started = time.perf_counter()
         conversation_id = body.session_id or str(uuid4())
         run_id = str(uuid4())
@@ -127,7 +134,8 @@ class AgentRuntime:
                     state.session_file_ids = list(dict.fromkeys(body.file_ids))
                 trace.state_before = snapshot(state)
                 try:
-                    response = await self._execute(body, state, trace, build_registry(service, get_report))
+                    documents = get_documents(state.session_file_ids) if get_documents and state.session_files_enabled else []
+                    response = await self._execute(body, state, trace, build_registry(service, get_report, case_store=case_store, llm=llm), documents)
                 except BaseException:
                     # A failed calculation may not leave an earlier metric ready for inference.
                     if trace.decision and trace.decision.route in {Route.FILE_ANALYSIS, Route.COMPOSED}:
@@ -174,25 +182,88 @@ class AgentRuntime:
                     response.trace_saved = False
 
     async def _execute(self, body: ChatRequest, state: TaskState, trace: RunTrace,
-                       registry: SkillRegistry) -> ChatResponse:
+                       registry: SkillRegistry, documents: list[dict]) -> ChatResponse:
         crop_changed, crop = crop_scope(body.query)
         if crop_changed:
             state.crop = crop
         session_files = state.session_files_enabled
         trace.decision = decide(body.query, has_file=bool(state.session_file_ids) if session_files else body.file_id is not None)
+        explicit_ids = body.case_ids or case_ids_in(body.query)
+        new_text = bool(re.search(r"[:：\n]", body.query))
+        if (documents and not body.case_skill and not explicit_ids
+                and trace.decision.skills == ["case_explanation"]
+                and not re.search(r"案例|[:：\n]", body.query)):
+            trace.decision.skills = ["knowledge_search"]
+            trace.decision.reason_code = "session_document_question"
+        previous_case_skill = state.last_tool in {"case_reference", "case_explanation"}
+        referent = bool(re.search(r"刚才|上述|其中|该案例|再解释|详细解释|(?<!其)它|这个|那个", body.query))
+        case_followup = (previous_case_skill and not body.case_skill and not explicit_ids
+                         and not documents and not new_text
+                         and trace.decision.route == Route.KNOWLEDGE
+                         and trace.decision.skills != ["case_reference"]
+                         and (referent or state.case_clarification_pending)
+                         and not re.search(r"文献|论文|手册|换个话题|另一个问题", body.query))
+        if case_followup:
+            trace.decision.skills = [state.last_tool if state.case_clarification_pending else "case_explanation"]
+            trace.decision.reason_code = "case_followup"
+        if body.case_skill:
+            trace.decision.route = Route.KNOWLEDGE
+            trace.decision.skills = ["case_reference" if body.case_skill == "reference" else "case_explanation"]
+            trace.decision.reason_code = "explicit_case_skill"
+        elif explicit_ids and trace.decision.skills != ["case_reference"]:
+            trace.decision.route = Route.KNOWLEDGE
+            trace.decision.skills = ["case_explanation"]
+            trace.decision.reason_code = "explicit_case_ids"
+        if trace.decision.skills and trace.decision.skills[0] in {"case_reference", "case_explanation"}:
+            skill = trace.decision.skills[0]
+            ids = explicit_ids
+            context_text = ""
+            if case_followup:
+                # Keep only identifiers and user text in session state, never old case facts.
+                # The handler re-reads every selected ID from the authoritative store.
+                ids = state.current_case_ids
+                context_text = state.case_context_text
+            elif skill == "case_reference" and not new_text and re.search(r"类似|这种情况|别人", body.query):
+                context_text = next((turn.content for turn in reversed(body.history) if turn.role == "user"), "")
+            if len(ids) > MAX_CASE_IDS:
+                raise HTTPException(413, detail={"code": "case_capacity", "message": "单次最多指定 30 个案例，请缩小范围。"})
+            next_context = context_text or body.query
+            if case_followup and state.case_clarification_pending:
+                next_context = f"{context_text}\n用户补充：{body.query}"
+                if len(next_context) > 24000:
+                    raise HTTPException(413, detail={"code": "case_capacity", "message": "累计补充内容超过容量，请在新对话中精简说明。"})
+            lookup_cases = body.case_skill is None and bool(re.search(r"案例|库中|库内", body.query)) and not new_text
+            result = await self._call(registry, skill, {"query": body.query, "case_ids": ids,
+                                      "lookup_cases": lookup_cases, "context_text": context_text}, trace)
+            # Failed calls must not switch the active subject to an unverified request.
+            state.last_tool = skill
+            state.current_case_ids = [item.id for item in result.case_references] or (ids if result.outcome == "clarification" else [])
+            state.case_context_text = next_context
+            state.case_clarification_pending = result.outcome == "clarification"
+            return result
         route = trace.decision.route
+        document_only = bool(documents) and len(documents) == len(state.session_file_ids)
+        if documents and route in {Route.FILE_ANALYSIS, Route.COMPOSED} and (
+            document_only or re.search(r"\.(?:txt|md|pdf|docx?)\b", body.query, re.I)
+            or (route == Route.FILE_ANALYSIS and not STATISTIC.search(body.query)
+                and not re.search(r"\.(?:xls|xlsx)\b|nbal_out|wtabal_out|waterbal_out", body.query, re.I))
+        ):
+            trace.decision.route = route = Route.KNOWLEDGE
+            trace.decision.reason_code = "session_document_question"
         referent = re.compile(r"(?:它|这个|那个|这|那)(?:的)?(?:有什么用|能解决什么问题|是什么|呢|怎么样)[？?。]*")
         has_subject = any(turn.role == "user" and not (GUIDANCE.fullmatch(turn.content) or FOLLOWUP.fullmatch(turn.content)
                           or referent.fullmatch(turn.content)) for turn in body.history)
         more_context = bool(re.fullmatch(r"(?:还)?有(?:没有)?(?:什么)?(?:其他|其它|更多)(?:的)?(?:信息|内容|结果)(?:不|吗|么|呢)?[？?。]*|还有呢[？?。]*", body.query))
-        if more_context and (state.session_file_ids if session_files else body.file_id):
+        if more_context and (state.session_file_ids if session_files else body.file_id) and not (
+            document_only or (documents and state.last_tool == "knowledge_search")
+        ):
             trace.decision.route = route = Route.FILE_ANALYSIS
             trace.decision.reason_code = "session_file_overview"
         elif more_context and not has_subject:
             trace.decision.route = route = Route.CLARIFY
             trace.decision.reason_code = "unclear_referent"
         if referent.fullmatch(body.query) and not has_subject:
-            trace.decision.route = route = Route.FILE_ANALYSIS if session_files and state.session_file_ids else Route.CLARIFY
+            trace.decision.route = route = (Route.KNOWLEDGE if documents else Route.FILE_ANALYSIS) if session_files and state.session_file_ids else Route.CLARIFY
             trace.decision.reason_code = "unclear_referent"
         if route in {Route.DIRECT, Route.OUT_OF_SCOPE}:
             state.last_tool = "capability_guidance"
@@ -204,7 +275,7 @@ class AgentRuntime:
                        "请补充你指的是哪个模型、指标或问题，以及希望了解的内容；如果要分析结果表，可上传文件并说明字段和统计项。")
             return await self._call(registry, "clarification", {"message": message}, trace)
         if session_files and route in {Route.FILE_ANALYSIS, Route.COMPOSED}:
-            return await self._session_files(body, state, trace, registry)
+            return await self._session_files(body, state, trace, registry, documents)
         if route == Route.FILE_ANALYSIS:
             try:
                 inspection = await self._call(registry, "file_inspector", {"file_id": body.file_id}, trace)
@@ -242,7 +313,7 @@ class AgentRuntime:
                 trace.decision.reason_code = "unsupported_or_ambiguous_file_query"
             return result
         if route == Route.COMPOSED:
-            return await self._compose(body, state, trace, registry)
+            return await self._compose(body, state, trace, registry, documents)
         history = [DialogueTurn(role=m.role, content=m.content) for m in body.history]
         query = body.query
         if state.crop:
@@ -262,8 +333,9 @@ class AgentRuntime:
         try:
             result = await self._call(registry, "knowledge_search",
                                       {"query": query, "k": body.k, "history": history,
-                                       "mode": "mechanisms" if factor_question else "answer", "crop": state.crop,
-                                       "purpose": "maize_factors" if factor_question and state.crop == "玉米" else "general"}, trace)
+                                       "mode": "mechanisms" if factor_question and not documents else "answer", "crop": state.crop,
+                                       "purpose": "maize_factors" if factor_question and state.crop == "玉米" else "general",
+                                       "session_documents": documents}, trace)
         except MechanismEvidenceError as exc:
             trace.decision.route = Route.CLARIFY
             trace.decision.reason_code = exc.code
@@ -278,7 +350,7 @@ class AgentRuntime:
         return result
 
     async def _session_files(self, body: ChatRequest, state: TaskState, trace: RunTrace,
-                             registry: SkillRegistry) -> ChatResponse:
+                             registry: SkillRegistry, documents: list[dict]) -> ChatResponse:
         """Inspect session workbooks, then calculate only fields actually requested."""
         reports = []
         unavailable = []
@@ -287,6 +359,8 @@ class AgentRuntime:
             try:
                 inspection = await self._call(registry, "file_inspector", {"file_id": token}, trace)
                 attachment_states.append(self._ready_attachment(inspection.report).model_copy(update={"file_id": token}))
+                if inspection.report.get("kind") == "document":
+                    continue
                 if not any(report["sha256"] == inspection.report["sha256"] for _, report in reports):
                     reports.append((token, inspection.report))
             except HTTPException as exc:
@@ -393,7 +467,7 @@ class AgentRuntime:
                 return clarify("已找到多份匹配结果表，请在问题中明确文件名，再查询极值及可能机制。")
             state.current_attachment_id = used[0][0]
             # Existing composed workflow retains its evidence and partial-failure handling.
-            result = await self._compose(body.model_copy(update={"file_id": used[0][0]}), state, trace, registry)
+            result = await self._compose(body.model_copy(update={"file_id": used[0][0]}), state, trace, registry, documents)
             result.attachments = attachment_states
             return result
         evidence = [item for result in results for item in result.file_evidence]
@@ -419,7 +493,7 @@ class AgentRuntime:
         return AttachmentState(filename=report["file"], status="ready", rows=report["rows"], kind=report["kind"])
 
     async def _compose(self, body: ChatRequest, state: TaskState, trace: RunTrace,
-                       registry: SkillRegistry) -> ChatResponse:
+                       registry: SkillRegistry, documents: list[dict]) -> ChatResponse:
         file_query = split_composed(body.query)
         if file_query is None:
             self.states.clear_metric(state)
@@ -480,8 +554,10 @@ class AgentRuntime:
                      f"{state.crop or '农田'} {METRIC_TERMS[metric]} 可能受哪些因素影响？仅解释文献中的一般机制和适用条件。")
             try:
                 knowledge = await self._call(registry, "knowledge_search",
-                                             {"query": query, "k": body.k, "mode": "mechanisms", "crop": state.crop,
-                                              "purpose": "peak" if peak_question else "general"}, trace)
+                                             {"query": query, "k": body.k,
+                                              "mode": "answer" if documents else "mechanisms", "crop": state.crop,
+                                              "purpose": "peak" if peak_question else "general",
+                                              "session_documents": documents}, trace)
             except Exception as exc:
                 # A generation/retrieval failure cannot invalidate verified arithmetic.
                 knowledge = None
@@ -501,7 +577,7 @@ class AgentRuntime:
         diagnosis += "目前没有经核验与该输出配对的同期天气、灌溉、排水、施肥和土壤硝态氮记录。"
         limitation = ("先核实 manage_in 与输出表是否配对及模型日序定义；确认后再换算日历日期。"
                       "随后核对目标日及前后数日的 PREC、IRRI、Draining、施肥、土壤硝态氮剖面和模型配置。"
-                      "文献只提供其他研究场景的待核查机制，不能证明本表峰值原因；当前没有执行 WHCNS，也不据此给出施肥量。")
+                      f"{'上传资料与文献' if documents else '文献'}只提供待核查的机制，不能证明本表峰值原因；当前没有执行 WHCNS，也不据此给出施肥量。")
         file_text = numeric.answer if numeric else "未取得有效文件计算结果。" + " ".join(w.message for w in warnings if w.code.startswith("file") or w.code == "invalid_result_file")
         mechanism_text = knowledge.answer if knowledge else "未获得可核查的文献机制说明，暂不推断原因。"
         sections = [AnswerSection(kind="file_observation", content=file_text,
@@ -512,7 +588,7 @@ class AgentRuntime:
         else:
             sections.append(AnswerSection(kind="limitation", content=mechanism_text))
         sections.append(AnswerSection(kind="limitation", content=limitation))
-        result = reply(f"表中观察\n{file_text}\n\n为何目前不能归因\n{diagnosis}\n\n文献中的事件尺度线索\n{mechanism_text}\n\n下一步核查\n{limitation}",
+        result = reply(f"表中观察\n{file_text}\n\n为何目前不能归因\n{diagnosis}\n\n{'资料' if documents else '文献'}中的事件尺度线索\n{mechanism_text}\n\n下一步核查\n{limitation}",
                        evidence=numeric.file_evidence if numeric else [])
         result.route = "composed"
         result.outcome = "partial" if warnings and (numeric or knowledge) else "clarification" if warnings else "complete"

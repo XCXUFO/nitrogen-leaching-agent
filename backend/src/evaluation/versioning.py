@@ -52,6 +52,8 @@ def build_manifest(settings: Settings) -> dict:
         (BASE_DIR / "src/model_tools").glob("*.py")) + [
         BASE_DIR / "src/api/chat.py", BASE_DIR / "src/api/chat_schema.py",
         BASE_DIR / "src/api/files.py", BASE_DIR / "src/config.py",
+        BASE_DIR / "src/api/case_library.py", BASE_DIR / "src/storage/case_library.py",
+        BASE_DIR / "src/storage/case_content.py",
         BASE_DIR / "src/main.py", BASE_DIR / "src/llm/deepseek.py",
         BASE_DIR / "src/operations/public_access.py",
     ]

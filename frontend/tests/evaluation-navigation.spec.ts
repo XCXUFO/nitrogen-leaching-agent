@@ -12,6 +12,7 @@ async function mockApi(page: Page, role = 'developer', taskId: string | null = t
     requests.push(path);
     let value: unknown = [];
     if (path === '/me') value = { tester_id: 'navigation-user', role };
+    else if (path === '/login') value = { token: 'mock-session-token', user: { tester_id: 'navigation-user', role } };
     else if (path === '/config') value = { build_version: 'navigation-test', runtime_config_version: 'navigation-test:config' };
     else if (path === '/cases') value = [fixture];
     else if (path === '/executions') value = [execution];
@@ -30,7 +31,8 @@ async function mockApi(page: Page, role = 'developer', taskId: string | null = t
   return requests;
 }
 async function login(page: Page) {
-  await page.getByLabel('评测访问密钥').fill('isolated-navigation-token');
+  await page.getByLabel('账号', { exact: true }).fill('cau_mock');
+  await page.getByLabel('密码', { exact: true }).fill('CauMock123');
   await page.getByRole('button', { name: '进入工作台' }).click();
 }
 
@@ -58,7 +60,7 @@ test('sidebar routes preserve login, open linked records and restore a deep link
   await page.goBack();
   await page.goBack();
   await expect(page.getByLabel('执行问题')).toBeVisible();
-  await page.reload(); await login(page);
+  await page.reload();
   await expect(page).toHaveURL(/\/executions\/execution-navigation$/);
   await expect(page.getByLabel('执行问题')).toBeVisible();
   await page.getByRole('button', { name: '收起侧边栏' }).click();
@@ -113,7 +115,7 @@ test('task execution returns to its task after scoring, including refresh and mo
   await page.getByLabel('评分说明').fill('隔离浏览器验证返回流程');
   await page.getByRole('button', { name: '提交并冻结评分' }).click();
   await expect(page.getByText('此评分已冻结；专业审核结论单独记录。')).toBeVisible();
-  await page.reload(); await login(page);
+  await page.reload();
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole('link', { name: '返回所属任务', exact: true }).click();
   await expect(page).toHaveURL(/\/evaluation\/tasks\/task-navigation$/);

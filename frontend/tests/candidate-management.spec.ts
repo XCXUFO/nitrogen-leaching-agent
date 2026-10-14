@@ -1,14 +1,11 @@
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { fillTestAccount, testSession } from './evaluation-login-helper';
 import { expect, test } from '@playwright/test';
 
 test.skip(!process.env.CANDIDATE_MANAGEMENT || !process.env.EVAL_TEST_API, 'Isolated candidate backend only.');
 
 test('candidate Case upload/import and review queue remain usable', async ({ page }) => {
   const api = process.env.EVAL_TEST_API!;
-  const token = readFileSync(resolve(process.cwd(), '../backend/var/eval/access-credentials.txt'), 'utf8')
-    .split('\n').find((line) => line.startsWith('local-developer '))?.split(':')[1].trim();
-  if (!token) throw new Error('Local developer identity missing');
+  const token = await testSession(page.request, api);
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.route('**/api/eval/**', async route => {
@@ -17,7 +14,7 @@ test('candidate Case upload/import and review queue remain usable', async ({ pag
     await route.fulfill({ response, headers: { ...response.headers(), 'access-control-allow-origin': '*' } });
   });
   await page.goto('/evaluation/cases');
-  await page.getByLabel('评测访问密钥').fill(token);
+  await fillTestAccount(page);
   await page.getByRole('button', { name: '进入工作台' }).click();
   await expect(page.getByRole('heading', { name: '用例版本目录' })).toBeVisible();
   await page.getByLabel('检索已发布用例').fill('F05');
@@ -49,9 +46,7 @@ test('candidate Case upload/import and review queue remain usable', async ({ pag
 
 test('candidate Issue state change keeps original evidence and history', async ({ page }) => {
   const api = process.env.EVAL_TEST_API!;
-  const token = readFileSync(resolve(process.cwd(), '../backend/var/eval/access-credentials.txt'), 'utf8')
-    .split('\n').find((line) => line.startsWith('local-developer '))?.split(':')[1].trim();
-  if (!token) throw new Error('Local developer identity missing');
+  const token = await testSession(page.request, api);
   const headers = { Authorization: `Bearer ${token}` };
   const executionResponse = await page.request.post(`${api}/api/eval/executions`, { headers, data: { case_id: 'NEW01', case_version: 2 } });
   expect(executionResponse.status()).toBe(201);
@@ -76,7 +71,7 @@ test('candidate Issue state change keeps original evidence and history', async (
     await route.fulfill({ response, headers: { ...response.headers(), 'access-control-allow-origin': '*' } });
   });
   await page.goto(`/evaluation/issues/${issue.issue_id}`);
-  await page.getByLabel('评测访问密钥').fill(token);
+  await fillTestAccount(page);
   await page.getByRole('button', { name: '进入工作台' }).click();
   const card = page.getByRole('article', { name: `问题：${issue.title}` });
   await expect(card).toContainText(runId);

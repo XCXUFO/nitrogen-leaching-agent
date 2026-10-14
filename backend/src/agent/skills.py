@@ -7,6 +7,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from src.agent.case_skills import CaseSkillInput, answer_cases
 from src.agent.chat_service import ChatService
 from src.agent.contracts import AnswerSection, Contract, SkillName
 from src.agent.file_chat import answer_file, reply
@@ -16,7 +17,8 @@ from src.api.chat_schema import ChatResponse
 
 GUIDANCE = (
     "我可以根据本地文献回答农田氮淋失问题，并给出参考依据；"
-    "也可以读取 WHCNS 氮/水平衡输出表，查询一个字段的整表最大值、最小值和对应模型日序。\n\n"
+    "也可以参考已开放的案例与措施，或通俗解释你粘贴的专业文字。"
+    "还可以读取 WHCNS 氮/水平衡输出表，查询一个字段的整表最大值、最小值和对应模型日序。\n\n"
     "你可以问：\n"
     "- 玉米农田氮淋失主要受哪些因素影响？\n"
     "- 上传 Nbal_out.xls 后问：硝态氮淋失最大值及对应日序。\n\n"
@@ -35,6 +37,7 @@ class KnowledgeInput(Contract):
     mode: Literal["answer", "mechanisms"] = "answer"
     crop: str | None = None
     purpose: Literal["general", "peak", "maize_factors"] = "general"
+    session_documents: list[dict] = Field(default_factory=list)
 
 
 class InspectInput(Contract):
@@ -89,13 +92,14 @@ class SkillRegistry:
                 for skill in self._skills.values()]
 
 
-def build_registry(service: ChatService | None, get_report: Callable[[str], Awaitable[dict]]) -> SkillRegistry:
+def build_registry(service: ChatService | None, get_report: Callable[[str], Awaitable[dict]], *, case_store=None, llm=None) -> SkillRegistry:
     async def knowledge(inputs: KnowledgeInput) -> ChatResponse:
         if service is None:
             raise KnowledgeUnavailable("rag_not_configured")
         result = (await service.explain_mechanisms(inputs.query, crop=inputs.crop, k=inputs.k, purpose=inputs.purpose)
                   if inputs.mode == "mechanisms" else
-                  await service.answer(inputs.query, k=inputs.k, history=inputs.history))
+                  await service.answer(inputs.query, k=inputs.k, history=inputs.history,
+                                       **({"session_documents": inputs.session_documents} if inputs.session_documents else {})))
         if inputs.mode == "mechanisms" and (not result.citations or not result.claims):
             raise MechanismEvidenceError("mechanism_evidence_missing")
         return ChatResponse(answer=result.answer, citations=result.citations, usage=result.usage,
@@ -119,8 +123,16 @@ def build_registry(service: ChatService | None, get_report: Callable[[str], Awai
         result.model = "agent-policy"
         return result
 
+    async def reference(inputs: CaseSkillInput) -> ChatResponse:
+        return await answer_cases(inputs, mode="reference", store=case_store, llm=llm)
+
+    async def explanation(inputs: CaseSkillInput) -> ChatResponse:
+        return await answer_cases(inputs, mode="explain", store=case_store, llm=llm)
+
     registry = SkillRegistry()
     for skill in (
+        Skill("case_reference", "案例与措施参考", CaseSkillInput, ChatResponse, reference),
+        Skill("case_explanation", "案例与措施解释", CaseSkillInput, ChatResponse, explanation),
         Skill("knowledge_search", "文献检索与有引用的问答", KnowledgeInput, ChatResponse, knowledge),
         Skill("file_inspector", "检查附件是否有效并读取已校验摘要", InspectInput, InspectOutput, inspect),
         Skill("whcns_analyzer", "计算单字段整表极值及模型日序", AnalyzeInput, ChatResponse, analyze),

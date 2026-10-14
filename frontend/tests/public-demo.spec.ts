@@ -46,8 +46,8 @@ test('public backend supports browsing, filtering, deep links and provenance wit
   await expect(page.getByRole('button', { name: /创建|提交评分|运行回归|上传资产|分派/ })).toHaveCount(0);
   expect(management).toEqual([]);
   await page.screenshot({ path: '/tmp/nitrogen-demo-desktop.png', fullPage: true });
-  await page.getByRole('link', { name: '管理登录' }).click();
-  await expect(page.getByLabel('评测访问密钥')).toBeVisible();
+  await page.getByRole('link', { name: '内部人员登录' }).click();
+  await expect(page.getByLabel('账号', { exact: true })).toBeVisible();
 });
 
 test('mobile browsing has no page overflow and all public modules are reachable', async ({ page }) => {

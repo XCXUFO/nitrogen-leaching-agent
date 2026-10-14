@@ -33,6 +33,7 @@ export interface ChatRequest {
 }
 
 export interface ChatResponse {
+  case_references?: { id: string; title: string; source: string }[];
   answer: string;
   citations: Citation[];
   usage: ChatUsage;

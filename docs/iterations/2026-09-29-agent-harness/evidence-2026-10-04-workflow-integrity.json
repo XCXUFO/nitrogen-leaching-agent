@@ -1,0 +1,1119 @@
+{
+  "evidence_kind": "automated browser test in isolated database",
+  "review_status": "Synthetic development scores created only to test the workflow; not actual product or domain-expert judgments.",
+  "exported_at": "2026-10-04T03:59:37.240141+00:00",
+  "environment": {
+    "frontend": "http://127.0.0.1:3002",
+    "backend": "http://127.0.0.1:8003",
+    "rag_enabled": false
+  },
+  "task": {
+    "title": "browser task 1791086253788",
+    "case_versions": [
+      {
+        "case_id": "NEW01",
+        "case_version": 2
+      }
+    ],
+    "build_version": "browser-workflow-20261003",
+    "knowledge_version": "no-rag-test",
+    "notes": "",
+    "task_id": "311c6650-f746-4776-a7b1-9cd4763f52f4",
+    "created_by": "browser-test-developer",
+    "created_at": "2026-10-04T03:57:34.030998+00:00",
+    "status": "open",
+    "runtime_config_version": "browser-workflow-20261003:fe8dfae3eef7788e",
+    "knowledge_config": {
+      "rag_enabled": false,
+      "index_path": "/root/projects/nitrogen-leaching-agent/backend/var/chroma_m16",
+      "collection": "papers",
+      "embedding_model": "data/models/bge-large-zh-v1.5",
+      "reranker_model": "data/models/bge-reranker-v2-m3"
+    },
+    "version_manifest": {
+      "agent_build_version": "browser-workflow-20261003",
+      "agent_code_sha256": "543f188959483e78c2db65fec7f44cab9b48e6f74b0fd159a272851d2fe0b766",
+      "prompt_code_sha256": "540822b677926b082c7be894761c750f4d304e3e55ab2c8e3fe26be2320c137a",
+      "retriever_code_sha256": "b75879d1ce6bb458993b8488b40d1008930cee714681dbee30eb4b24def4a34d",
+      "dependency_lock_sha256": "1b2836bacb8b168113d5bcbcfa365c5af97203992e3658f9a64fede65a4d1945",
+      "answer_config": {
+        "deepseek_model": "deepseek-v4-flash",
+        "deepseek_timeout_s": 60.0,
+        "deepseek_max_retries": 2,
+        "embedding_model": "data/models/bge-large-zh-v1.5",
+        "rag_enabled": false,
+        "rag_chroma_dir": "/root/projects/nitrogen-leaching-agent/backend/var/chroma_m16",
+        "rag_collection": "papers",
+        "chat_top_k": 5,
+        "chat_max_context_chars": 4000,
+        "chat_temperature": 0.3,
+        "rag_reranker_enabled": true,
+        "rag_reranker_top_k_recall": 20,
+        "rag_reranker_top_n": 5,
+        "rag_reranker_model": "data/models/bge-reranker-v2-m3",
+        "rag_reference_filter_enabled": true,
+        "rag_reference_filter_min_keep": 1,
+        "rag_reference_filter_overfetch": 10,
+        "rag_numeric_boost_enabled": true,
+        "rag_numeric_boost_weight": 0.445,
+        "rag_numeric_boost_band": 0.3
+      },
+      "answer_config_sha256": "2f3c79948d42f2cba7bba1f8f09a680b8d3c201d9593960f1e5a9e156a968a78",
+      "knowledge_index": {
+        "status": "disabled",
+        "content_sha256": null
+      },
+      "embedding_model": {
+        "status": "not_active",
+        "path": "data/models/bge-large-zh-v1.5"
+      },
+      "reranker_model": {
+        "status": "not_active",
+        "path": "data/models/bge-reranker-v2-m3"
+      },
+      "llm_model": {
+        "declared_name": "deepseek-v4-flash",
+        "provider_content_verified": false
+      },
+      "manifest_sha256": "fe8dfae3eef7788ee3d78885062d6b07196e9d30536f51c2475dd299245423c4"
+    }
+  },
+  "issue": {
+    "issue_id": "84ee7777-c756-4673-a0e4-04e5e67a42d5",
+    "created_at": "2026-10-04T03:57:35.768455+00:00",
+    "created_by": "browser-test-developer",
+    "execution_id": "91aea595-d70d-4bdf-95cf-ea8e9b5f421e",
+    "review_id": "4ce2fbab-6afc-44eb-86ed-f9a267a9c908",
+    "task_id": "311c6650-f746-4776-a7b1-9cd4763f52f4",
+    "case_id": "NEW01",
+    "case_version": 2,
+    "event_sequence": 1,
+    "run_id": "dcb62118-17a0-4e2f-8ffc-fd8cc44b65c3",
+    "original_question": "1",
+    "answer_snapshot": "我可以根据本地文献回答农田氮淋失问题，并给出参考依据；也可以读取 WHCNS 氮/水平衡输出表，查询一个字段的整表最大值、最小值和对应模型日序。\n\n你可以问：\n- 玉米农田氮淋失主要受哪些因素影响？\n- 上传 Nbal_out.xls 后问：硝态氮淋失最大值及对应日序。\n\n文件功能分析的是已有输出表，目前不执行 WHCNS 模拟，也不自动制定施肥方案。",
+    "error_snapshot": null,
+    "title": "BROWSER TEST ONLY: issue 1791086255491",
+    "assignee": "browser-test-developer",
+    "evidence_note": "Synthetic test of preserving the original Run and independent reviews.",
+    "review_snapshot": {
+      "overall": "fail",
+      "route_correct": "yes",
+      "tool_correct": "n.a.",
+      "evidence_correct": "n.a.",
+      "answer_correct": "no",
+      "usability": null,
+      "tags": [],
+      "notes": "SYNTHETIC failure for isolated issue workflow test only.",
+      "review_id": "4ce2fbab-6afc-44eb-86ed-f9a267a9c908",
+      "execution_id": "91aea595-d70d-4bdf-95cf-ea8e9b5f421e",
+      "tester_id": "browser-test-developer",
+      "case_id": "NEW01",
+      "case_version": 2,
+      "run_ids": [
+        "dcb62118-17a0-4e2f-8ffc-fd8cc44b65c3",
+        "6db5fb0a-19d0-4706-8669-24bc75ceec86"
+      ],
+      "created_at": "2026-10-04T03:57:35.282441+00:00",
+      "case_snapshot": {
+        "case": {
+          "attachment_requirements": [],
+          "case_id": "NEW01",
+          "category": "NEW",
+          "expected": [
+            "解释助手支持的文献问答和输出表分析能力，给出可执行提问示例。",
+            "不调用知识检索，不生成引用或文件计算结果。"
+          ],
+          "preconditions": "无附件或有附件均可；不依赖 RAG 服务。",
+          "priority": "P0",
+          "source": "9.28人工核验单.pdf 第 30–32 页",
+          "steps": [
+            {
+              "action": "query",
+              "attachment": null,
+              "input": "1",
+              "instruction": "发送核验单 Bad Case"
+            }
+          ],
+          "supersedes": null,
+          "title": "无关短输入的能力引导",
+          "version": 2
+        },
+        "dataset_id": "agent-harness-20260929-v2",
+        "fixtures": [],
+        "professional_review": "pending"
+      },
+      "runtime_config_versions": [
+        "browser-workflow-20261003:fe8dfae3eef7788e"
+      ],
+      "event_sequences": [
+        1,
+        2
+      ],
+      "review_kind": "development_trial",
+      "professional_review": "pending"
+    }
+  },
+  "retests": [
+    {
+      "retest_id": "1845b92f-99ba-4e06-9137-0bca277875b8",
+      "issue_id": "84ee7777-c756-4673-a0e4-04e5e67a42d5",
+      "execution_id": "50d60a49-5d16-4d25-9baf-b448258b86b1",
+      "review_id": "9e6478ce-9ad4-47b8-a4c7-48067c3c26b1",
+      "run_ids": [
+        "95412403-23d8-4448-a8ef-483ec08d755e",
+        "b59d6e80-6b86-44d5-ab07-2d98bd5cba23"
+      ],
+      "overall": "pass",
+      "fix_version": "browser-workflow-20261003",
+      "runtime_config_versions": [
+        "browser-workflow-20261003:fe8dfae3eef7788e"
+      ],
+      "version_verified": true,
+      "notes": "",
+      "created_at": "2026-10-04T03:57:38.013773+00:00",
+      "recorded_by": "browser-test-developer"
+    }
+  ],
+  "executions": [
+    {
+      "execution_id": "91aea595-d70d-4bdf-95cf-ea8e9b5f421e",
+      "events": [
+        {
+          "action": "query",
+          "input": "1",
+          "response": {
+            "answer": "我可以根据本地文献回答农田氮淋失问题，并给出参考依据；也可以读取 WHCNS 氮/水平衡输出表，查询一个字段的整表最大值、最小值和对应模型日序。\n\n你可以问：\n- 玉米农田氮淋失主要受哪些因素影响？\n- 上传 Nbal_out.xls 后问：硝态氮淋失最大值及对应日序。\n\n文件功能分析的是已有输出表，目前不执行 WHCNS 模拟，也不自动制定施肥方案。",
+            "citations": [],
+            "usage": {
+              "prompt_tokens": 0,
+              "completion_tokens": 0,
+              "total_tokens": 0
+            },
+            "retrieved_count": 0,
+            "model": "agent-policy",
+            "route": "direct",
+            "file_evidence": [],
+            "run_id": "dcb62118-17a0-4e2f-8ffc-fd8cc44b65c3",
+            "agent_route": "DIRECT",
+            "evidence": [],
+            "trace_saved": true,
+            "outcome": "complete",
+            "attachment": null,
+            "sections": [],
+            "warnings": []
+          },
+          "trace_missing": false,
+          "sequence": 1,
+          "created_at": "2026-10-04T03:57:34.580603+00:00",
+          "run_id": "dcb62118-17a0-4e2f-8ffc-fd8cc44b65c3"
+        },
+        {
+          "action": "query",
+          "input": "你好",
+          "response": {
+            "answer": "我可以根据本地文献回答农田氮淋失问题，并给出参考依据；也可以读取 WHCNS 氮/水平衡输出表，查询一个字段的整表最大值、最小值和对应模型日序。\n\n你可以问：\n- 玉米农田氮淋失主要受哪些因素影响？\n- 上传 Nbal_out.xls 后问：硝态氮淋失最大值及对应日序。\n\n文件功能分析的是已有输出表，目前不执行 WHCNS 模拟，也不自动制定施肥方案。",
+            "citations": [],
+            "usage": {
+              "prompt_tokens": 0,
+              "completion_tokens": 0,
+              "total_tokens": 0
+            },
+            "retrieved_count": 0,
+            "model": "agent-policy",
+            "route": "direct",
+            "file_evidence": [],
+            "run_id": "6db5fb0a-19d0-4706-8669-24bc75ceec86",
+            "agent_route": "DIRECT",
+            "evidence": [],
+            "trace_saved": true,
+            "outcome": "complete",
+            "attachment": null,
+            "sections": [],
+            "warnings": []
+          },
+          "trace_missing": false,
+          "sequence": 2,
+          "created_at": "2026-10-04T03:57:34.807171+00:00",
+          "run_id": "6db5fb0a-19d0-4706-8669-24bc75ceec86"
+        }
+      ],
+      "review": {
+        "overall": "fail",
+        "route_correct": "yes",
+        "tool_correct": "n.a.",
+        "evidence_correct": "n.a.",
+        "answer_correct": "no",
+        "usability": null,
+        "tags": [],
+        "notes": "SYNTHETIC failure for isolated issue workflow test only.",
+        "review_id": "4ce2fbab-6afc-44eb-86ed-f9a267a9c908",
+        "execution_id": "91aea595-d70d-4bdf-95cf-ea8e9b5f421e",
+        "tester_id": "browser-test-developer",
+        "case_id": "NEW01",
+        "case_version": 2,
+        "run_ids": [
+          "dcb62118-17a0-4e2f-8ffc-fd8cc44b65c3",
+          "6db5fb0a-19d0-4706-8669-24bc75ceec86"
+        ],
+        "created_at": "2026-10-04T03:57:35.282441+00:00",
+        "case_snapshot": {
+          "case": {
+            "attachment_requirements": [],
+            "case_id": "NEW01",
+            "category": "NEW",
+            "expected": [
+              "解释助手支持的文献问答和输出表分析能力，给出可执行提问示例。",
+              "不调用知识检索，不生成引用或文件计算结果。"
+            ],
+            "preconditions": "无附件或有附件均可；不依赖 RAG 服务。",
+            "priority": "P0",
+            "source": "9.28人工核验单.pdf 第 30–32 页",
+            "steps": [
+              {
+                "action": "query",
+                "attachment": null,
+                "input": "1",
+                "instruction": "发送核验单 Bad Case"
+              }
+            ],
+            "supersedes": null,
+            "title": "无关短输入的能力引导",
+            "version": 2
+          },
+          "dataset_id": "agent-harness-20260929-v2",
+          "fixtures": [],
+          "professional_review": "pending"
+        },
+        "runtime_config_versions": [
+          "browser-workflow-20261003:fe8dfae3eef7788e"
+        ],
+        "event_sequences": [
+          1,
+          2
+        ],
+        "review_kind": "development_trial",
+        "professional_review": "pending"
+      }
+    },
+    {
+      "execution_id": "50d60a49-5d16-4d25-9baf-b448258b86b1",
+      "events": [
+        {
+          "action": "query",
+          "input": "1",
+          "response": {
+            "answer": "我可以根据本地文献回答农田氮淋失问题，并给出参考依据；也可以读取 WHCNS 氮/水平衡输出表，查询一个字段的整表最大值、最小值和对应模型日序。\n\n你可以问：\n- 玉米农田氮淋失主要受哪些因素影响？\n- 上传 Nbal_out.xls 后问：硝态氮淋失最大值及对应日序。\n\n文件功能分析的是已有输出表，目前不执行 WHCNS 模拟，也不自动制定施肥方案。",
+            "citations": [],
+            "usage": {
+              "prompt_tokens": 0,
+              "completion_tokens": 0,
+              "total_tokens": 0
+            },
+            "retrieved_count": 0,
+            "model": "agent-policy",
+            "route": "direct",
+            "file_evidence": [],
+            "run_id": "95412403-23d8-4448-a8ef-483ec08d755e",
+            "agent_route": "DIRECT",
+            "evidence": [],
+            "trace_saved": true,
+            "outcome": "complete",
+            "attachment": null,
+            "sections": [],
+            "warnings": []
+          },
+          "trace_missing": false,
+          "sequence": 1,
+          "created_at": "2026-10-04T03:57:36.355350+00:00",
+          "run_id": "95412403-23d8-4448-a8ef-483ec08d755e"
+        },
+        {
+          "action": "query",
+          "input": "你好",
+          "response": {
+            "answer": "我可以根据本地文献回答农田氮淋失问题，并给出参考依据；也可以读取 WHCNS 氮/水平衡输出表，查询一个字段的整表最大值、最小值和对应模型日序。\n\n你可以问：\n- 玉米农田氮淋失主要受哪些因素影响？\n- 上传 Nbal_out.xls 后问：硝态氮淋失最大值及对应日序。\n\n文件功能分析的是已有输出表，目前不执行 WHCNS 模拟，也不自动制定施肥方案。",
+            "citations": [],
+            "usage": {
+              "prompt_tokens": 0,
+              "completion_tokens": 0,
+              "total_tokens": 0
+            },
+            "retrieved_count": 0,
+            "model": "agent-policy",
+            "route": "direct",
+            "file_evidence": [],
+            "run_id": "b59d6e80-6b86-44d5-ab07-2d98bd5cba23",
+            "agent_route": "DIRECT",
+            "evidence": [],
+            "trace_saved": true,
+            "outcome": "complete",
+            "attachment": null,
+            "sections": [],
+            "warnings": []
+          },
+          "trace_missing": false,
+          "sequence": 2,
+          "created_at": "2026-10-04T03:57:36.370708+00:00",
+          "run_id": "b59d6e80-6b86-44d5-ab07-2d98bd5cba23"
+        }
+      ],
+      "review": {
+        "overall": "pass",
+        "route_correct": "yes",
+        "tool_correct": "n.a.",
+        "evidence_correct": "n.a.",
+        "answer_correct": "yes",
+        "usability": null,
+        "tags": [],
+        "notes": "AUTOMATED BROWSER TEST ONLY; synthetic evaluation database; not a professional review.",
+        "review_id": "9e6478ce-9ad4-47b8-a4c7-48067c3c26b1",
+        "execution_id": "50d60a49-5d16-4d25-9baf-b448258b86b1",
+        "tester_id": "browser-test-developer",
+        "case_id": "NEW01",
+        "case_version": 2,
+        "run_ids": [
+          "95412403-23d8-4448-a8ef-483ec08d755e",
+          "b59d6e80-6b86-44d5-ab07-2d98bd5cba23"
+        ],
+        "created_at": "2026-10-04T03:57:37.675025+00:00",
+        "case_snapshot": {
+          "case": {
+            "attachment_requirements": [],
+            "case_id": "NEW01",
+            "category": "NEW",
+            "expected": [
+              "解释助手支持的文献问答和输出表分析能力，给出可执行提问示例。",
+              "不调用知识检索，不生成引用或文件计算结果。"
+            ],
+            "preconditions": "无附件或有附件均可；不依赖 RAG 服务。",
+            "priority": "P0",
+            "source": "9.28人工核验单.pdf 第 30–32 页",
+            "steps": [
+              {
+                "action": "query",
+                "attachment": null,
+                "input": "1",
+                "instruction": "发送核验单 Bad Case"
+              }
+            ],
+            "supersedes": null,
+            "title": "无关短输入的能力引导",
+            "version": 2
+          },
+          "dataset_id": "agent-harness-20260929-v2",
+          "fixtures": [],
+          "professional_review": "pending"
+        },
+        "runtime_config_versions": [
+          "browser-workflow-20261003:fe8dfae3eef7788e"
+        ],
+        "event_sequences": [
+          1,
+          2
+        ],
+        "review_kind": "development_trial",
+        "professional_review": "pending"
+      }
+    }
+  ],
+  "regression_id": "46e5e461-c5d1-4a78-8c54-aa056173f467",
+  "replay": {
+    "replay_id": "e6457317-823a-4e72-9afe-069131b5c733",
+    "regression_id": "46e5e461-c5d1-4a78-8c54-aa056173f467",
+    "created_at": "2026-10-04T03:57:36.319201+00:00",
+    "created_by": "browser-test-developer",
+    "execution_id": "50d60a49-5d16-4d25-9baf-b448258b86b1",
+    "state": "completed",
+    "completed_steps": 2,
+    "total_steps": 2,
+    "message": "重跑完成；差异待人工判断。",
+    "professional_review": "pending",
+    "finished_at": "2026-10-04T03:57:36.377784+00:00"
+  },
+  "runs": [
+    {
+      "schema_version": "1",
+      "harness_version": "0.2.0",
+      "run_id": "dcb62118-17a0-4e2f-8ffc-fd8cc44b65c3",
+      "conversation_ref": "a3eae88ed80b47e3fa51832f1d8033ca667dff5b01ad583afcf2a0e89bd85aac",
+      "started_at": "2026-10-04T03:57:34.563718+00:00",
+      "input": "1",
+      "state_before": {
+        "crop": null,
+        "attachment_ref": null,
+        "current_metric": null,
+        "current_operation": [],
+        "last_tool": null
+      },
+      "state_after": {
+        "crop": null,
+        "attachment_ref": null,
+        "current_metric": null,
+        "current_operation": [],
+        "last_tool": "capability_guidance"
+      },
+      "decision": {
+        "route": "DIRECT",
+        "reason_code": "capability_request",
+        "skills": [
+          "capability_guidance"
+        ]
+      },
+      "tool_calls": [
+        {
+          "skill": "capability_guidance",
+          "status": "ok",
+          "latency_ms": 0,
+          "error_code": null
+        }
+      ],
+      "evidence": [],
+      "answer": "我可以根据本地文献回答农田氮淋失问题，并给出参考依据；也可以读取 WHCNS 氮/水平衡输出表，查询一个字段的整表最大值、最小值和对应模型日序。\n\n你可以问：\n- 玉米农田氮淋失主要受哪些因素影响？\n- 上传 Nbal_out.xls 后问：硝态氮淋失最大值及对应日序。\n\n文件功能分析的是已有输出表，目前不执行 WHCNS 模拟，也不自动制定施肥方案。",
+      "model": "agent-policy",
+      "config_version": "browser-workflow-20261003:fe8dfae3eef7788e",
+      "config_manifest": {
+        "agent_build_version": "browser-workflow-20261003",
+        "agent_code_sha256": "543f188959483e78c2db65fec7f44cab9b48e6f74b0fd159a272851d2fe0b766",
+        "prompt_code_sha256": "540822b677926b082c7be894761c750f4d304e3e55ab2c8e3fe26be2320c137a",
+        "retriever_code_sha256": "b75879d1ce6bb458993b8488b40d1008930cee714681dbee30eb4b24def4a34d",
+        "dependency_lock_sha256": "1b2836bacb8b168113d5bcbcfa365c5af97203992e3658f9a64fede65a4d1945",
+        "answer_config": {
+          "deepseek_model": "deepseek-v4-flash",
+          "deepseek_timeout_s": 60.0,
+          "deepseek_max_retries": 2,
+          "embedding_model": "data/models/bge-large-zh-v1.5",
+          "rag_enabled": false,
+          "rag_chroma_dir": "/root/projects/nitrogen-leaching-agent/backend/var/chroma_m16",
+          "rag_collection": "papers",
+          "chat_top_k": 5,
+          "chat_max_context_chars": 4000,
+          "chat_temperature": 0.3,
+          "rag_reranker_enabled": true,
+          "rag_reranker_top_k_recall": 20,
+          "rag_reranker_top_n": 5,
+          "rag_reranker_model": "data/models/bge-reranker-v2-m3",
+          "rag_reference_filter_enabled": true,
+          "rag_reference_filter_min_keep": 1,
+          "rag_reference_filter_overfetch": 10,
+          "rag_numeric_boost_enabled": true,
+          "rag_numeric_boost_weight": 0.445,
+          "rag_numeric_boost_band": 0.3
+        },
+        "answer_config_sha256": "2f3c79948d42f2cba7bba1f8f09a680b8d3c201d9593960f1e5a9e156a968a78",
+        "knowledge_index": {
+          "status": "disabled",
+          "content_sha256": null
+        },
+        "embedding_model": {
+          "status": "not_active",
+          "path": "data/models/bge-large-zh-v1.5"
+        },
+        "reranker_model": {
+          "status": "not_active",
+          "path": "data/models/bge-reranker-v2-m3"
+        },
+        "llm_model": {
+          "declared_name": "deepseek-v4-flash",
+          "provider_content_verified": false
+        },
+        "manifest_sha256": "fe8dfae3eef7788ee3d78885062d6b07196e9d30536f51c2475dd299245423c4"
+      },
+      "latency_ms": 6,
+      "status": "ok",
+      "error_code": null,
+      "outcome": "complete",
+      "warnings": [],
+      "sections": []
+    },
+    {
+      "schema_version": "1",
+      "harness_version": "0.2.0",
+      "run_id": "6db5fb0a-19d0-4706-8669-24bc75ceec86",
+      "conversation_ref": "a3eae88ed80b47e3fa51832f1d8033ca667dff5b01ad583afcf2a0e89bd85aac",
+      "started_at": "2026-10-04T03:57:34.794075+00:00",
+      "input": "你好",
+      "state_before": {
+        "crop": null,
+        "attachment_ref": null,
+        "current_metric": null,
+        "current_operation": [],
+        "last_tool": "capability_guidance"
+      },
+      "state_after": {
+        "crop": null,
+        "attachment_ref": null,
+        "current_metric": null,
+        "current_operation": [],
+        "last_tool": "capability_guidance"
+      },
+      "decision": {
+        "route": "DIRECT",
+        "reason_code": "capability_request",
+        "skills": [
+          "capability_guidance"
+        ]
+      },
+      "tool_calls": [
+        {
+          "skill": "capability_guidance",
+          "status": "ok",
+          "latency_ms": 0,
+          "error_code": null
+        }
+      ],
+      "evidence": [],
+      "answer": "我可以根据本地文献回答农田氮淋失问题，并给出参考依据；也可以读取 WHCNS 氮/水平衡输出表，查询一个字段的整表最大值、最小值和对应模型日序。\n\n你可以问：\n- 玉米农田氮淋失主要受哪些因素影响？\n- 上传 Nbal_out.xls 后问：硝态氮淋失最大值及对应日序。\n\n文件功能分析的是已有输出表，目前不执行 WHCNS 模拟，也不自动制定施肥方案。",
+      "model": "agent-policy",
+      "config_version": "browser-workflow-20261003:fe8dfae3eef7788e",
+      "config_manifest": {
+        "agent_build_version": "browser-workflow-20261003",
+        "agent_code_sha256": "543f188959483e78c2db65fec7f44cab9b48e6f74b0fd159a272851d2fe0b766",
+        "prompt_code_sha256": "540822b677926b082c7be894761c750f4d304e3e55ab2c8e3fe26be2320c137a",
+        "retriever_code_sha256": "b75879d1ce6bb458993b8488b40d1008930cee714681dbee30eb4b24def4a34d",
+        "dependency_lock_sha256": "1b2836bacb8b168113d5bcbcfa365c5af97203992e3658f9a64fede65a4d1945",
+        "answer_config": {
+          "deepseek_model": "deepseek-v4-flash",
+          "deepseek_timeout_s": 60.0,
+          "deepseek_max_retries": 2,
+          "embedding_model": "data/models/bge-large-zh-v1.5",
+          "rag_enabled": false,
+          "rag_chroma_dir": "/root/projects/nitrogen-leaching-agent/backend/var/chroma_m16",
+          "rag_collection": "papers",
+          "chat_top_k": 5,
+          "chat_max_context_chars": 4000,
+          "chat_temperature": 0.3,
+          "rag_reranker_enabled": true,
+          "rag_reranker_top_k_recall": 20,
+          "rag_reranker_top_n": 5,
+          "rag_reranker_model": "data/models/bge-reranker-v2-m3",
+          "rag_reference_filter_enabled": true,
+          "rag_reference_filter_min_keep": 1,
+          "rag_reference_filter_overfetch": 10,
+          "rag_numeric_boost_enabled": true,
+          "rag_numeric_boost_weight": 0.445,
+          "rag_numeric_boost_band": 0.3
+        },
+        "answer_config_sha256": "2f3c79948d42f2cba7bba1f8f09a680b8d3c201d9593960f1e5a9e156a968a78",
+        "knowledge_index": {
+          "status": "disabled",
+          "content_sha256": null
+        },
+        "embedding_model": {
+          "status": "not_active",
+          "path": "data/models/bge-large-zh-v1.5"
+        },
+        "reranker_model": {
+          "status": "not_active",
+          "path": "data/models/bge-reranker-v2-m3"
+        },
+        "llm_model": {
+          "declared_name": "deepseek-v4-flash",
+          "provider_content_verified": false
+        },
+        "manifest_sha256": "fe8dfae3eef7788ee3d78885062d6b07196e9d30536f51c2475dd299245423c4"
+      },
+      "latency_ms": 0,
+      "status": "ok",
+      "error_code": null,
+      "outcome": "complete",
+      "warnings": [],
+      "sections": []
+    },
+    {
+      "schema_version": "1",
+      "harness_version": "0.2.0",
+      "run_id": "95412403-23d8-4448-a8ef-483ec08d755e",
+      "conversation_ref": "fe81b7cc11fda6cff8214ef87d5f774159c663a8af9a99f49dfd6b6a05bc7a77",
+      "started_at": "2026-10-04T03:57:36.351558+00:00",
+      "input": "1",
+      "state_before": {
+        "crop": null,
+        "attachment_ref": null,
+        "current_metric": null,
+        "current_operation": [],
+        "last_tool": null
+      },
+      "state_after": {
+        "crop": null,
+        "attachment_ref": null,
+        "current_metric": null,
+        "current_operation": [],
+        "last_tool": "capability_guidance"
+      },
+      "decision": {
+        "route": "DIRECT",
+        "reason_code": "capability_request",
+        "skills": [
+          "capability_guidance"
+        ]
+      },
+      "tool_calls": [
+        {
+          "skill": "capability_guidance",
+          "status": "ok",
+          "latency_ms": 0,
+          "error_code": null
+        }
+      ],
+      "evidence": [],
+      "answer": "我可以根据本地文献回答农田氮淋失问题，并给出参考依据；也可以读取 WHCNS 氮/水平衡输出表，查询一个字段的整表最大值、最小值和对应模型日序。\n\n你可以问：\n- 玉米农田氮淋失主要受哪些因素影响？\n- 上传 Nbal_out.xls 后问：硝态氮淋失最大值及对应日序。\n\n文件功能分析的是已有输出表，目前不执行 WHCNS 模拟，也不自动制定施肥方案。",
+      "model": "agent-policy",
+      "config_version": "browser-workflow-20261003:fe8dfae3eef7788e",
+      "config_manifest": {
+        "agent_build_version": "browser-workflow-20261003",
+        "agent_code_sha256": "543f188959483e78c2db65fec7f44cab9b48e6f74b0fd159a272851d2fe0b766",
+        "prompt_code_sha256": "540822b677926b082c7be894761c750f4d304e3e55ab2c8e3fe26be2320c137a",
+        "retriever_code_sha256": "b75879d1ce6bb458993b8488b40d1008930cee714681dbee30eb4b24def4a34d",
+        "dependency_lock_sha256": "1b2836bacb8b168113d5bcbcfa365c5af97203992e3658f9a64fede65a4d1945",
+        "answer_config": {
+          "deepseek_model": "deepseek-v4-flash",
+          "deepseek_timeout_s": 60.0,
+          "deepseek_max_retries": 2,
+          "embedding_model": "data/models/bge-large-zh-v1.5",
+          "rag_enabled": false,
+          "rag_chroma_dir": "/root/projects/nitrogen-leaching-agent/backend/var/chroma_m16",
+          "rag_collection": "papers",
+          "chat_top_k": 5,
+          "chat_max_context_chars": 4000,
+          "chat_temperature": 0.3,
+          "rag_reranker_enabled": true,
+          "rag_reranker_top_k_recall": 20,
+          "rag_reranker_top_n": 5,
+          "rag_reranker_model": "data/models/bge-reranker-v2-m3",
+          "rag_reference_filter_enabled": true,
+          "rag_reference_filter_min_keep": 1,
+          "rag_reference_filter_overfetch": 10,
+          "rag_numeric_boost_enabled": true,
+          "rag_numeric_boost_weight": 0.445,
+          "rag_numeric_boost_band": 0.3
+        },
+        "answer_config_sha256": "2f3c79948d42f2cba7bba1f8f09a680b8d3c201d9593960f1e5a9e156a968a78",
+        "knowledge_index": {
+          "status": "disabled",
+          "content_sha256": null
+        },
+        "embedding_model": {
+          "status": "not_active",
+          "path": "data/models/bge-large-zh-v1.5"
+        },
+        "reranker_model": {
+          "status": "not_active",
+          "path": "data/models/bge-reranker-v2-m3"
+        },
+        "llm_model": {
+          "declared_name": "deepseek-v4-flash",
+          "provider_content_verified": false
+        },
+        "manifest_sha256": "fe8dfae3eef7788ee3d78885062d6b07196e9d30536f51c2475dd299245423c4"
+      },
+      "latency_ms": 0,
+      "status": "ok",
+      "error_code": null,
+      "outcome": "complete",
+      "warnings": [],
+      "sections": []
+    },
+    {
+      "schema_version": "1",
+      "harness_version": "0.2.0",
+      "run_id": "b59d6e80-6b86-44d5-ab07-2d98bd5cba23",
+      "conversation_ref": "fe81b7cc11fda6cff8214ef87d5f774159c663a8af9a99f49dfd6b6a05bc7a77",
+      "started_at": "2026-10-04T03:57:36.367027+00:00",
+      "input": "你好",
+      "state_before": {
+        "crop": null,
+        "attachment_ref": null,
+        "current_metric": null,
+        "current_operation": [],
+        "last_tool": "capability_guidance"
+      },
+      "state_after": {
+        "crop": null,
+        "attachment_ref": null,
+        "current_metric": null,
+        "current_operation": [],
+        "last_tool": "capability_guidance"
+      },
+      "decision": {
+        "route": "DIRECT",
+        "reason_code": "capability_request",
+        "skills": [
+          "capability_guidance"
+        ]
+      },
+      "tool_calls": [
+        {
+          "skill": "capability_guidance",
+          "status": "ok",
+          "latency_ms": 0,
+          "error_code": null
+        }
+      ],
+      "evidence": [],
+      "answer": "我可以根据本地文献回答农田氮淋失问题，并给出参考依据；也可以读取 WHCNS 氮/水平衡输出表，查询一个字段的整表最大值、最小值和对应模型日序。\n\n你可以问：\n- 玉米农田氮淋失主要受哪些因素影响？\n- 上传 Nbal_out.xls 后问：硝态氮淋失最大值及对应日序。\n\n文件功能分析的是已有输出表，目前不执行 WHCNS 模拟，也不自动制定施肥方案。",
+      "model": "agent-policy",
+      "config_version": "browser-workflow-20261003:fe8dfae3eef7788e",
+      "config_manifest": {
+        "agent_build_version": "browser-workflow-20261003",
+        "agent_code_sha256": "543f188959483e78c2db65fec7f44cab9b48e6f74b0fd159a272851d2fe0b766",
+        "prompt_code_sha256": "540822b677926b082c7be894761c750f4d304e3e55ab2c8e3fe26be2320c137a",
+        "retriever_code_sha256": "b75879d1ce6bb458993b8488b40d1008930cee714681dbee30eb4b24def4a34d",
+        "dependency_lock_sha256": "1b2836bacb8b168113d5bcbcfa365c5af97203992e3658f9a64fede65a4d1945",
+        "answer_config": {
+          "deepseek_model": "deepseek-v4-flash",
+          "deepseek_timeout_s": 60.0,
+          "deepseek_max_retries": 2,
+          "embedding_model": "data/models/bge-large-zh-v1.5",
+          "rag_enabled": false,
+          "rag_chroma_dir": "/root/projects/nitrogen-leaching-agent/backend/var/chroma_m16",
+          "rag_collection": "papers",
+          "chat_top_k": 5,
+          "chat_max_context_chars": 4000,
+          "chat_temperature": 0.3,
+          "rag_reranker_enabled": true,
+          "rag_reranker_top_k_recall": 20,
+          "rag_reranker_top_n": 5,
+          "rag_reranker_model": "data/models/bge-reranker-v2-m3",
+          "rag_reference_filter_enabled": true,
+          "rag_reference_filter_min_keep": 1,
+          "rag_reference_filter_overfetch": 10,
+          "rag_numeric_boost_enabled": true,
+          "rag_numeric_boost_weight": 0.445,
+          "rag_numeric_boost_band": 0.3
+        },
+        "answer_config_sha256": "2f3c79948d42f2cba7bba1f8f09a680b8d3c201d9593960f1e5a9e156a968a78",
+        "knowledge_index": {
+          "status": "disabled",
+          "content_sha256": null
+        },
+        "embedding_model": {
+          "status": "not_active",
+          "path": "data/models/bge-large-zh-v1.5"
+        },
+        "reranker_model": {
+          "status": "not_active",
+          "path": "data/models/bge-reranker-v2-m3"
+        },
+        "llm_model": {
+          "declared_name": "deepseek-v4-flash",
+          "provider_content_verified": false
+        },
+        "manifest_sha256": "fe8dfae3eef7788ee3d78885062d6b07196e9d30536f51c2475dd299245423c4"
+      },
+      "latency_ms": 0,
+      "status": "ok",
+      "error_code": null,
+      "outcome": "complete",
+      "warnings": [],
+      "sections": []
+    }
+  ],
+  "published_case": {
+    "case": {
+      "attachment_requirements": [
+        "Nbal_out.xls"
+      ],
+      "case_id": "CATBROWSER1791086250909",
+      "category": "F",
+      "expected": [
+        "继承 leak_NO3；值 0 kg N ha-1，首次日序 2，Nbal_out!C3/A3；191 条并列。",
+        "新会话、换表、过期、指标冲突或切换知识话题后，不自动沿用该指标。"
+      ],
+      "preconditions": "同一有效会话、同一有效附件；上一轮成功计算 leak_NO3。",
+      "priority": "P0",
+      "source": "9.28人工核验单.pdf / 9天开发交接.md",
+      "steps": [
+        {
+          "action": "upload",
+          "attachment": "Nbal_out.xls",
+          "input": null,
+          "instruction": "上传绑定指纹的真实氮表"
+        },
+        {
+          "action": "query",
+          "attachment": null,
+          "input": "leak_NO3 最大值及对应日序",
+          "instruction": "确认字段"
+        },
+        {
+          "action": "query",
+          "attachment": null,
+          "input": "那最小值呢？",
+          "instruction": "省略字段追问"
+        }
+      ],
+      "supersedes": "F05@1",
+      "title": "Browser catalog test only",
+      "version": 1
+    },
+    "dataset_id": "catalog-a2f74bc6-35e1-4b07-8cdb-3d7018900cfa",
+    "draft_id": "a2f74bc6-35e1-4b07-8cdb-3d7018900cfa",
+    "draft_revision": 3,
+    "fixtures": [
+      {
+        "asset_id": "5a48d2fa-8cf1-4243-98d8-5234dbd66e9d",
+        "filename": "Nbal_out.xls",
+        "path": "data/raw/whcns/received-2026-09-26/package/模型/Nbal_out.xls",
+        "sha256": "6bf778020c6ae752da6778bc5429d1b09bc59ea1f725462dfe20207cbef88276"
+      }
+    ],
+    "professional_review": "pending",
+    "published_at": "2026-10-04T03:57:32.252590+00:00",
+    "published_by": "browser-test-developer"
+  },
+  "case_draft_history": [
+    {
+      "case": {
+        "case_id": "CATBROWSER1791086250909",
+        "version": 1,
+        "category": "F",
+        "title": "Browser catalog test only",
+        "steps": [
+          {
+            "action": "upload",
+            "instruction": "上传绑定指纹的真实氮表",
+            "input": null,
+            "attachment": "Nbal_out.xls"
+          },
+          {
+            "action": "query",
+            "instruction": "确认字段",
+            "input": "leak_NO3 最大值及对应日序",
+            "attachment": null
+          },
+          {
+            "action": "query",
+            "instruction": "省略字段追问",
+            "input": "那最小值呢？",
+            "attachment": null
+          }
+        ],
+        "preconditions": "同一有效会话、同一有效附件；上一轮成功计算 leak_NO3。",
+        "attachment_requirements": [
+          "Nbal_out.xls"
+        ],
+        "expected": [
+          "继承 leak_NO3；值 0 kg N ha-1，首次日序 2，Nbal_out!C3/A3；191 条并列。",
+          "新会话、换表、过期、指标冲突或切换知识话题后，不自动沿用该指标。"
+        ],
+        "priority": "P0",
+        "source": "9.28人工核验单.pdf / 9天开发交接.md",
+        "supersedes": "F05@1"
+      },
+      "fixture_asset_ids": [
+        "5a48d2fa-8cf1-4243-98d8-5234dbd66e9d"
+      ],
+      "notes": "",
+      "fixtures": [
+        {
+          "asset_id": "5a48d2fa-8cf1-4243-98d8-5234dbd66e9d",
+          "filename": "Nbal_out.xls",
+          "sha256": "6bf778020c6ae752da6778bc5429d1b09bc59ea1f725462dfe20207cbef88276",
+          "path": "data/raw/whcns/received-2026-09-26/package/模型/Nbal_out.xls"
+        }
+      ],
+      "draft_id": "a2f74bc6-35e1-4b07-8cdb-3d7018900cfa",
+      "revision": 1,
+      "status": "draft",
+      "created_at": "2026-10-04T03:57:31.204484+00:00",
+      "created_by": "browser-test-developer",
+      "updated_at": "2026-10-04T03:57:31.204511+00:00",
+      "updated_by": "browser-test-developer"
+    },
+    {
+      "case": {
+        "case_id": "CATBROWSER1791086250909",
+        "version": 1,
+        "category": "F",
+        "title": "Browser catalog test only",
+        "steps": [
+          {
+            "action": "upload",
+            "instruction": "上传绑定指纹的真实氮表",
+            "input": null,
+            "attachment": "Nbal_out.xls"
+          },
+          {
+            "action": "query",
+            "instruction": "确认字段",
+            "input": "leak_NO3 最大值及对应日序",
+            "attachment": null
+          },
+          {
+            "action": "query",
+            "instruction": "省略字段追问",
+            "input": "那最小值呢？",
+            "attachment": null
+          }
+        ],
+        "preconditions": "同一有效会话、同一有效附件；上一轮成功计算 leak_NO3。",
+        "attachment_requirements": [
+          "Nbal_out.xls"
+        ],
+        "expected": [
+          "继承 leak_NO3；值 0 kg N ha-1，首次日序 2，Nbal_out!C3/A3；191 条并列。",
+          "新会话、换表、过期、指标冲突或切换知识话题后，不自动沿用该指标。"
+        ],
+        "priority": "P0",
+        "source": "9.28人工核验单.pdf / 9天开发交接.md",
+        "supersedes": "F05@1"
+      },
+      "fixture_asset_ids": [
+        "5a48d2fa-8cf1-4243-98d8-5234dbd66e9d"
+      ],
+      "notes": "unsaved revision must not publish",
+      "fixtures": [
+        {
+          "asset_id": "5a48d2fa-8cf1-4243-98d8-5234dbd66e9d",
+          "filename": "Nbal_out.xls",
+          "sha256": "6bf778020c6ae752da6778bc5429d1b09bc59ea1f725462dfe20207cbef88276",
+          "path": "data/raw/whcns/received-2026-09-26/package/模型/Nbal_out.xls"
+        }
+      ],
+      "draft_id": "a2f74bc6-35e1-4b07-8cdb-3d7018900cfa",
+      "revision": 2,
+      "status": "draft",
+      "created_at": "2026-10-04T03:57:31.204484+00:00",
+      "created_by": "browser-test-developer",
+      "updated_at": "2026-10-04T03:57:31.518258+00:00",
+      "updated_by": "browser-test-developer"
+    },
+    {
+      "case": {
+        "case_id": "CATBROWSER1791086250909",
+        "version": 1,
+        "category": "F",
+        "title": "Browser catalog test only",
+        "steps": [
+          {
+            "action": "upload",
+            "instruction": "上传绑定指纹的真实氮表",
+            "input": null,
+            "attachment": "Nbal_out.xls"
+          },
+          {
+            "action": "query",
+            "instruction": "确认字段",
+            "input": "leak_NO3 最大值及对应日序",
+            "attachment": null
+          },
+          {
+            "action": "query",
+            "instruction": "省略字段追问",
+            "input": "那最小值呢？",
+            "attachment": null
+          }
+        ],
+        "preconditions": "同一有效会话、同一有效附件；上一轮成功计算 leak_NO3。",
+        "attachment_requirements": [
+          "Nbal_out.xls"
+        ],
+        "expected": [
+          "继承 leak_NO3；值 0 kg N ha-1，首次日序 2，Nbal_out!C3/A3；191 条并列。",
+          "新会话、换表、过期、指标冲突或切换知识话题后，不自动沿用该指标。"
+        ],
+        "priority": "P0",
+        "source": "9.28人工核验单.pdf / 9天开发交接.md",
+        "supersedes": "F05@1"
+      },
+      "fixture_asset_ids": [
+        "5a48d2fa-8cf1-4243-98d8-5234dbd66e9d"
+      ],
+      "notes": "concurrent revision",
+      "fixtures": [
+        {
+          "asset_id": "5a48d2fa-8cf1-4243-98d8-5234dbd66e9d",
+          "filename": "Nbal_out.xls",
+          "sha256": "6bf778020c6ae752da6778bc5429d1b09bc59ea1f725462dfe20207cbef88276",
+          "path": "data/raw/whcns/received-2026-09-26/package/模型/Nbal_out.xls"
+        }
+      ],
+      "draft_id": "a2f74bc6-35e1-4b07-8cdb-3d7018900cfa",
+      "revision": 3,
+      "status": "draft",
+      "created_at": "2026-10-04T03:57:31.204484+00:00",
+      "created_by": "browser-test-developer",
+      "updated_at": "2026-10-04T03:57:31.713822+00:00",
+      "updated_by": "browser-test-developer"
+    },
+    {
+      "case": {
+        "case_id": "CATBROWSER1791086250909",
+        "version": 1,
+        "category": "F",
+        "title": "Browser catalog test only",
+        "steps": [
+          {
+            "action": "upload",
+            "instruction": "上传绑定指纹的真实氮表",
+            "input": null,
+            "attachment": "Nbal_out.xls"
+          },
+          {
+            "action": "query",
+            "instruction": "确认字段",
+            "input": "leak_NO3 最大值及对应日序",
+            "attachment": null
+          },
+          {
+            "action": "query",
+            "instruction": "省略字段追问",
+            "input": "那最小值呢？",
+            "attachment": null
+          }
+        ],
+        "preconditions": "同一有效会话、同一有效附件；上一轮成功计算 leak_NO3。",
+        "attachment_requirements": [
+          "Nbal_out.xls"
+        ],
+        "expected": [
+          "继承 leak_NO3；值 0 kg N ha-1，首次日序 2，Nbal_out!C3/A3；191 条并列。",
+          "新会话、换表、过期、指标冲突或切换知识话题后，不自动沿用该指标。"
+        ],
+        "priority": "P0",
+        "source": "9.28人工核验单.pdf / 9天开发交接.md",
+        "supersedes": "F05@1"
+      },
+      "fixture_asset_ids": [
+        "5a48d2fa-8cf1-4243-98d8-5234dbd66e9d"
+      ],
+      "notes": "concurrent revision",
+      "fixtures": [
+        {
+          "asset_id": "5a48d2fa-8cf1-4243-98d8-5234dbd66e9d",
+          "filename": "Nbal_out.xls",
+          "sha256": "6bf778020c6ae752da6778bc5429d1b09bc59ea1f725462dfe20207cbef88276",
+          "path": "data/raw/whcns/received-2026-09-26/package/模型/Nbal_out.xls"
+        }
+      ],
+      "draft_id": "a2f74bc6-35e1-4b07-8cdb-3d7018900cfa",
+      "revision": 4,
+      "status": "published",
+      "created_at": "2026-10-04T03:57:31.204484+00:00",
+      "created_by": "browser-test-developer",
+      "updated_at": "2026-10-04T03:57:32.252939+00:00",
+      "updated_by": "browser-test-developer",
+      "published_at": "2026-10-04T03:57:32.252590+00:00",
+      "published_by": "browser-test-developer"
+    }
+  ],
+  "tested_source_sha256": {
+    "backend/src/evaluation/__init__.py": "07e4901e2869e14b5fadc3d730d8d1380f8f9530aa1bc0775d8f933fb917d74e",
+    "backend/src/evaluation/auth.py": "a2b733f00f703b53198ce506f627d1bdf0c19e685b6c941df0b376d7e67f7af6",
+    "backend/src/evaluation/catalog.py": "05a30e044208e564c9731b86f31b61156ca2f2150cf3b7aba5b7a2ad583415dc",
+    "backend/src/evaluation/contracts.py": "e5c50a8c62583aab632f2a5b63cf02ed2f76281b81ba1bce91c681cc7ed85784",
+    "backend/src/evaluation/regression.py": "80f5509ad265b96cc844fc5683e1322b110a6af584050b09f8c040b50b56d404",
+    "backend/src/evaluation/service.py": "e00e75e97534715fd42a9b700a9f59604b38fb2c8faea02351dc85793610512e",
+    "backend/src/evaluation/store.py": "0e9234d193a8a7fe75daf48a91cb72a48c68b228587c8879791f1e0907f00353",
+    "backend/src/evaluation/versioning.py": "955ba56bad8d6e4edf71a11fb4c8289e53731d8683564c54b2aaecf4dd109c23",
+    "backend/src/evaluation/workflow.py": "85fbcdb752f42ecbdc67a683a38c1d08171d7324cf88ea840753307ec1937855",
+    "backend/src/api/evaluation.py": "352ab70f32a8a9bde80fe89f3342566e19e40b0cc917dad259814e7b9b01edd9",
+    "backend/tests/test_evaluation_integrity.py": "e836cf8cb42217e7ba8c111001e29d246ef88a80cdc4078ce65792c2ed21cb41",
+    "frontend/src/components/evaluation-catalog.tsx": "0ab0ce29e7539ed025a6f76bf6ccab82e8e30d6d55282a671c0afcb3e4555ffe",
+    "frontend/src/components/evaluation-workflow.tsx": "fa2d76322f5586f2ead3aec0270c85aab1731fab9846d25f0d60a411037a1532",
+    "frontend/src/components/evaluation-dashboard.tsx": "8189e4645225f1b31173cbee3bf6bda60a1b0014d2efb3cb3833a26e0ff564c3",
+    "frontend/src/app/evaluation/page.tsx": "6612d2cdf3f310163ef5732d305c9d30831698c5d2b42a51d9a53b2113eb820f",
+    "frontend/tests/evaluation-catalog.spec.ts": "4eb71fa9f10078c12a5f769ad262ec3d4340def81fb1ef96ddaa7e89d7fa1a68",
+    "frontend/tests/evaluation-regression.spec.ts": "22b1bc4f9c1af54720f7894a2b1492159359dbbc7b28b398795a701886e7c6c4"
+  }
+}

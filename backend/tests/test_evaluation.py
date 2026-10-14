@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from src.agent.runtime import AgentRuntime
-from src.api import chat, evaluation
+from src.api import chat, evaluation, files
 from src.evaluation.contracts import AccessFile, Principal
 from src.evaluation.service import EvaluationService
 from src.evaluation.store import EvaluationStore
@@ -36,6 +36,7 @@ def client(tmp_path):
     store.seed(ROOT/'data/eval')
     app.state.evaluation = EvaluationService(store)
     app.include_router(chat.router, prefix='/api')
+    app.include_router(files.router, prefix='/api')
     app.include_router(evaluation.router, prefix='/api')
     with TestClient(app) as c:
         yield c
@@ -512,3 +513,33 @@ def test_asset_provenance_candidate_pair_and_versioned_case_publication(client):
     assert [item['revision'] for item in history] == [1, 2, 3]
     assert client.post(f'/api/eval/case-drafts/{draft["draft_id"]}/publish', headers=headers('dev'),
                        json={'expected_revision': 2}).status_code == 409
+
+
+def test_internal_front_chat_identity_and_file_ownership(client):
+    # An internal login overrides the untrusted body and separates equal UI session IDs.
+    from src.evaluation.auth import password_hash
+    for entry in client.app.state.eval_access.users:
+        entry.username = 'cau_' + entry.tester_id
+        entry.password_hash = password_hash('CauTest123456')
+    response = client.post('/api/eval/login', json={'username': 'cau_alice', 'password': 'CauTest123456'})
+    token = response.json()['token']
+    signed = {'Authorization': 'Bearer ' + token}
+    uploaded = client.post('/api/files?filename=note.txt&session_id=shared-ui-session',
+                           headers={**signed, 'Content-Type': 'application/octet-stream'}, content=b'Internal notes for Alice.')
+    assert uploaded.status_code == 200
+    file_id = uploaded.json()['file_id']
+    assert client.post('/api/files/status', headers=signed, json={'file_ids': [file_id], 'session_id': 'shared-ui-session'}).json()['files'][0]['status'] == 'available'
+    assert client.post('/api/files/status', headers=headers('bob'), json={'file_ids': [file_id], 'session_id': 'shared-ui-session'}).json()['files'][0]['status'] == 'expired'
+    assert client.post('/api/files/release', json={'file_ids': [file_id]}).json()['released'] == 0
+    result = client.post('/api/chat', headers=signed, json={'query': '你好', 'session_id': 'shared-ui-session', 'operator_id': 'dev'})
+    assert result.status_code == 200
+    listing = client.get('/api/eval/sessions', headers=headers('dev')).json()
+    assert listing['items'][0]['operator_id'] == 'alice'
+    # Reusing the UI session ID as another user cannot merge their conversation.
+    assert client.post('/api/chat', headers=headers('bob'), json={'query': '你好', 'session_id': 'shared-ui-session'}).status_code == 200
+    assert client.get('/api/eval/sessions', headers=headers('dev')).json()['total'] == 2
+    assert client.post('/api/chat', headers=headers('bob'), json={'query': '你好', 'file_ids': [file_id], 'session_id': 'shared-ui-session'}).status_code == 404
+    assert client.post('/api/eval/logout', headers=signed).status_code == 204
+    assert client.post('/api/chat', headers=signed, json={'query': '你好'}).status_code == 401
+    assert client.post('/api/chat', json={'query': '你好', 'operator_id': 'dev', 'session_id': 'anonymous-ui'}).status_code == 200
+    assert client.get('/api/eval/sessions', headers=headers('dev'), params={'operator_id': 'dev'}).json()['total'] == 0
