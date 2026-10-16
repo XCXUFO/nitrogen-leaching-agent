@@ -1,21 +1,37 @@
 # 评测工作台使用说明
 
-> 2026-10-05：面向当前侧栏版的完整操作说明已拆为[测评者使用说明书](tester-user-manual.md)和[开发者使用说明书](developer-user-manual.md)。第一次使用请先读对应版本；本文保留早期技术说明，部分面板名称和入口属于旧布局。
+更新日期：2026-10-15。登录与新增模块说明按当前工作区实现更新；实际使用前请确认部署版本。文献 AI 增强与星标问题包含尚未提交的改动，本次文档更新不表示已经部署。
+
+第一次使用请按任务阅读：
+
+- [测评者使用说明书](tester-user-manual.md)：账号登录、任务、执行、评分与专业审核。
+- [资料管理使用说明](workbench-materials-guide.md)：文献上传登记、AI 字段/结论解析、AI 打标、多级标签、案例表格与解释、星标问题。
+- [开发者使用说明书](developer-user-manual.md)：权限、完整评测闭环、问题定位、备份和服务维护。
+
+本文后半部分保留评测与 Trace 的技术查阅说明；历史批次记录按各自日期阅读，不作为当前环境的验收状态。
 
 本机入口：[http://localhost:3000/evaluation](http://localhost:3000/evaluation)。
-当前实现用例执行、独立评分、开发者 Trace、评分分布与回归版本比较，不替代专业审核。
-这是基础工作台的操作说明；完整后台的未完成事项及文档入口见 [最新交接](handoff-2026-10-04.md)。
+工作台提供评测管理、质量管理及资料与证据三个分组。资料分组新增的文献、标签、案例与措施、星标问题均面向三个现有角色开放；执行所有权和专家审核权限仍分别校验。
 
 ## 登录
 
-本机已生成两个独立身份：`local-tester`（测试者）、`local-developer`（开发者）。
-密钥在本机私有文件 `backend/var/eval/access-credentials.txt`，复制对应行冒号后的密钥登录。
-文件权限为 600，受 Git ignore 保护。服务端 `access-keys.json` 只存密钥摘要及角色映射。
-不要把开发者密钥给测试者，也不要把密钥写进评分备注。
+当前网页使用账号和密码登录，角色由服务端配置决定；旧密钥输入已取消。本机配置包含开发者 `cau_dev`、审核者 `cau_expert1/2`、测试者 `cau_tester1/2/3`，其他环境以负责人分配的账号为准。私有密码由管理员从 `backend/var/eval/account-credentials.txt` 按人员分发，不写进说明书或评分备注。`access-keys.json` 保存账号、角色与密码哈希。
 
-网页只在内存中保存密钥；刷新后重新登录，可以从执行列表打开自己的已有记录。
+可直接在工作台登录，也可在前台点“内部人员登录”后进入“管理工作台”。同一标签页的前台、展示页和工作台共享登录，切换和刷新保持身份；关闭标签页后通常清除凭据。正常窗口定期续期，超过 8 小时未续期、后端重启或主动退出后需重新登录。网络验证失败可点“重新验证登录”。登录保持不代表未提交表单自动保存。
+
 测试者看不到其他测试者的执行和开发者 Trace；开发者可以查看全部记录，
 但不能代替别人继续执行或提交评分。权限由服务端检查。
+
+## 新增资料模块入口
+
+| 模块 | 路径 | 使用说明 |
+|---|---|---|
+| 文献管理 | `/evaluation/literature` | 上传、核对题录和结论、AI 打标，保存草稿或完成登记 |
+| 标签管理 | `/evaluation/literature-tags` | 维护分类维度、最多五级标签及单选/多选规则 |
+| 案例与措施 | `/evaluation/case-library` | 编辑原文与表格、采用 AI 解释并保存、开放后验证案例能力 |
+| 星标问题 | `/evaluation/starred-questions` | 保存共享专业问题、人工补录或修正答案 |
+
+按钮步骤、保存时机、冲突处理及能力限制统一见[资料管理使用说明](workbench-materials-guide.md)。业务案例与评测用例分开维护，星标问题也不等于审核队列。
 
 ## 测试者：执行并评分
 
@@ -201,7 +217,7 @@ AI 辅助复核另存为 `ai_assisted`；该记录**不会**将用例标记为�
 
 ## 开发者：资产目录与 Case 版本
 
-在工作台的“Case 与数据资产目录”登记 `data/` 或 `docs/` 下的原件路径、来源和备注；服务器计算并保存 SHA-256。模型输入与输出先保存候选配对。只有 `reviewer` 身份可选择候选配对、证据资产并写核实依据，保存一条独立的“专家核实”记录。系统核对身份、资产类型和证据指纹；证据材料是否真的证明输入输出关系仍需审核人阅读判断。
+在工作台的“资料与证据 → 资产目录”登记 `data/` 或 `docs/` 下的原件路径、来源和备注；服务器计算并保存 SHA-256。模型输入与输出先保存候选配对。只有 `reviewer` 身份可选择候选配对、证据资产并写核实依据，保存一条独立的“专家核实”记录。系统核对身份、资产类型和证据指纹；证据材料是否真的证明输入输出关系仍需审核人阅读判断。
 提交核实前会重新计算输入、输出和证据三份原件的 SHA-256；文件已改变时须重新登记和核查。
 
 开发者可复制当前 Case 到草稿，编辑 JSON 标准并关联已登记的结果表资产。每次保存生成新修订，历史可查；发布前服务器再次核对附件原件指纹，只允许高于现有最高版本的新版本。发布后原 Case、执行和评分不变。工作台测试执行仍一次使用一个附件；多文件主聊天规则不自动改写旧 Case 标准。
@@ -213,18 +229,18 @@ AI 辅助复核另存为 `ai_assisted`；该记录**不会**将用例标记为�
 
 后端需要 `EVAL_ENABLED=true`，默认关闭，未启用时评测接口返回 404。
 启用时缺少或损坏的身份文件会导致启动失败，不会降级成匿名可访问。
-首次为新环境生成身份（已有文件不会覆盖）：
+首次为全新配置目录生成账号；已有账号不要重复初始化，旧密钥迁移及启动检查见[开发者说明书第 14 节](developer-user-manual.md)：
 
 ```bash
 # backend/
-.venv/bin/python scripts/create_eval_access.py --tester local-tester --developer local-developer --reviewer local-expert
+.venv/bin/python scripts/create_eval_accounts.py --directory var/eval-new-environment
 env EVAL_ENABLED=true AGENT_BUILD_VERSION=local-eval \
-  HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 DEEPSEEK_PROXY=http://127.0.0.1:7890 \
+  EVAL_ACCESS_FILE=var/eval-new-environment/access-keys.json \
+  HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 \
   .venv/bin/python -m uvicorn src.main:app --host 127.0.0.1 --port 8000 --workers 1
 ```
 
-本机模型直连受限，真实知识问答需沿用 `DEEPSEEK_PROXY=http://127.0.0.1:7890`，
-使用本地模型时同时设 `HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1`。
+真实知识问答及 AI 资料处理需可用的模型配置。`DEEPSEEK_PROXY` 按实际网络配置；本机曾使用 7890 代理，不能直接套用到服务器。以上开发启动示例使用已下载的本地模型，离线变量不代表外部 LLM 也能离线运行。
 正式采集评测时将 `local-eval` 替换为实际源码快照标识，以便比较版本。
 端口已占用时不要重复启动。常驻服务不一定已加载工作区最新代码；正式复测前核对
 `/api/eval/config`、实际构建和数据库位置，不能从本文推断实时服务版本。
@@ -233,6 +249,8 @@ env EVAL_ENABLED=true AGENT_BUILD_VERSION=local-eval \
 `AGENT_TRACE_DB` 默认 `backend/var/agent/runs.sqlite3`。
 Case、Task、Execution、Event、Review、Issue、复测、独立审核、Regression、Replay 与 Run 共享该 SQLite，运行记录及评分持久化；
 临时附件和对话上下文仍在内存，单 worker。更换数据库也会切换可见执行与评分。
+
+星标问题也保存在 `AGENT_TRACE_DB`。文献库、文献 PDF 和案例库分别使用 `LITERATURE_DB`、`LITERATURE_FILES_DIR`、`CASE_LIBRARY_DB`，须单独纳入备份；详细路径和备份范围见[开发者说明书第 15 节](developer-user-manual.md)。
 
 [第四批验收清单](acceptance-04.md)已有用户提供的 PDF 人工结果转录；专业核查仍单独记录。
 后续工程和人工工作顺序见 [最新工作清单](next-work-2026-10-04.md)，原需求保留在

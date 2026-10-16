@@ -33,6 +33,9 @@ export interface ChatRequest {
 }
 
 export interface ChatResponse {
+  case_route?: string[];
+  case_match?: "matched" | "missing" | "text_only" | "unavailable" | null;
+  case_gap_recorded?: boolean;
   case_references?: { id: string; title: string; source: string }[];
   answer: string;
   citations: Citation[];

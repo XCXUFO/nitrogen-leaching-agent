@@ -162,6 +162,10 @@ for visitor isolation, request budgets, deployment settings and evidence scope.
 - [Backend setup](backend/README.md)
 - [Frontend setup](frontend/README.md)
 - [Development guide](docs/development.md)
+- [工具能力盘点归档：Skill、MCP 与后续优化候选（2026-10-16）](docs/iterations/2026-10-16-tool-capability-inventory/README.md)
+- [工作台使用说明与文档导航](docs/iterations/2026-09-29-agent-harness/evaluation-guide.md)
+- [资料管理使用说明：文献、AI 打标与结论、案例、星标问题](docs/iterations/2026-09-29-agent-harness/workbench-materials-guide.md)
+- [工作台风险审查与修复验收（2026-10-16–17）](docs/iterations/2026-10-16-workday-risk-review/review.md)
 - [Stage check report / 阶段性检查说明](docs/STAGE_CHECK_REPORT.md)
 
 ## License

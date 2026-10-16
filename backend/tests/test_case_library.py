@@ -51,7 +51,7 @@ def test_minimum_fields_and_search(store):
     assert not item["enabled"] and item["explanation"] == item["source"] == ""
     assert store.available() == []
     assert store.list("玉米")["total"] == 1
-    assert store.list("分次施肥")["total"] == 0  # title-only management search
+    assert store.list("分次施肥")["total"] == 1  # Full content search
     assert store.list("%")["total"] == 0  # literal keyword
     assert store.list(availability="disabled")["total"] == 1
 
@@ -90,7 +90,7 @@ async def test_reference_uses_saved_explanation_and_no_fabricated_source(store):
     item = seed(store, enabled=True, explanation="人工说明")
     llm = FakeLLM([item["id"]])
     result = await answer_cases(CaseSkillInput(query="有没有类似案例？"), mode="reference", store=store, llm=llm)
-    assert item["id"] in result.answer
+    assert item["id"] not in result.answer
     assert result.case_references[0].source == ""
     assert "人工说明" in llm.messages[-1].content
     assert "正文是事实依据" in llm.messages[0].content
@@ -209,7 +209,7 @@ async def test_reference_preserves_specific_clarification(store):
 
 @pytest.mark.asyncio
 async def test_followups_keep_ids_without_client_history_and_honor_new_subject(store):
-    first, second = seed(store, enabled=True), seed(store, enabled=True)
+    first, second = seed(store, enabled=True), seed(store, enabled=True, supplementary="另一个场景")
     runtime = AgentRuntime()
     async def report(_):
         raise AssertionError("unrelated file access")
@@ -345,3 +345,115 @@ async def test_many_ids_in_question_return_explicit_http_capacity_error(store):
             assert result.json()["detail"]["code"] == "case_capacity"
     finally:
         app.state.agent_runtime.runs.close()
+
+
+@pytest.mark.parametrize("query,skills", [
+    ("介绍几个玉米案例", ["case_reference"]),
+    ("找两个案例并比较措施差异", ["case_reference", "case_explanation"]),
+    ("有没有类似案例，解释为什么这样施肥", ["case_reference", "case_explanation"]),
+    ("比较这两个案例", ["case_explanation"]),
+])
+def test_v11_routing(query, skills):
+    assert decide(query, has_file=False).skills == skills
+
+
+@pytest.mark.asyncio
+async def test_v11_composed_execution_and_comparison_followup(store):
+    a = store.create(CaseInput(title="甲地玉米", body="甲地分次施肥", enabled=True), "tester")
+    b = store.create(CaseInput(title="乙地玉米", body="乙地滴灌施肥", enabled=True), "tester")
+    class TrackingLLM(FakeLLM):
+        calls = []
+        async def chat(self, messages, **kwargs):
+            self.calls.append(json.loads(messages[-1].content))
+            return await super().chat(messages, **kwargs)
+    llm = TrackingLLM([a["id"], b["id"]], answer=f"{a['id']}与{b['id']}措施不同。")
+    runtime = AgentRuntime()
+    async def report(_):
+        raise AssertionError("unexpected file access")
+    try:
+        result = await runtime.execute(ChatRequest(query="找两个案例并比较措施差异", session_id="v11"),
+            service=None, get_report=report, case_store=store, llm=llm)
+        assert result.case_route == ["case_reference", "case_explanation"]
+        assert len(llm.calls) == 2 and result.usage.total_tokens == 4
+        assert "C-" not in result.answer and "甲地玉米" in result.answer
+        llm.ids = [a["id"]]
+        llm.answer = "甲地玉米分次施肥。"
+        await runtime.execute(ChatRequest(query="详细解释第一个", session_id="v11"),
+            service=None, get_report=report, case_store=store, llm=llm)
+        llm.ids = [a["id"], b["id"]]
+        await runtime.execute(ChatRequest(query="这两者的区别呢", session_id="v11"),
+            service=None, get_report=report, case_store=store, llm=llm)
+        assert {case["id"] for case in llm.calls[-1]["available_cases"]} == {a["id"], b["id"]}
+        assert "本轮参考案例顺序" in llm.calls[-1]["previous_user_text"]
+    finally:
+        runtime.runs.close()
+
+
+@pytest.mark.asyncio
+async def test_v11_empty_library_records_gap_without_llm(store):
+    for _ in range(2):
+        result = await answer_cases(CaseSkillInput(query="有没有盐碱地玉米案例"), mode="reference", store=store, llm=None)
+        assert result.case_match == "missing" and result.case_gap_recorded
+    assert len(store.gaps()) == 1 and store.gaps()[0]["occurrences"] == 2
+    reopened = CaseStore(store.db.execute("PRAGMA database_list").fetchone()[2])
+    try:
+        assert reopened.gaps()[0]["occurrences"] == 2
+    finally:
+        reopened.close()
+
+
+def test_v11_exact_duplicates_only(store):
+    for _ in range(2):
+        seed(store, enabled=True)
+    store.create(CaseInput(title="其他地区玉米", body="采取分次施肥。未记载结果。", enabled=True), "tester")
+    assert len(store.duplicates()) == 1
+    assert len(store.available()) == 2
+    assert store.list()["total"] == 3  # source records remain reviewable
+
+
+@pytest.mark.asyncio
+async def test_v11_explicit_duplicates_and_coverage_endpoint(store):
+    a, b = seed(store, enabled=True), seed(store, enabled=True)
+    llm = FakeLLM([a["id"]])
+    result = await answer_cases(CaseSkillInput(query="比较", case_ids=[a["id"], b["id"]]), mode="explain", store=store, llm=llm)
+    assert len(result.case_references) == 1
+    assert len(json.loads(llm.messages[-1].content)["available_cases"]) == 1
+    store.record_gap("缺少水稻案例")
+    app = FastAPI()
+    app.include_router(case_library.router, prefix="/api")
+    app.state.case_library = store
+    app.dependency_overrides[current_user] = lambda: Principal(tester_id="reviewer", role="reviewer")
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.get("/api/case-library/coverage")
+        assert response.status_code == 200
+        assert response.json()["gaps"][0]["question"] == "缺少水稻案例"
+        assert len(response.json()["duplicates"]) == 1
+        app.dependency_overrides.clear()
+        assert (await client.get("/api/case-library/coverage")).status_code in (401, 404)
+
+
+@pytest.mark.asyncio
+async def test_referential_case_question_preserves_subject_and_closed_status(store):
+    a = store.create(CaseInput(title='甲地玉米', body='甲地分次施肥', enabled=True), 'tester')
+    b = store.create(CaseInput(title='乙地水稻', body='乙地灌溉', enabled=True), 'tester')
+    runtime = AgentRuntime()
+    llm = FakeLLM([a['id']])
+    async def report(_):
+        raise AssertionError('unrelated file access')
+    async def ask(query):
+        return await runtime.execute(ChatRequest(query=query, session_id='review-scope'),
+            service=None, get_report=report, case_store=store, llm=llm)
+    try:
+        await ask('找一个玉米案例')
+        for query in ('这个案例适合什么土壤？', '该案例用了什么肥料？'):
+            result = await ask(query)
+            payload = json.loads(llm.messages[-1].content)
+            assert result.case_route == ['case_explanation']
+            assert [c['id'] for c in payload['available_cases']] == [a['id']]
+            assert '找一个玉米案例' in payload['previous_user_text']
+        store.change(a['id'], 1, {'enabled': False}, 'tester')
+        assert (await ask('这个案例适合什么土壤？')).case_match == 'unavailable'
+        llm.ids = [b['id']]
+        assert (await ask('有没有其他可以参考的案例？')).case_route == ['case_reference']
+    finally:
+        runtime.runs.close()

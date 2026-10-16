@@ -12,6 +12,7 @@ test('AI draft adoption, conflict preservation, navigation guard and explicit sa
     const path = new URL(route.request().url()).pathname;
     let json: unknown;
     if (path === '/api/eval/me') json = { tester_id: 'tester', role: 'tester' };
+    else if (path === '/api/case-library/taxonomy') json = { dimensions: [], tags: [] };
     else if (path === '/api/eval/login') json = { token: 'mock-session-token', user: { tester_id: 'tester', role: 'tester' } };
     else if (path === '/api/case-library/explanation-draft') {
       expect(route.request().postDataJSON().body).toBe('<p>更新的原文</p>');
@@ -69,6 +70,7 @@ test('minimum fields save after draft failure with Agent closed by default', asy
     const path = new URL(route.request().url()).pathname;
     let json: unknown;
     if (path === '/api/eval/me') json = { tester_id: 'tester', role: 'tester' };
+    else if (path === '/api/case-library/taxonomy') json = { dimensions: [], tags: [] };
     else if (path === '/api/eval/login') json = { token: 'mock-session-token', user: { tester_id: 'tester', role: 'tester' } };
     else if (path === '/api/case-library/explanation-draft') { await route.fulfill({ status: 502, json: { detail: { message: '解释生成失败，请重试或手动填写。' } } }); return; }
     else if (path === '/api/case-library' && route.request().method() === 'POST') { created = route.request().postDataJSON(); json = { ...initial, ...created }; }
@@ -97,6 +99,7 @@ test('title filter, availability changes, deletion and standalone explanation', 
     const path = url.pathname, method = route.request().method();
     let json: unknown;
     if (path === '/api/eval/me') json = { tester_id: 'tester', role: 'tester' };
+    else if (path === '/api/case-library/taxonomy') json = { dimensions: [], tags: [] };
     else if (path === '/api/eval/login') json = { token: 'mock-session-token', user: { tester_id: 'tester', role: 'tester' } };
     else if (path === '/api/case-library') {
       queries.push(url.search);
@@ -122,11 +125,11 @@ test('title filter, availability changes, deletion and standalone explanation', 
   await page.getByLabel('密码', { exact: true }).fill('test-password');
   await page.getByRole('button', { name: '进入工作台' }).click();
   await expect(page.getByRole('link', { name: '玉米案例', exact: true })).toBeVisible();
-  await page.getByLabel('按标题搜索').fill('水稻');
+  await page.getByLabel('关键词搜索').fill('水稻');
   await page.getByRole('button', { name: '搜索', exact: true }).click();
   await expect(page.getByText('暂无符合条件的案例')).toBeVisible();
   expect(queries.some((query) => new URLSearchParams(query).get('keyword') === '水稻')).toBeTruthy();
-  await page.getByLabel('按标题搜索').fill('');
+  await page.getByLabel('关键词搜索').fill('');
   await page.getByRole('button', { name: '搜索', exact: true }).click();
   await page.getByLabel('开放状态').selectOption('disabled');
   await expect(page.getByText('暂无符合条件的案例')).toBeVisible();
@@ -151,6 +154,7 @@ test('Word table paste keeps empty cells, edits rows and columns, and survives s
     const path = new URL(route.request().url()).pathname;
     let json: unknown;
     if (path === '/api/eval/me') json = { tester_id: 'tester', role: 'tester' };
+    else if (path === '/api/case-library/taxonomy') json = { dimensions: [], tags: [] };
     else if (path === '/api/eval/login') json = { token: 'mock-session-token', user: { tester_id: 'tester', role: 'tester' } };
     else if (path === '/api/case-library/explanation-draft') {
       draftBody = route.request().postDataJSON().body;
@@ -211,4 +215,106 @@ test('Word table paste keeps empty cells, edits rows and columns, and survives s
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(editor).toBeVisible();
   await expect(page.getByRole('textbox', { name: '解释与说明（选填）', exact: true })).toBeVisible();
+});
+
+test('automatic case routing, visible conversation and explicit skill isolation', async ({ page }) => {
+  const requests: { session_id: string; case_skill: string | null; history: unknown[] }[] = [];
+  await page.route('**/api/**', async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    let json: unknown;
+    if (path === '/api/eval/me') json = { tester_id: 'tester', role: 'tester' };
+    else if (path === '/api/case-library/taxonomy') json = { dimensions: [], tags: [] };
+    else if (path === '/api/eval/login') json = { token: 'mock-session-token', user: { tester_id: 'tester', role: 'tester' } };
+    else if (path === '/api/case-library') json = { items: [], total: 0, page: 1, page_size: 20 };
+    else if (path === '/api/chat') {
+      requests.push(route.request().postDataJSON());
+      json = { answer: `第${requests.length}轮回答`, citations: [], case_route: requests.length === 1 ? ['case_reference', 'case_explanation'] : ['case_explanation'], case_match: 'matched', case_references: [{ id: initial.id, title: '天津番茄案例', source: '试验记录' }], usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 }, model: 'fixture', retrieved_count: 1 };
+    } else throw new Error(`Unexpected ${path}`);
+    await route.fulfill({ json });
+  });
+  await page.goto('/evaluation/case-library');
+  await page.getByLabel('账号', { exact: true }).fill('tester');
+  await page.getByLabel('密码', { exact: true }).fill('test-password');
+  await page.getByRole('button', { name: '进入工作台' }).click();
+  await expect(page.getByLabel('选择 Skill')).toHaveValue('auto');
+  await page.getByLabel('验证问题或专业文字').fill('找两个案例并解释');
+  await page.getByRole('button', { name: '验证效果', exact: true }).click();
+  await expect(page.getByText('本次路由：案例与措施参考 → 案例与措施解释 · 已匹配案例')).toBeVisible();
+  await expect(page.getByText(initial.id)).toHaveCount(0);
+  await page.getByLabel('验证问题或专业文字').fill('这两者有什么区别');
+  await page.getByRole('button', { name: '验证效果', exact: true }).click();
+  await expect(page.getByText('第2轮回答', { exact: true })).toBeVisible();
+  await expect(page.getByText('第1轮回答', { exact: true })).toBeVisible();
+  expect(requests[0].case_skill).toBeNull();
+  expect(requests[1].session_id).toBe(requests[0].session_id);
+  expect(requests[1].history).toHaveLength(2);
+  await page.getByLabel('选择 Skill').selectOption('explain');
+  await page.getByLabel('验证问题或专业文字').fill('解释分次施肥');
+  await page.getByRole('button', { name: '验证效果', exact: true }).click();
+  await expect(page.getByText('第3轮回答', { exact: true })).toBeVisible();
+  expect(requests[2].case_skill).toBe('explain');
+  expect(requests[2].session_id).not.toBe(requests[0].session_id);
+  expect(requests[2].history).toHaveLength(0);
+});
+
+test('shared tags appear on list and detail, edit persists and list filters apply', async ({ page }) => {
+  const saved = { ...initial, tag_ids: ['maize'] };
+  const catalog = { dimensions: [{ id: 'crop', name: '作物', enabled: 1, selection: 'single', required: true }], tags: [
+    { id: 'grains', dimension_id: 'crop', parent_id: null, name: '粮食作物', path: '粮食作物', enabled: 1 },
+    { id: 'maize', dimension_id: 'crop', parent_id: 'grains', name: '玉米', path: '粮食作物 / 玉米', enabled: 1 },
+    { id: 'wheat', dimension_id: 'crop', parent_id: 'grains', name: '小麦', path: '粮食作物 / 小麦', enabled: 1 },
+  ] };
+  const queries: URLSearchParams[] = [];
+  await page.route('**/api/**', async (route) => {
+    const url = new URL(route.request().url());
+    const path = url.pathname;
+    let json: unknown;
+    if (path === '/api/eval/me') json = { tester_id: 'tester', role: 'tester' };
+    else if (path === '/api/eval/login') json = { token: 'mock-session-token', user: { tester_id: 'tester', role: 'tester' } };
+    else if (path === '/api/case-library/taxonomy') json = catalog;
+    else if (path === '/api/case-library') {
+      queries.push(url.searchParams);
+      const selected = url.searchParams.get('tags');
+      const matches = url.searchParams.get('tag_status') !== 'untagged' && (!selected || selected === 'grains' || saved.tag_ids.includes(selected));
+      json = { items: matches ? [{ ...saved, summary: saved.body, has_explanation: true }] : [], total: matches ? 1 : 0, page: 1, page_size: 20 };
+    } else if (path === `/api/case-library/${initial.id}`) {
+      if (route.request().method() === 'PUT') {
+        expect(route.request().postDataJSON().tag_ids).toEqual(['wheat']);
+        Object.assign(saved, route.request().postDataJSON(), { revision: 2 });
+      }
+      json = saved;
+    } else throw new Error(`Unexpected ${path}`);
+    await route.fulfill({ json });
+  });
+  await page.goto('/evaluation/case-library');
+  await page.getByLabel('账号', { exact: true }).fill('tester');
+  await page.getByLabel('密码', { exact: true }).fill('test-password');
+  await page.getByRole('button', { name: '进入工作台' }).click();
+  await expect(page.getByRole('cell', { name: '作物：粮食作物 / 玉米', exact: true })).toBeVisible();
+  await page.getByRole('link', { name: '玉米案例', exact: true }).click();
+  await expect(page.getByRole('region', { name: '分类标签', exact: true })).toContainText('作物：粮食作物 / 玉米');
+  await page.getByRole('link', { name: '编辑', exact: true }).click();
+  await page.getByRole('button', { name: '作物级联选择' }).click();
+  await page.getByRole('button', { name: '展开 粮食作物' }).click();
+  await expect(page.getByRole('checkbox', { name: '粮食作物 / 玉米', exact: true })).toBeChecked();
+  await page.getByRole('checkbox', { name: '粮食作物 / 小麦', exact: true }).check();
+  await expect(page.getByRole('checkbox', { name: '粮食作物 / 玉米', exact: true })).not.toBeChecked();
+  await page.getByRole('button', { name: '关闭标签选择' }).click();
+  await page.getByRole('button', { name: '保存', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`${initial.id}$`));
+  await page.reload();
+  await expect(page.getByRole('region', { name: '分类标签', exact: true })).toContainText('作物：粮食作物 / 小麦');
+  await page.goto('/evaluation/case-library');
+  await expect(page.getByRole('cell', { name: '作物：粮食作物 / 小麦', exact: true })).toBeVisible();
+  await page.locator('summary').filter({ hasText: '分类标签' }).click();
+  await page.getByRole('button', { name: '作物级联选择' }).click();
+  await page.getByRole('checkbox', { name: '粮食作物', exact: true }).check();
+  await expect.poll(() => queries.at(-1)?.get('tags')).toBe('grains');
+  await page.getByRole('button', { name: '关闭标签选择' }).click();
+  await page.getByLabel('打标状态', { exact: true }).selectOption('untagged');
+  await expect(page.getByText('暂无符合条件的案例', { exact: true })).toBeVisible();
+  expect(queries.at(-1)?.get('tags')).toBe('grains');
+  catalog.tags[2].enabled = 0;
+  await page.goto(`/evaluation/case-library/${initial.id}`);
+  await expect(page.getByRole('region', { name: '分类标签', exact: true })).toContainText('小麦（已停用）');
 });

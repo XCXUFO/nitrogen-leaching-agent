@@ -53,9 +53,8 @@ export function EvaluationReviewQueue({ token, role, onOpenExecution, revision }
   }
   const visible = items.filter((item) => (!status || item.status === status)
     && `${item.case_id} ${item.execution_id} ${item.tester_id}`.toLowerCase().includes(search.toLowerCase()));
-  return <section aria-label="独立审核队列" className="space-y-4 rounded-lg border p-5">
-    <div className="flex flex-wrap items-start justify-between gap-2"><div><h2 className="text-lg font-semibold">独立审核队列</h2>
-      <p className="text-xs text-muted-foreground">开发评分、专家结论和分歧处理分别保存。这里的队列状态不表示专业通过率。</p></div>
+  return <section aria-label="独立审核队列" className="space-y-3 rounded-lg border p-3">
+    <div className="flex flex-wrap items-start justify-between gap-2"><div><h2 className="text-base font-semibold">独立审核队列</h2></div>
       <button className={button} disabled={busy} onClick={() => void perform(async () => { setNotice("审核队列已刷新。"); })}>刷新审核队列</button></div>
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
     {notice && <p role="status" className="text-sm">{notice}</p>}
@@ -64,7 +63,7 @@ export function EvaluationReviewQueue({ token, role, onOpenExecution, revision }
         {Object.entries(labels).map(([key, value]) => <option key={key} value={key}>{value}</option>)}</select>
       <input aria-label="检索审核执行" className={field} value={search} onChange={(e) => setSearch(e.target.value)} placeholder="用例、执行 ID 或测试者" />
     </div>
-    <div className="max-h-[36rem] space-y-3 overflow-auto">{visible.map((item) => <article key={item.execution_id} className="space-y-2 rounded border p-3 text-sm">
+    <div className="max-h-[36rem] space-y-2 overflow-auto">{visible.map((item) => <article key={item.execution_id} className="space-y-2 rounded border p-3 text-sm">
       <h3 className="font-medium">{item.case_id}@{item.case_version} · {labels[item.status] ?? item.status}</h3>
       <p className="break-all text-xs text-muted-foreground">执行 {item.execution_id} · {item.tester_id} · {new Date(item.created_at).toLocaleString()}</p>
       <p className="text-xs">开发评分：{item.development_review?.overall ?? "未提交"}；已分派：{item.assignments.map((assignment) => assignment.reviewer_id).join("、") || "无"}；待审核：{item.pending_reviewers.join("、") || "无"}</p>

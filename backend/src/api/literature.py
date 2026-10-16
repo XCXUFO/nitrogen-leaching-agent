@@ -25,12 +25,13 @@ from loguru import logger
 from pydantic import AliasChoices, BaseModel, Field
 
 from src.api.literature_extract import local_suggestions, read_pdf_for_extraction, suggest_fields
+from src.api.literature_tagging import available_taxonomy, merge_tag_suggestions, suggest_tags
 from src.config import settings
 from src.evaluation.auth import current_user
 from src.evaluation.contracts import Principal
 
 router = APIRouter(prefix="/literature")
-FIELD_LABELS = {"title": "论文标题", "authors": "作者", "authors_unknown": "作者未知", "publication_type": "发表形式", "venue": "发表载体", "venue_unknown": "载体未知", "year": "发表年份", "year_unknown": "年份未知", "language": "语言", "language_note": "语言说明", "doi": "DOI", "source_url": "来源链接", "source_note": "出处说明", "abstract": "摘要", "version_note": "版本说明", "related_paper_ids": "关联文献", "internal_note": "内部备注", "tag_ids": "分类标签", "filename": "文件名", "sha256": "文件指纹", "usage": "使用状态", "name": "名称", "description": "说明", "selection": "选择方式", "required": "登记必填", "enabled": "启用状态", "sort_order": "展示顺序", "parent_id": "父标签"}
+FIELD_LABELS = {"title": "论文标题", "authors": "作者", "authors_unknown": "作者未知", "publication_type": "发表形式", "venue": "发表载体", "venue_unknown": "载体未知", "year": "发表年份", "year_unknown": "年份未知", "language": "语言", "language_note": "语言说明", "doi": "DOI", "source_url": "来源链接", "source_note": "出处说明", "abstract": "摘要", "conclusion": "结论", "version_note": "版本说明", "related_paper_ids": "关联文献", "internal_note": "内部备注", "tag_ids": "分类标签", "filename": "文件名", "sha256": "文件指纹", "usage": "使用状态", "name": "名称", "description": "说明", "selection": "选择方式", "required": "登记必填", "enabled": "启用状态", "sort_order": "展示顺序", "parent_id": "父标签"}
 
 
 def fail(code: str, message: str, status: int = 400):
@@ -76,6 +77,7 @@ class PaperInput(BaseModel):
     source_url: str = Field(default="", max_length=2000)
     source_note: str = Field(default="", max_length=2000)
     abstract: str = Field(default="", max_length=20000)
+    conclusion: str = Field(default="", max_length=20000)
     version_note: str = Field(default="", max_length=2000)
     related_paper_ids: list[str] = Field(default_factory=list, max_length=20)
     internal_note: str = Field(default="", max_length=2000)
@@ -114,6 +116,13 @@ class ExtractInput(BaseModel):
     paper_id: str | None = Field(default=None, pattern=r"^P-[0-9A-F]{16}$")
 
 
+class TagSuggestionInput(ExtractInput):
+    title: str = Field(default="", max_length=500)
+    abstract: str = Field(default="", max_length=20000)
+    conclusion: str = Field(default="", max_length=20000)
+    tag_ids: list[str] = Field(default_factory=list, max_length=100)
+
+
 def synchronized(method):
     @wraps(method)
     def locked(self, *args, **kwargs):
@@ -144,6 +153,7 @@ class LiteratureStore:
             CREATE TABLE IF NOT EXISTS paper_tags (paper_id TEXT NOT NULL REFERENCES papers(id), tag_id TEXT NOT NULL REFERENCES tags(id), PRIMARY KEY(paper_id,tag_id));
             CREATE TABLE IF NOT EXISTS events (id TEXT PRIMARY KEY, entity TEXT NOT NULL, entity_id TEXT NOT NULL, action TEXT NOT NULL, actor TEXT NOT NULL, at TEXT NOT NULL, before_json TEXT, after_json TEXT, reason TEXT, summary TEXT NOT NULL DEFAULT '');
             CREATE INDEX IF NOT EXISTS events_entity ON events(entity,entity_id,at);
+            CREATE TABLE IF NOT EXISTS literature_imports (id TEXT PRIMARY KEY, owner TEXT NOT NULL, data TEXT NOT NULL, created_at TEXT NOT NULL);
             """)
             if "summary" not in {r[1] for r in self.db.execute("PRAGMA table_info(events)")}:
                 self.db.execute("ALTER TABLE events ADD COLUMN summary TEXT NOT NULL DEFAULT ''")
@@ -216,6 +226,7 @@ class LiteratureStore:
     @synchronized
     def paper(self, row, *, full=False):
         data = json.loads(row["data"])
+        data.setdefault("conclusion", "")
         result = data | {key: row[key] for key in ("id", "revision", "filename", "sha256", "registration", "usage", "created_by", "created_at", "updated_by", "updated_at", "registered_by", "registered_at")}
         result["tag_ids"] = [r[0] for r in self.db.execute("SELECT tag_id FROM paper_tags WHERE paper_id=?", (row["id"],))]
         if full:
@@ -272,10 +283,31 @@ def store(request: Request) -> LiteratureStore:
     return value
 
 
+def validate_tag_selection(db: LiteratureStore, tag_ids: list[str], previous=(), *, require_dimensions=False):
+    tags = db.taxonomy()
+    chosen = {}
+    for tag_id in tag_ids:
+        tag = next((t for t in tags["tags"] if t["id"] == tag_id), None)
+        if not tag: fail("invalid_tag", "标签不存在。")
+        dim = next(d for d in tags["dimensions"] if d["id"] == tag["dimension_id"])
+        if (not tag["enabled"] or not dim["enabled"]) and tag_id not in previous:
+            fail("invalid_tag", "不能新增已停用标签或维度的关联。")
+        chosen.setdefault(dim["id"], []).append(tag)
+    for dim in tags["dimensions"]:
+        selected = chosen.get(dim["id"], [])
+        if dim["selection"] == "single" and len(selected) > 1: fail("single_dimension", f"{dim['name']}只能选择一个标签。")
+        ids = {t["id"] for t in selected}
+        if any((db.descendants(t["id"], tags["tags"]) - {t["id"]}) & ids for t in selected): fail("ancestor_conflict", "同一维度不能同时保存祖先和后代标签。")
+        if require_dimensions and dim["enabled"] and dim["required"] and not any(t["enabled"] for t in selected): fail("required_tag", f"请选择{dim['name']}的有效标签。")
+    if len(set(tag_ids)) != len(tag_ids): fail("duplicate_tag", "标签不能重复选择。")
+
+
 def validate_paper(db: LiteratureStore, body: PaperInput, existing_id: str | None = None):
     raw = body.model_dump()
     previous = db.get_paper(existing_id) if existing_id else {}
-    for key in ("title", "venue", "doi", "source_url", "source_note", "language_note", "version_note", "abstract", "internal_note"):
+    if existing_id and "conclusion" not in body.model_fields_set:
+        raw["conclusion"] = previous.get("conclusion", "")
+    for key in ("title", "venue", "doi", "source_url", "source_note", "language_note", "version_note", "abstract", "conclusion", "internal_note"):
         raw[key] = raw[key].strip()
     raw["authors"] = []
     for author in body.authors:
@@ -289,22 +321,7 @@ def validate_paper(db: LiteratureStore, body: PaperInput, existing_id: str | Non
     if raw["year_unknown"] and raw["year"] is not None: fail("year_conflict", "已填写发表年份时不能同时标记未知。")
     if raw["doi"] and not re.fullmatch(r"10\.\d{4,9}/\S+", raw["doi"], re.I): fail("invalid_doi", "DOI 格式不正确。")
     if raw["source_url"] and not valid_url(raw["source_url"]): fail("invalid_source_url", "来源链接须为有效 HTTP/HTTPS 地址。")
-    tags = db.taxonomy()
-    chosen = {}
-    for tag_id in raw["tag_ids"]:
-        tag = next((t for t in tags["tags"] if t["id"] == tag_id), None)
-        if not tag: fail("invalid_tag", "标签不存在。")
-        dim = next(d for d in tags["dimensions"] if d["id"] == tag["dimension_id"])
-        if (not tag["enabled"] or not dim["enabled"]) and tag_id not in previous.get("tag_ids", []):
-            fail("invalid_tag", "不能新增已停用标签或维度的关联。")
-        chosen.setdefault(dim["id"], []).append(tag)
-    for dim in tags["dimensions"]:
-        selected = chosen.get(dim["id"], [])
-        if dim["selection"] == "single" and len(selected) > 1: fail("single_dimension", f"{dim['name']}只能选择一个标签。")
-        ids = {t["id"] for t in selected}
-        if any((db.descendants(t["id"], tags["tags"]) - {t["id"]}) & ids for t in selected): fail("ancestor_conflict", "同一维度不能同时保存祖先和后代标签。")
-        if body.action == "register" and dim["enabled"] and dim["required"] and not any(t["enabled"] for t in selected): fail("required_tag", f"请选择{dim['name']}的有效标签。")
-    if len(set(raw["tag_ids"])) != len(raw["tag_ids"]): fail("duplicate_tag", "标签不能重复选择。")
+    validate_tag_selection(db, raw["tag_ids"], previous.get("tag_ids", []), require_dimensions=body.action == "register")
     for related in raw["related_paper_ids"]:
         if related == existing_id: fail("self_relation", "不能关联文献自身。")
         if related not in previous.get("related_paper_ids", []):
@@ -328,7 +345,12 @@ def validate_paper(db: LiteratureStore, body: PaperInput, existing_id: str | Non
 
 @router.get("/taxonomy")
 def taxonomy(request: Request, user: Principal = Depends(current_user)):
-    return store(request).taxonomy()
+    result = store(request).taxonomy()
+    cases = getattr(request.app.state, "case_library", None)
+    counts = cases.tag_counts() if cases is not None else {}
+    for tag in result["tags"]:
+        tag["case_count"] = counts.get(tag["id"], 0)
+    return result
 
 
 @router.get("/users")
@@ -379,12 +401,9 @@ async def upload(request: Request, filename: str = Query(max_length=255), user: 
         raise
 
 
-@router.post("/extract")
-async def extract_paper_fields(request: Request, body: ExtractInput, user: Principal = Depends(current_user)):
-    """Suggest metadata from an owned upload or an existing paper; never save it."""
+def extraction_path(db: LiteratureStore, body: ExtractInput, user: Principal) -> Path:
     if bool(body.upload_id) == bool(body.paper_id):
         fail("extract_target_required", "请选择一份已上传或已登记的 PDF。")
-    db = store(request)
     if body.upload_id:
         with db.lock:
             row = db.db.execute("SELECT id FROM uploads WHERE id=? AND owner=? AND consumed_at IS NULL",
@@ -399,13 +418,52 @@ async def extract_paper_fields(request: Request, body: ExtractInput, user: Princ
             path = db.root / f"{body.paper_id}.pdf"  # Migrated records keep their original path.
     if not path.is_file():
         fail("pdf_not_found", "PDF 文件不可用。", 404)
+    return path
+
+
+async def pdf_text_for_ai(path: Path) -> tuple[str, int]:
     try:
-        text, pages = await asyncio.to_thread(read_pdf_for_extraction, path)
+        return await asyncio.to_thread(read_pdf_for_extraction, path)
     except ValueError as exc:
         fail("pdf_text_unavailable", str(exc), 422)
     except Exception as exc:
         logger.warning("Literature PDF extraction failed: {}", exc)
         fail("pdf_extract_failed", "PDF 读取失败，请稍后重试。", 422)
+
+
+@router.post("/suggest-tags")
+async def suggest_paper_tags(request: Request, body: TagSuggestionInput, user: Principal = Depends(current_user)):
+    db = store(request)
+    path = extraction_path(db, body, user)
+    taxonomy = db.taxonomy()
+    if not available_taxonomy(taxonomy)["tags"]:
+        fail("no_available_tags", "请先在标签管理中添加并启用标签，再使用 AI 一键打标。", 422)
+    known_ids = {tag["id"] for tag in taxonomy["tags"]}
+    if any(identifier not in known_ids for identifier in body.tag_ids):
+        fail("invalid_tag", "当前标签已变更，请刷新标签后重试。", 422)
+    llm = getattr(request.app.state, "llm", None)
+    if llm is None:
+        fail("tagging_unavailable", "AI 服务暂不可用，请稍后重试或手动选择标签。", 503)
+    text, pages = await pdf_text_for_ai(path)
+    fields = body.model_dump(include={"title", "abstract", "conclusion"})
+    try:
+        suggested = await asyncio.wait_for(suggest_tags(text, fields, taxonomy, body.tag_ids, llm), timeout=45)
+    except ValueError:
+        fail("tagging_invalid_response", "AI 打标结果无法识别，请重试；已有标签未修改。", 502)
+    except Exception as exc:
+        logger.warning("Literature AI tagging failed: {}", exc)
+        fail("tagging_unavailable", "AI 打标暂时失败，请重试；已有标签未修改。", 503)
+    # Re-check against the current taxonomy in case it changed during inference.
+    merged = merge_tag_suggestions(db.taxonomy(), body.tag_ids, suggested)
+    return {"tag_ids": merged, "added_tag_ids": [identifier for identifier in merged if identifier not in body.tag_ids],
+            "pages_read": pages}
+
+
+@router.post("/extract")
+async def extract_paper_fields(request: Request, body: ExtractInput, user: Principal = Depends(current_user)):
+    """Suggest metadata from an owned upload or an existing paper; never save it."""
+    path = extraction_path(store(request), body, user)
+    text, pages = await pdf_text_for_ai(path)
     local_fields = None
     try:
         local_fields = await asyncio.to_thread(local_suggestions, path)
@@ -415,7 +473,7 @@ async def extract_paper_fields(request: Request, body: ExtractInput, user: Princ
     warning = "AI 服务暂不可达，已从 PDF 原文提取可确认的字段；请核对后保存。"
     if llm is not None and time.monotonic() >= getattr(request.app.state, "literature_ai_retry_at", 0.0):
         try:
-            fields = await asyncio.wait_for(suggest_fields(text, llm), timeout=18)
+            fields = await asyncio.wait_for(suggest_fields(text, llm), timeout=45)
             # A model can omit a field that is present in the PDF metadata.
             for key in ("title", "publication_type", "venue", "year", "language", "doi", "abstract"):
                 if local_fields is not None and not getattr(fields, key) and getattr(local_fields, key):
@@ -448,21 +506,26 @@ def duplicates(request: Request, doi: str = "", user: Principal = Depends(curren
 @router.post("/papers")
 def create_paper(request: Request, body: PaperInput, user: Principal = Depends(current_user)):
     db = store(request)
-    if not body.upload_id: fail("upload_required", "请先上传 PDF。")
     with db.write():
-        upload_row = db.db.execute("SELECT * FROM uploads WHERE id=? AND owner=? AND consumed_at IS NULL", (body.upload_id, user.tester_id)).fetchone()
-        if not upload_row: fail("upload_not_found", "上传文件已失效，请重新上传。", 404)
-        if not (db.root / f"upload-{body.upload_id}").is_file(): fail("upload_not_found", "上传文件已失效，请重新上传。", 404)
-        duplicate = db.db.execute("SELECT id FROM papers WHERE sha256=? AND deleted=0", (upload_row["sha256"],)).fetchone()
-        if duplicate: raise HTTPException(409, detail={"code": "duplicate_file", "message": "已有相同内容的 PDF。", "paper_id": duplicate["id"]})
-        data = validate_paper(db, body)
-        if not data["title"]: data["title"] = Path(upload_row["filename"]).stem[:500]
-        paper_id = "P-" + secrets.token_hex(8).upper(); at = now()
-        db.preserve_upload(upload_row)
-        db.db.execute("INSERT INTO papers (id,data,filename,sha256,registration,usage,deleted,created_by,created_at,updated_by,updated_at,registered_by,registered_at) VALUES (?,?,?,?,?,'normal',0,?,?,?,?,?,?)", (paper_id, json.dumps(data, ensure_ascii=False), upload_row["filename"], upload_row["sha256"], "registered" if body.action == "register" else "draft", user.tester_id, at, user.tester_id, at, user.tester_id if body.action == "register" else None, at if body.action == "register" else None))
-        db.db.executemany("INSERT INTO paper_tags VALUES (?,?)", [(paper_id, t) for t in data["tag_ids"]])
-        db.db.execute("UPDATE uploads SET consumed_at=? WHERE id=?", (at, body.upload_id))
-        db.event("paper", paper_id, "register" if body.action == "register" else "create_draft", user.tester_id, after=data)
+        return create_paper_record(db, body, user)
+
+
+def create_paper_record(db: LiteratureStore, body: PaperInput, user: Principal):
+    """Create inside the caller's transaction, including batch receipt commits."""
+    if not body.upload_id: fail("upload_required", "请先上传 PDF。")
+    upload_row = db.db.execute("SELECT * FROM uploads WHERE id=? AND owner=? AND consumed_at IS NULL", (body.upload_id, user.tester_id)).fetchone()
+    if not upload_row: fail("upload_not_found", "上传文件已失效，请重新上传。", 404)
+    if not (db.root / f"upload-{body.upload_id}").is_file(): fail("upload_not_found", "上传文件已失效，请重新上传。", 404)
+    duplicate = db.db.execute("SELECT id FROM papers WHERE sha256=? AND deleted=0", (upload_row["sha256"],)).fetchone()
+    if duplicate: raise HTTPException(409, detail={"code": "duplicate_file", "message": "已有相同内容的 PDF。", "paper_id": duplicate["id"]})
+    data = validate_paper(db, body)
+    if not data["title"]: data["title"] = Path(upload_row["filename"]).stem[:500]
+    paper_id = "P-" + secrets.token_hex(8).upper(); at = now()
+    db.preserve_upload(upload_row)
+    db.db.execute("INSERT INTO papers (id,data,filename,sha256,registration,usage,deleted,created_by,created_at,updated_by,updated_at,registered_by,registered_at) VALUES (?,?,?,?,?,'normal',0,?,?,?,?,?,?)", (paper_id, json.dumps(data, ensure_ascii=False), upload_row["filename"], upload_row["sha256"], "registered" if body.action == "register" else "draft", user.tester_id, at, user.tester_id, at, user.tester_id if body.action == "register" else None, at if body.action == "register" else None))
+    db.db.executemany("INSERT INTO paper_tags VALUES (?,?)", [(paper_id, t) for t in data["tag_ids"]])
+    db.db.execute("UPDATE uploads SET consumed_at=? WHERE id=?", (at, body.upload_id))
+    db.event("paper", paper_id, "register" if body.action == "register" else "create_draft", user.tester_id, after=data)
     return db.get_paper(paper_id, full=True)
 
 
@@ -470,32 +533,37 @@ def create_paper(request: Request, body: PaperInput, user: Principal = Depends(c
 def update_paper(request: Request, paper_id: str, body: PaperUpdateInput, user: Principal = Depends(current_user)):
     db = store(request)
     with db.write():
-        before = db.get_paper(paper_id)
-        if body.expected_revision != before["revision"]:
-            fail("paper_revision_conflict", "文献已被其他操作更新，当前输入已保留。请查看最新版本后重新编辑。", 409)
-        if before["registration"] == "registered" and body.action != "register": fail("registered_cannot_draft", "已登记文献不能退回草稿。")
-        data = validate_paper(db, body, paper_id)
-        if not data["title"]: data["title"] = before["title"]
-        if body.upload_id:
-            if before["registration"] != "draft": fail("registered_file_locked", "已登记文献不能替换 PDF，请新增关联文献。")
-            up = db.db.execute("SELECT * FROM uploads WHERE id=? AND owner=? AND consumed_at IS NULL", (body.upload_id, user.tester_id)).fetchone()
-            if not up: fail("upload_not_found", "上传文件已失效。", 404)
-            duplicate = db.db.execute("SELECT id FROM papers WHERE sha256=? AND id!=? AND deleted=0", (up["sha256"], paper_id)).fetchone()
-            if duplicate: raise HTTPException(409, detail={"code": "duplicate_file", "message": "已有相同内容的 PDF。", "paper_id": duplicate["id"]})
-            db.preserve_upload(up)
-            db.db.execute("UPDATE papers SET filename=?, sha256=? WHERE id=?", (up["filename"], up["sha256"], paper_id))
-            db.db.execute("UPDATE uploads SET consumed_at=? WHERE id=?", (now(), body.upload_id))
-            db.event("paper", paper_id, "replace_file", user.tester_id, before={"filename": before["filename"], "sha256": before["sha256"]}, after={"filename": up["filename"], "sha256": up["sha256"]})
-        registration = "registered" if body.action == "register" else "draft"
-        db.db.execute("UPDATE papers SET revision=revision+1,data=?,registration=?,updated_by=?,updated_at=?,registered_by=CASE WHEN ?='registered' THEN COALESCE(registered_by,?) ELSE registered_by END,registered_at=CASE WHEN ?='registered' THEN COALESCE(registered_at,?) ELSE registered_at END WHERE id=?", (json.dumps(data, ensure_ascii=False), registration, user.tester_id, now(), registration, user.tester_id, registration, now(), paper_id))
-        db.db.execute("DELETE FROM paper_tags WHERE paper_id=?", (paper_id,))
-        db.db.executemany("INSERT INTO paper_tags VALUES (?,?)", [(paper_id, t) for t in data["tag_ids"]])
-        db.event("paper", paper_id, "register" if before["registration"] == "draft" and registration == "registered" else "edit", user.tester_id, before={k: before.get(k) for k in data}, after=data)
+        return update_paper_record(db, paper_id, body, user)
+
+
+def update_paper_record(db: LiteratureStore, paper_id: str, body: PaperUpdateInput, user: Principal):
+    """Update inside the caller's transaction, including batch receipt commits."""
+    before = db.get_paper(paper_id)
+    if body.expected_revision != before["revision"]:
+        fail("paper_revision_conflict", "文献已被其他操作更新，当前输入已保留。请查看最新版本后重新编辑。", 409)
+    if before["registration"] == "registered" and body.action != "register": fail("registered_cannot_draft", "已登记文献不能退回草稿。")
+    data = validate_paper(db, body, paper_id)
+    if not data["title"]: data["title"] = before["title"]
+    if body.upload_id:
+        if before["registration"] != "draft": fail("registered_file_locked", "已登记文献不能替换 PDF，请新增关联文献。")
+        up = db.db.execute("SELECT * FROM uploads WHERE id=? AND owner=? AND consumed_at IS NULL", (body.upload_id, user.tester_id)).fetchone()
+        if not up: fail("upload_not_found", "上传文件已失效。", 404)
+        duplicate = db.db.execute("SELECT id FROM papers WHERE sha256=? AND id!=? AND deleted=0", (up["sha256"], paper_id)).fetchone()
+        if duplicate: raise HTTPException(409, detail={"code": "duplicate_file", "message": "已有相同内容的 PDF。", "paper_id": duplicate["id"]})
+        db.preserve_upload(up)
+        db.db.execute("UPDATE papers SET filename=?, sha256=? WHERE id=?", (up["filename"], up["sha256"], paper_id))
+        db.db.execute("UPDATE uploads SET consumed_at=? WHERE id=?", (now(), body.upload_id))
+        db.event("paper", paper_id, "replace_file", user.tester_id, before={"filename": before["filename"], "sha256": before["sha256"]}, after={"filename": up["filename"], "sha256": up["sha256"]})
+    registration = "registered" if body.action == "register" else "draft"
+    db.db.execute("UPDATE papers SET revision=revision+1,data=?,registration=?,updated_by=?,updated_at=?,registered_by=CASE WHEN ?='registered' THEN COALESCE(registered_by,?) ELSE registered_by END,registered_at=CASE WHEN ?='registered' THEN COALESCE(registered_at,?) ELSE registered_at END WHERE id=?", (json.dumps(data, ensure_ascii=False), registration, user.tester_id, now(), registration, user.tester_id, registration, now(), paper_id))
+    db.db.execute("DELETE FROM paper_tags WHERE paper_id=?", (paper_id,))
+    db.db.executemany("INSERT INTO paper_tags VALUES (?,?)", [(paper_id, t) for t in data["tag_ids"]])
+    db.event("paper", paper_id, "register" if before["registration"] == "draft" and registration == "registered" else "edit", user.tester_id, before={k: before.get(k) for k in data}, after=data)
     return db.get_paper(paper_id, full=True)
 
 
 @router.get("/papers")
-def list_papers(request: Request, keyword: str = "", field: str = "all", publication_type: str = "", year_from: int | None = None, year_to: int | None = None, year_unknown: bool = False, language: str = "", registration: str = "all", usage: str = "normal", creators: str = "", editors: str = "", created_from: str = "", created_to: str = "", updated_from: str = "", updated_to: str = "", tags: str = "", include_disabled_tags: bool = False, sort: str = "updated", direction: str = "desc", page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100), user: Principal = Depends(current_user)):
+def list_papers(request: Request, keyword: str = "", field: str = "all", publication_type: str = "", year_from: int | None = None, year_to: int | None = None, year_unknown: bool = False, language: str = "", registration: str = "all", usage: str = "normal", creators: str = "", editors: str = "", created_from: str = "", created_to: str = "", updated_from: str = "", updated_to: str = "", tags: str = "", untagged: bool = False, include_disabled_tags: bool = False, sort: str = "updated", direction: str = "desc", page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100), user: Principal = Depends(current_user)):
     # Date inputs and displayed timestamps share the library's business timezone.
     bounds = {}
     for key, value in (("created_from", created_from), ("created_to", created_to), ("updated_from", updated_from), ("updated_to", updated_to)):
@@ -524,6 +592,7 @@ def list_papers(request: Request, keyword: str = "", field: str = "all", publica
         query = keyword.strip().casefold(); key_doi = doi_key(query)
         def match(row):
             p = db.paper(row)
+            if untagged and p["tag_ids"]: return False
             if registration != "all" and p["registration"] != registration or usage != "all" and p["usage"] != usage: return False
             if types and p["publication_type"] not in types or langs and p["language"] not in langs: return False
             if year_unknown and not p["year_unknown"] or not year_unknown and (year_from is not None and (p["year"] is None or p["year"] < year_from) or year_to is not None and (p["year"] is None or p["year"] > year_to)): return False
@@ -618,6 +687,10 @@ def update_dimension(request: Request, dimension_id: str, body: DimensionInput, 
         if old["selection"] == "multiple" and body.selection == "single":
             count = db.db.execute("SELECT 1 FROM paper_tags pt JOIN tags t ON t.id=pt.tag_id JOIN papers p ON p.id=pt.paper_id WHERE t.dimension_id=? AND p.deleted=0 GROUP BY p.id HAVING COUNT(*)>1 LIMIT 1", (dimension_id,)).fetchone()
             if count: fail("dimension_in_use", "已有文献在此维度使用多个标签，请先调整文献。", 409)
+            cases = getattr(request.app.state, "case_library", None)
+            tag_ids = {row[0] for row in db.db.execute("SELECT id FROM tags WHERE dimension_id=?", (dimension_id,))}
+            if cases is not None and any(len(assigned & tag_ids) > 1 for assigned in cases.tag_assignments()):
+                fail("dimension_in_use", "已有案例在此维度使用多个标签，请先调整案例。", 409)
         try: db.db.execute("UPDATE dimensions SET name=?,description=?,selection=?,required=?,enabled=?,sort_order=?,updated_at=? WHERE id=?", (body.name.strip(), body.description.strip(), body.selection, int(body.required), int(body.enabled), body.sort_order, now(), dimension_id))
         except sqlite3.IntegrityError: fail("dimension_name_conflict", "维度名称已存在。", 409)
         db.event("dimension", dimension_id, "edit", user.tester_id, before=dict(old), after=body.model_dump())
@@ -689,6 +762,11 @@ def update_tag(request: Request, tag_id: str, body: TagInput, user: Principal = 
                 assigned = {r[0] for r in db.db.execute("SELECT tag_id FROM paper_tags WHERE paper_id=?", (paper_id,))}
                 if any((db.descendants(tid, proposed) - {tid}) & assigned for tid in assigned):
                     fail("tag_move_conflict", "移动后已有文献会同时关联祖先和后代标签，请先调整文献。", 409)
+            cases = getattr(request.app.state, "case_library", None)
+            if cases is not None:
+                for assigned in cases.tag_assignments():
+                    if any((db.descendants(tid, proposed) - {tid}) & assigned for tid in assigned):
+                        fail("tag_move_conflict", "移动后已有案例会同时关联祖先和后代标签，请先调整案例。", 409)
         db.db.execute("UPDATE tags SET parent_id=?,name=?,description=?,enabled=?,sort_order=?,updated_at=? WHERE id=?", (body.parent_id, body.name.strip(), body.description.strip(), int(body.enabled), body.sort_order, now(), tag_id))
         db.event("tag", tag_id, "edit", user.tester_id, before=dict(old), after=body.model_dump())
     return {"id": tag_id}
@@ -701,6 +779,9 @@ def delete_tag(request: Request, tag_id: str, user: Principal = Depends(current_
         old = db.db.execute("SELECT * FROM tags WHERE id=?", (tag_id,)).fetchone()
         if not old: fail("tag_not_found", "标签不存在。", 404)
         if db.db.execute("SELECT 1 FROM tags WHERE parent_id=?", (tag_id,)).fetchone() or db.db.execute("SELECT 1 FROM paper_tags WHERE tag_id=?", (tag_id,)).fetchone(): fail("tag_in_use", "标签有子标签或关联文献，请先停用。", 409)
+        cases = getattr(request.app.state, "case_library", None)
+        if cases is not None and any(tag_id in assigned for assigned in cases.tag_assignments(include_deleted=True)):
+            fail("tag_in_use", "标签有关联案例，请先停用。", 409)
         db.db.execute("DELETE FROM tags WHERE id=?", (tag_id,))
         db.event("tag", tag_id, "delete", user.tester_id, before=dict(old))
     return {"deleted": True}
@@ -709,3 +790,9 @@ def delete_tag(request: Request, tag_id: str, user: Principal = Depends(current_
 @router.get("/events/{entity}/{entity_id}")
 def events(request: Request, entity: Literal["paper", "tag", "dimension"], entity_id: str, user: Principal = Depends(current_user)):
     return store(request).events(entity, entity_id)
+
+
+# Included after the single-paper handlers reused by the batch workflow.
+from src.api.literature_batch import router as batch_router
+
+router.include_router(batch_router)

@@ -27,10 +27,10 @@ test('public literature workflow saves a global draft, tags it, registers and pr
   await page.getByRole('button', { name: '展开 水氮管理', exact: true }).click();
   await page.getByRole('checkbox', { name: '水氮管理 / 氮素淋失', exact: true }).check();
   await expect(page.getByRole('checkbox', { name: '水氮管理', exact: true })).not.toBeChecked();
-  await page.getByRole('button', { name: '完成选择' }).click();
+  await page.getByRole('button', { name: '关闭标签选择' }).click();
   await page.getByRole('button', { name: '研究对象级联选择' }).click();
   await page.getByRole('checkbox', { name: '冬小麦', exact: true }).check();
-  await page.getByRole('button', { name: '完成选择' }).click();
+  await page.getByRole('button', { name: '关闭标签选择' }).click();
   await page.getByRole('button', { name: '完成示例登记' }).click();
   await expect(page.getByRole('heading', { name: '农田水氮管理研究（流程示例）', exact: true })).toBeVisible();
   await expect(page.getByText('体验操作 · 完成登记 · 已选 2 个标签')).toBeVisible();
@@ -72,7 +72,7 @@ test('public taxonomy links descendants and preserves newly added tags across mo
   await page.getByRole('button', { name: '主题领域级联选择' }).click();
   await page.getByRole('button', { name: '展开 水氮管理', exact: true }).click();
   await page.getByRole('checkbox', { name: '水氮管理 / 灌溉管理', exact: true }).check();
-  await page.getByRole('button', { name: '完成选择' }).click();
+  await page.getByRole('button', { name: '关闭标签选择' }).click();
   await page.getByRole('button', { name: '保存示例修改' }).click();
   await expect(page.getByText('已停用', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: '恢复示例文献' }).click();

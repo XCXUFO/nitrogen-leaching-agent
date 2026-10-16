@@ -1,6 +1,6 @@
 # 测评工作台使用说明书：开发者版
 
-适用对象：Agent 开发者、测评组织者、维护本地服务的人，以及需要理解完整质量闭环的产品负责人。更新日期：2026-10-05。依据当前侧栏版源码和 `delivery-20261004-ee879b36e1ab` 交付清单编写。
+适用对象：Agent 开发者、测评组织者、维护本地服务的人，以及需要理解完整质量闭环的产品负责人。更新日期：2026-10-15。依据当前工作区源码更新，覆盖共享账号登录、文献管理与 AI 增强、案例与措施、星标问题。文献 AI 增强与星标问题包含尚未提交的改动；实际部署版本须另行核验。
 
 本说明书包含产品目的、技术与数据架构、全部工作台模块、完整操作案例和运维方法。测评者可单独阅读《测评者使用说明书》，无需先理解后端代码。两份说明书均不承载正式验收结果；本轮人工结果仍统一填写 `collaborative-manual-acceptance-2026-10-04.md`，不要另建竞争版本的结果表。
 
@@ -10,6 +10,7 @@
 - 要组织一次测评：第 5–9 节，再按第 13 节串起来做。
 - 要定位和修复问题：第 10–13 节。
 - 要接手项目和维护服务：第 14–17 节。
+- 要维护文献、标签、案例或星标问题：第 5.1 节及[资料管理使用说明](workbench-materials-guide.md)。
 
 ## 1. 平台的目的、意义和当前定位
 
@@ -40,7 +41,9 @@
   │     ├─ POST /api/files      上传临时问答附件
   │     └─ POST /api/chat       普通聊天请求
   └─ /evaluation/...           测评工作台与角色导航
-        └─ /api/eval/...        带 Bearer 密钥的评测接口
+        ├─ /api/eval/...        登录、评测及星标问题接口
+        ├─ /api/literature/...  文献、标签和 AI 辅助录入接口
+        └─ /api/case-library/... 案例管理与解释初稿接口
                  │
 FastAPI 后端     │
   ├─ EvaluationService：执行所有权、版本检查、事件、评分、流程
@@ -50,18 +53,19 @@ FastAPI 后端     │
   │     ├─ 知识路径：检索 → 文献回答 → 引文与片段
   │     ├─ 组合路径：文件事实 + 有引用的可能机制 + 局限
   │     └─ 直接回答 / 澄清 / 范围外响应
-  ├─ SQLite：Run、Case、Task、执行、评分、问题、审核、回归记录
+  ├─ SQLite：Run、Case、Task、执行、评分、问题、审核、回归、星标问题
+  ├─ 独立 SQLite：文献与分类、案例与措施
   ├─ 文件系统：原始资产、资料、索引、本地模型、备份
   └─ 单进程内存：临时附件、对话上下文、当前自动重跑任务
 ```
 
-前端是操作界面，后端负责权限、状态、执行和存储。实际访问地址默认是前端 3000、后端 8000，前端通过 `NEXT_PUBLIC_API_BASE_URL` 指向后端，默认 `http://localhost:8000`。该公开前端配置在构建时确定；换远程地址时应同步配置并重新构建。
+前端是操作界面，后端负责权限、状态、执行和存储。默认前端 3000、后端 8000。`NEXT_PUBLIC_API_BASE_URL` 默认留空，浏览器请求同源 `/api`，Next 按 `BACKEND_INTERNAL_URL` 转发，默认目标为 `http://127.0.0.1:8000`。显式设置公开 API 地址时，它在前端构建时确定；部署需核对实际代理和构建配置。
 
 文献问答仍依赖检索资源及外部模型服务。离线加载本地嵌入模型不等于系统所有能力离线。文件极值是程序读取已有输出表，不是调用 WHCNS 再做一次仿真。
 
 ### 2.2 一次后台提问的真实链路
 
-1. 浏览器发送 `POST /api/eval/executions/{eid}/query`，附身份密钥和问题。
+1. 浏览器发送 `POST /api/eval/executions/{eid}/query`，附 Bearer 会话凭据和问题。
 2. 后端检查身份、执行所有者、执行是否开放、是否忙碌，以及关联 Task 的配置是否与当前运行一致。
 3. 服务器从执行上下文取会话、历史和附件，构造普通 `ChatRequest`；浏览器不能任意指定另一个会话或把外部 Run 硬塞进此执行。
 4. 复用聊天入口和 Agent Runtime，调用文件或知识能力。
@@ -109,8 +113,8 @@ Case@版本 → Task 固定多个 Case 版本、构建和运行配置
 必须区分三种“版本”：
 
 - **Case 版本**：测试标准变了没有，例如 F05 v2 与 v3。修复代码后验证原缺陷，优先保留相同 Case 版本。
-- **构建版本**：哪份源码交付在运行，当前快照使用 `delivery-20261004-ee879b36e1ab`。
-- **运行配置版本**：构建加启动配置/指纹摘要。交付时记录为 `delivery-20261004-ee879b36e1ab:0ef05c12b9e1ace7`，实际测试前仍应查 `/api/eval/config`。
+- **构建版本**：哪份源码交付在运行，取实际环境的 `AGENT_BUILD_VERSION`；工作区有新代码不表示运行服务已更新。
+- **运行配置版本**：构建加启动配置/指纹摘要，测试前查询 `/api/eval/config` 并记录。旧交付清单只能说明对应历史快照。
 
 Task 的 `knowledge_version` 是开发者填写的可读标签，不会自动重建或切换知识库。服务器另存实际知识配置和启动清单。已发布 Case、旧执行和旧评分不会因为你发新版本而自动迁移。
 
@@ -130,10 +134,13 @@ Task 的 `knowledge_version` 是开发者填写的可读标签，不会自动重
 | 保存 AI 辅助复核 | 不可以 | 可以 | 不可以 |
 | 保存领域专家审核 | 不可以 | 不可以 | 可以 |
 | Issue、回归、Run Trace、统计、任务证据导出 | 不可以 | 可以 | 不可以 |
+| 文献及标签管理、AI 字段/结论解析与打标 | 可以 | 可以 | 可以 |
+| 案例与措施的增改删、开放切换、解释与验证 | 可以 | 可以 | 可以 |
+| 星标问题的查看、新增和编辑 | 可以 | 可以 | 可以 |
 
 角色菜单只是界面表现，后端仍独立校验权限。普通评分中的“开发试评”是记录类型，所有执行者提交的普通评分都属于该类型。开发者权限不赋予领域专家身份。
 
-当前是静态密钥绑定身份，没有组织/租户隔离、网页登录注册或自助找回。任务准备不等于给其他人分派测试任务；审核队列的分派则是已实现的专家分派。分派也不是严格的“只有分派专家才能看到该执行”的数据隔离机制。
+当前采用管理员配置的账号密码及临时会话，角色由后端决定，没有组织/租户隔离、网页登录注册或自助找回。前台与工作台在同一标签页共享登录并支持刷新恢复；后端仍校验身份和业务权限。文献、标签、案例与星标问题是三个角色共享维护的资料。任务准备不等于给其他人分派测试任务；审核队列的分派则是已实现的专家分派。分派也不是严格的“只有分派专家才能看到该执行”的数据隔离机制。
 
 ### 4.2 推荐分工
 
@@ -156,8 +163,28 @@ Task 的 `knowledge_version` 是开发者填写的可读标签，不会自动重
 | 问题管理 | `/evaluation/issues` | 问题负责人、状态、处理历史与复测 |
 | 资产目录 | `/evaluation/assets` | 登记原件、文件指纹及输入输出配对 |
 | 运行记录 | `/evaluation/runs` | 按会话调查多轮问答及每轮 Agent 运行 |
+| 文献管理 | `/evaluation/literature` | PDF 上传登记、字段与结论解析、AI 打标、筛选与维护 |
+| 标签管理 | `/evaluation/literature-tags` | 分类维度、多级标签、单选/多选、启停与变更记录 |
+| 案例与措施 | `/evaluation/case-library` | 原文表格、人工解释、AI 初稿、开放状态及 Skill 验证 |
+| 星标问题 | `/evaluation/starred-questions` | 共享专业问题及人工补录答案 |
 
-开发者总览包含开发试评分布；tester 的“近期可见执行”基于当前读取的一页，不能当成全库总数。执行列表默认每页 50 条；会话运行记录默认每页 20 条，可选 10、20、50、100 条。刷新浏览器需重新登录；未提交的局部表单内容不会可靠保留。分享详情 URL 不会分享你的登录权限。
+开发者总览包含开发试评分布；tester 的“近期可见执行”基于当前读取的一页，不能当成全库总数。执行列表默认每页 50 条；会话运行记录默认每页 20 条，可选 10、20、50、100 条。同一标签页刷新保持登录，未提交的局部表单内容不会可靠保留。分享详情 URL 不会分享你的登录权限。
+
+### 5.1 资料管理与评测的衔接
+
+完整按钮步骤统一见[资料管理使用说明](workbench-materials-guide.md)，开发者需额外理解以下边界：
+
+| 模块 | 保存与生效规则 | 与 Agent / 评测的关系 |
+|---|---|---|
+| 文献及标签 | 上传后须保存草稿或完成登记；AI 提取和打标只返回建议，经表单保存生效；编辑检查 revision | 登记不自动重建 RAG 索引，停用/删除登记记录也不等于同步修改现有索引 |
+| 案例与措施 | 原文和解释需保存；仅已开放、未删除内容可调用；修改、开放、删除均检查 revision | `case_reference` / `case_explanation` 读取当前可用材料；验证产生 Run，不自动产生 Execution 或评分 |
+| 星标问题 | 问题必填、答案选填，保存后共享可见；目前没有 revision 冲突检查和版本历史 | 不自动调用模型、不参与问答检索、不形成专家签核或评测用例 |
+
+文献解析读取 PDF 前 3 页和文末最多 10 页，总文本上限 40,000 字符；无文字层时未提供 OCR。字段解析有本地提取回退，AI 打标失败则明确报错、保留选择。打标仅匹配已有启用分类，不自动建立标签；结论写入文献 JSON，旧记录兼容为空，旧客户端省略该字段不会清空原内容。
+
+案例原文支持纯文本和经服务端白名单处理的富文本表格。AI 初稿需“采用初稿 → 人工核对 → 保存”，与案例查询分开；原文最多 50,000 字符，初稿原文加补充信息最多 24,000 字符。Agent 一次最多读取 30 条开放案例、材料 JSON 不超过 24,000 字符，超限明确提示。动态案例内容没有完整版本冻结平台，复现时应保存实际材料和开放状态，不能只比较构建标签。
+
+星标问题使用 `/api/eval/starred-questions` 的 GET、POST 和按 ID 的 PUT，所有已登录角色可操作。问题上限 20,000 字符，答案 100,000 字符；目前没有删除接口、自动回答或审核状态。多人编辑同一条时需协调，后保存内容可能覆盖先前修改。
 
 ## 6. 资产目录：先让材料可核对
 
@@ -421,33 +448,31 @@ Trace 不保存模型思维链。文件事实定位到 SHA-256、表名、数值
 
 ### 14.1 先认识现有环境
 
-截至侧栏版交付核验，前端 3000 使用 `.next-workbench` 生产目录，后端 8000 使用单 worker。日志和 PID 文件在 `backend/var/service/`；默认数据库 `backend/var/agent/runs.sqlite3`，访问配置 `backend/var/eval/access-keys.json`，私有明文凭证 `backend/var/eval/access-credentials.txt`。
+本地交付启动器默认使用前端 3000、后端 8000，后端保持单 worker；前端构建目录以实际服务与匹配清单为准。日志和 PID 文件在 `backend/var/service/`；默认运行/评测库 `backend/var/agent/runs.sqlite3`，访问配置 `backend/var/eval/access-keys.json`，私有账号密码文件 `backend/var/eval/account-credentials.txt`。
 
-这些是已记录的交付状态，不能代替实时健康检查。开始测试前核对页面、`GET /api/health`、带身份的 `GET /api/eval/me` 和 `GET /api/eval/config`；若启动命令覆盖了 `AGENT_TRACE_DB` 或 `EVAL_ACCESS_FILE`，以实际设置为准。
+这些默认位置不能代替实时检查。开始测试前核对页面、`GET /api/health`、`GET /api/ready`、带身份的 `GET /api/eval/me` 和 `GET /api/eval/config`；若启动命令覆盖了数据库或身份路径，以实际设置为准。`health` 存活不等于 RAG 检索已经就绪；启用 RAG 时需检查 `ready`。
 
-工作台开启需要 `EVAL_ENABLED=true`；关闭时相关接口返回 404。启用但身份配置缺失/损坏会启动失败，不会匿名放行。工作台密钥只在前端内存中，刷新需重新登录。
+工作台开启需要 `EVAL_ENABLED=true`；关闭时相关接口返回 404。启用但身份配置缺失/损坏会启动失败，不会匿名放行。前端通过 sessionStorage 保存当前标签页会话，不保存密码；窗口每 5 分钟及重新获得焦点时验证，后端有效访问续期。超过 8 小时没有续期、退出或服务重启后需重新登录。身份配置变更需重启加载；当前会话存于单进程内存。
 
 ### 14.2 配置身份
 
 仅在**全新环境**或新的配置目录生成初始身份。以下命令从 `backend/` 运行，示例目录须不存在已有身份文件：
 
 ```bash
-.venv/bin/python scripts/create_eval_access.py \
-  --tester tester_zhang --tester tester_li \
-  --developer developer_wang --reviewer expert_chen \
+.venv/bin/python scripts/create_eval_accounts.py \
   --directory var/eval-new-environment
 ```
 
-脚本只打印文件路径，不输出密钥，且拒绝覆盖已有身份文件。它不是向现有身份文件追加用户的管理工具。现有环境新增/轮换身份，需管理员备份后维护经 `AccessFile` 校验的用户列表，保留既有身份与令牌摘要，不删除文件重建冒充无损升级；本轮还没有相应管理 UI。
+脚本生成 1 个开发者、2 个审核者、3 个测试者，只打印文件位置；实际账号密码在目标目录的 `account-credentials.txt`。已存在账号凭据或非预期身份配置时会拒绝执行。迁移支持的旧默认密钥身份时，会先备份配置并保留 `local-developer`、`local-tester` 的记录归属；不能将它作为任意已有用户的追加或密码重置工具。详细迁移规则见[账号登录实现说明](../2026-10-13-workbench-login/implementation.md)。
 
-服务端存 `tester_id`、角色和 token SHA-256；每人身份唯一、token 摘要唯一。给新配置指定 `EVAL_ACCESS_FILE`，并在约定窗口重启后生效。普通聊天接口和临时附件接口目前仍不是完整账户隔离体系。
+服务端配置保存 `tester_id`、角色、用户名与加盐 scrypt 密码哈希。给新配置指定 `EVAL_ACCESS_FILE`，并在约定窗口重启后生效；不要用本机凭据覆盖服务器配置。前台聊天和临时附件携带会话，按已验证内部身份隔离；公开访客仍走访客机制。迁移后的账号不保留旧密钥登录，网页没有注册、自助找回或账号管理界面。
 
 ### 14.3 改动、构建与切换顺序
 
 1. 阅读相关目录规范，检查工作区差异。现有未提交改动和历史库必须保留，不能用重置清理。
 2. 在临时端口和独立数据库验证新代码，合成 fail/pass 不写正式库。
 3. 前端使用独立构建目录。当前 `.next-workbench` 正在供正式服务使用时，不向其中构建；可选择未被服务使用的 `.next-candidate`，先核对是否空闲。
-4. 完成相应后端/浏览器/类型/构建检查后，生成新的源码清单。当前脚本的交付前缀固定含 20261004，这是现有工具行为，后续调整命名须连同启动脚本核对。
+4. 完成相应后端/浏览器/类型/构建检查后，生成与候选源码、前端构建匹配的新清单，核对绑定的构建目录和后端地址。
 5. 对正式库、身份配置和外部资产做当前备份，验证可恢复。不要使用一份早于新人工记录的旧备份声称已保护最新数据。
 6. 协调测试窗口，核对现有进程后有序停止，使用新清单和已验证构建目录启动。
 7. 检查健康、登录、`/api/eval/config`、原执行/评分/Run 和资产可读性，记录新构建后再恢复人工测试。
@@ -456,14 +481,16 @@ Trace 不保存模型思维链。文件事实定位到 SHA-256、表名、数值
 
 ```bash
 # 从项目根目录运行；该脚本会启动正式端口服务。
-python3 backend/scripts/start_delivery.py \
-  --manifest delivery-source-manifest-2026-10-04-sidebar.json \
-  --dist-dir .next-workbench
+# 将占位文件名替换为本次交付清单，先只读检查，再启动。
+backend/.venv/bin/python backend/scripts/start_delivery.py \
+  --manifest '本次交付清单文件名.json' --check
+backend/.venv/bin/python backend/scripts/start_delivery.py \
+  --manifest '本次交付清单文件名.json'
 ```
 
-启动脚本检查清单内每项源码指纹及前端 `BUILD_ID` 是否存在，然后创建后台服务；它不是进程管理器，不会替你停止占用端口的旧进程，也不证明已有构建产物一定由当前源码生成。修改后必须重新构建、使用新清单，不能只换构建标签。
+清单文件须位于 `docs/iterations/2026-09-29-agent-harness/`。启动器检查源码指纹、前端构建绑定及产物完整性，确认端口空闲后启动服务并等待就绪；它不会替你停止旧进程。默认清单仍是旧日期版本，当前改动不能直接套用，应显式指定本次匹配清单。修改后必须重新构建并生成清单，不能只换构建标签。
 
-当前启动脚本使用本地模型离线加载，设置 `DEEPSEEK_PROXY=http://127.0.0.1:7890` 并关闭重排序。新机器需核对这些本地依赖，不能照抄代理地址就视为可用。多人远程访问还需要部署可达地址、前端 API 地址及 CORS 等设置，当前绑定 `127.0.0.1` 不提供直接跨机器访问。
+当前启动器设置本地模型离线加载变量，模型 API、代理与重排序仍以实际环境配置为准；不再硬编码本机 7890 代理或强制关闭重排序。新机器需核对模型和索引资源。启动器绑定 `127.0.0.1`，远程服务应沿用实际反向代理与进程管理配置；参见[公开部署说明](../../public-demo.md)及[10 月 14 日更新候选记录](../../releases/2026-10-14-server-candidate.md)。
 
 ## 15. 备份、恢复、证据导出
 
@@ -475,7 +502,7 @@ python3 backend/scripts/start_delivery.py \
 .venv/bin/python scripts/eval_archive.py backup \
   --database var/agent/runs.sqlite3 \
   --access var/eval/access-keys.json \
-  --credentials var/eval/access-credentials.txt \
+  --credentials var/eval/account-credentials.txt \
   --destination var/backups/example-new-batch
 
 .venv/bin/python scripts/eval_archive.py verify \
@@ -492,7 +519,18 @@ python3 backend/scripts/start_delivery.py \
 
 `backup` 使用 SQLite 在线备份包含已提交 WAL 数据，保存身份文件及可选私有凭证；`verify` 核对文件、数据库结构和表内容指纹；`restore` 只写新目录，不覆盖当前库，也不自动把服务切到恢复库；`export` 导出 Run/eval 数据供审阅，不带身份密钥，但仍含问题、回答和材料路径。
 
-**此备份不含外部资产、模型和索引文件。**还需单独保存 `data/eval/uploads/`、Case 引用原件、论文/审核材料、必要索引/模型或可重复生成方法，以及相应源码和配置。资产库只存路径和指纹，恢复一个数据库不会凭空恢复文件。
+**以上归档命令只处理指定的运行/评测数据库及身份文件。**星标问题在该数据库内，但文献、案例数据库与 PDF 不会自动包含。备份范围至少核对下表，若环境覆盖了路径，以实际配置为准：
+
+| 配置或资料 | 默认位置 | 备份内容 |
+|---|---|---|
+| `AGENT_TRACE_DB` | `backend/var/agent/runs.sqlite3` | Run、评测记录及星标问题 |
+| `LITERATURE_DB` | `backend/var/literature/library.sqlite3` | 文献字段（含结论）、分类、关联及变更记录 |
+| `LITERATURE_FILES_DIR` | `backend/var/literature/files` | PDF 原件及文献文件 |
+| `CASE_LIBRARY_DB` | `backend/var/case-library/cases.sqlite3` | 案例正文、解释、来源、开放及删除状态 |
+| 身份与私有凭据 | `backend/var/eval/` | 实际账号配置和密码文件 |
+| 资产及检索资料 | `data/eval/uploads/`、Case 原件、论文/审核材料、实际模型及索引目录 | 原件、索引/模型或可复建方法 |
+
+文献和案例 SQLite 应分别用在线备份或停写后一致备份，不能只复制活动中的主文件而遗漏 WAL；同时保留对应源码和配置。现有归档工具会把传入的私有凭据在备份包内命名为 `access-credentials.txt`，即使源文件叫 `account-credentials.txt`；恢复到新目录后要核对这一兼容文件名，不要据此恢复成旧密钥登录。恢复一个数据库不会凭空恢复 PDF 或资产原件。
 
 现有侧栏交付留档：源码清单 181 项，私有源码包 `backend/var/backups/delivery-20261004-ee879b36e1ab-source.tar.gz`；切换前备份 `backend/var/backups/pre-sidebar-switch-20261004/`，恢复验证副本为同路径加 `-restore-check`。备份当时 34 条 Run、3 条执行、2 条评分，切换后全部旧表行原样保留。这些是历史快照数量，实时库可继续增长。
 
@@ -502,7 +540,7 @@ python3 backend/scripts/start_delivery.py \
 |---|---|
 | 页面开了但后台请求失败 | API 地址是否匹配、8000 健康、CORS、是否旧前端构建 |
 | 评测 API 404 | `EVAL_ENABLED`、是否启动了旧后端；不等于数据库丢失 |
-| 401 / 登录失效 | 本人密钥、Bearer 格式、服务当前加载的访问文件；刷新需重登 |
+| 401 / 登录失效 | 本人账号、会话闲置过期、退出或后端重启；正常刷新保持登录，网络失败可重新验证 |
 | 403 / 看不到操作按钮 | 角色、执行所有者、页面模块；developer 也不能代改他人执行 |
 | Task 配置不匹配 | 实际 `/config` 与冻结 Task；新构建创建新任务 |
 | 上传指纹不符 | 原件内容和名称、Case fixture；不要直接改冻结标准 |
@@ -514,6 +552,9 @@ python3 backend/scripts/start_delivery.py \
 | 重启后上下文消失 | 预期的内存生命周期；旧 DB 记录仍在，新上下文要重置重传 |
 | 资料已上传但问答没引用 | 资产登记不是 RAG 入库；检查索引和检索链路 |
 | 统计看似变好 | 核对分母、Case 版本、重复执行、评分人群和待评分/受阻比例 |
+| AI 字段解析回退、结论为空或打标失败 | 核对模型连接、PDF 文字层、结论章节及启用分类；保留人工输入，参考资料管理说明处理 |
+| 案例验证找不到材料 | 核对已保存、已开放、未删除及材料容量；未采用/保存的解释不参与调用 |
+| 星标答案被另一人修改 | 当前没有修订冲突检查，协调编辑并人工核对；不代表执行或审核记录发生变化 |
 
 技术定位建议顺序为：身份与环境 → 正确的执行/Run → 版本 → 路由/状态 → 工具 → 证据 → 答案 → 评分/统计。避免在找错环境或看错轮次时调整模型参数。
 
@@ -529,39 +570,49 @@ python3 backend/scripts/start_delivery.py \
 | Task/Issue/审核、资产/草稿、回归 | `backend/src/evaluation/workflow.py`、`catalog.py`、`regression.py` |
 | Agent 路由、状态、工具、组合回答 | `backend/src/agent/runtime.py`、`routing.py`、`state.py`、`skills.py`、`composition.py` |
 | Trace 存储、归档工具 | `backend/src/storage/run_store.py`、`backend/src/operations/archive.py` |
+| 共享登录及会话 | `frontend/src/components/account-session.tsx`、`frontend/src/lib/account-storage.ts`、`backend/src/evaluation/auth.py` |
+| 文献、标签与 AI 录入 | `frontend/src/components/literature-workspace.tsx`、`literature-taxonomy.tsx`；`backend/src/api/literature.py`、`literature_extract.py`、`literature_tagging.py` |
+| 案例与措施 | `frontend/src/components/case-library-workspace.tsx`、`case-body-editor.tsx`；`backend/src/api/case_library.py` |
+| 星标问题 | `frontend/src/components/starred-questions.tsx`；`backend/src/api/evaluation.py`、`backend/src/evaluation/store.py` |
 
 ### API 速查
 
-所有 `/api/eval` 路径需要合法身份；具体请求字段看 contracts 与接口实现。
+除账号登录接口外，以下管理接口需要合法会话身份；具体请求字段看 contracts 与接口实现。登录使用账号密码，其他请求通过 `Authorization: Bearer <会话凭据>` 传递身份。
 
 | 对象 | 常用路径 |
 |---|---|
-| 身份与配置 | `GET /api/eval/me`、`GET /api/eval/config` |
+| 身份与配置 | `POST /api/eval/login`、`POST /api/eval/logout`、`GET /api/eval/me`、`GET /api/eval/config` |
 | Task | `/api/eval/tasks`、`/tasks/{id}/prepare`、`/progress`、`/dashboard`、`/evidence`（后四项接在任务 ID 后） |
 | 执行 | `/api/eval/executions`、`/executions/{id}` 及其 `/query`、`/files`、`/actions`、`/reviews` |
 | Case/资产 | `/api/eval/cases`、`/case-drafts`、`/assets`、`/asset-pairs`（均在 `/api/eval` 下） |
 | Issue | `/api/eval/issues`、`/issues/{id}` 及其 `/retests` |
 | 独立审核 | `/api/eval/assessments`、`/review-queue`、`/reviewers` |
 | Run/回归 | `/api/eval/runs`、`/regressions`、`/replays` |
+| 星标问题 | `GET/POST /api/eval/starred-questions`、`PUT /api/eval/starred-questions/{id}` |
+| 文献与分类 | `/api/literature/papers`、`/uploads`、`/taxonomy`、`/dimensions`、`/tags`（均在 `/api/literature` 下） |
+| 文献 AI 辅助 | `POST /api/literature/extract`、`POST /api/literature/suggest-tags`；返回建议，不保存文献 |
+| 案例与措施 | `GET/POST /api/case-library`、`GET/PUT/DELETE /api/case-library/{id}`、`PATCH /api/case-library/{id}/availability` |
+| 案例解释与验证 | `POST /api/case-library/explanation-draft` 生成初稿；`POST /api/chat` 通过 `case_skill=reference|explain` 及可选 `case_ids` 验证 |
 
 写接口会产生真实记录；开发和自动测试必须使用隔离数据库。不要为学习 API 在正式库批量生成合成评分。
 
 ## 17. 已知边界、验证依据和配套文档
 
-当前仍未完成：Task 自动批量执行和完整任务状态/人员管理；资产删除/替换等生命周期；持久化回归队列与断点恢复；用户/密钥管理界面；配置编辑/回滚中心；严格可比跨版本趋势；正式发布门槛；工作台多文件执行和跨文件联合计算。
+当前仍未完成：Task 自动批量执行和完整任务状态/人员管理；评测资产删除/替换等生命周期；持久化回归队列与断点恢复；账号管理界面；配置编辑/回滚中心；严格可比跨版本趋势；正式发布门槛；工作台多文件执行和跨文件联合计算。文献与案例各自已有的维护功能见第 5.1 节。
 
 当前单后端进程保存会话与临时文件，不支持以增加 workers 的方式直接扩展。启动清单对超过 256 MiB 的部分目录仅记录元数据摘要，外部模型服务只记录声明模型名，不验证远端权重；相同标签不能保证所有外部条件完全相同。
 
-侧栏改造已验证生产构建、类型检查及 8 项隔离浏览器流程。后端 354 通过 / 4 跳过属于之前的全量验证；编写本说明书没有重新运行产品测试，也未切换服务或写入正式评测结果。自动测试、真实体验验收和专家签核须继续分开记录。
+历史侧栏改造的构建、浏览器与后端测试只证明当时快照。最近各批验证分别见[共享登录](../2026-10-13-workbench-login/shared-session-v1.1.md)、[文献 AI 增强](../2026-10-15-literature-ai/implementation.md)、[案例库复查](../2026-10-14-case-library-v1/rich-text-review.md)和[10 月 14 日候选版](../../releases/2026-10-14-server-candidate.md)。本次仅更新文档并核对源码、链接与格式，未重跑产品测试、切换服务或写入正式评测结果。自动测试、真实体验验收和专家签核须继续分开记录。
 
 UI02 历史发送失败尚未复现，不能称其原根因已修复。PR01–PR03 的真实运行配对及口径、PR07–PR09 的独立专业判断仍需人和材料完成，不由说明书或自动回归代填。
 
 配套阅读：
 
 - [测评者使用说明书](tester-user-manual.md)：可独立发给测试者和专家。
+- [资料管理使用说明](workbench-materials-guide.md)：四个资料模块的操作步骤、保存规则与异常处理。
 - [唯一人工验收共编记录](collaborative-manual-acceptance-2026-10-04.md)：分工、操作验收、专业判断和问题记录。
-- [工程进度与交付记录](engineering-progress-2026-10-04.md)：当前交付与历史验证范围。
-- [后续工作清单](next-work-2026-10-04.md)：待完成工程和人工事项。
-- [侧栏版源码清单](delivery-source-manifest-2026-10-04-sidebar.json)：已交付源码指纹。
+- [工程进度与交付记录](engineering-progress-2026-10-04.md)：历史交付与当时验证范围。
+- [后续工作清单](next-work-2026-10-04.md)：历史待办，结合后续迭代记录核对当前状态。
+- [侧栏版源码清单](delivery-source-manifest-2026-10-04-sidebar.json)：10 月 4 日历史源码指纹，不能用于启动当前新增功能。
 
 导出在线文档时，两份说明书可各自成篇；把配套人工记录的链接换成团队统一在线地址。原件和源码路径需要项目访问权限，密钥、私有备份和原始资料不要随说明书一并公开分发。

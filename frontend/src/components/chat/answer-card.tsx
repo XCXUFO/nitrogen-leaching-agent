@@ -33,10 +33,12 @@ export function AnswerCard({ response, scope }: { response: ChatResponse; scope:
       setCopying(false);
       copyTimer.current = setTimeout(() => setCopyStatus(""), 1000);
     }}>{copying ? "正在复制…" : copyStatus || "复制回答"}</button></div></div>
+    {!!response.case_route?.length && <p className="text-xs text-muted-foreground">本次路由：{response.case_route.map((skill) => skill === "case_reference" ? "案例与措施参考" : "案例与措施解释").join(" → ")}{response.case_match === "missing" ? " · 暂无匹配案例" : response.case_match === "matched" ? " · 已匹配案例" : response.case_match === "unavailable" ? " · 案例不可用" : " · 文本解释或待补充"}</p>}
+    {response.case_gap_recorded && <p className="text-xs text-muted-foreground">此需求已记入案例待补充清单，供资料维护时参考。</p>}
     {response.outcome === "partial" && <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900">部分完成：已保留可用结果，尚未完成的部分见说明。</p>}
     <div ref={answer} tabIndex={-1} className="outline-none text-sm leading-7"><MarkdownAnswer content={response.answer.replace(/^(表中观察|为何目前不能归因|文献中的事件尺度线索|下一步核查|文献支持的可能机制|适用边界与下一步)$/gm, "### $1")} indices={response.citations.map((c) => c.index)} onCitation={showCitation} /></div>
     <CitationList citations={response.citations} scope={scope} activeIndex={active} onBack={() => { answer.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }); answer.current?.focus({ preventScroll: true }); }} />
-    {!!response.case_references?.length && <div className="space-y-2 rounded-lg border p-3 text-sm"><h3 className="font-medium">参考案例</h3>{response.case_references.map((item) => <div key={item.id}><p>{item.title} · {item.id}</p>{item.source && <p className="whitespace-pre-wrap break-words text-xs text-muted-foreground">来源：{item.source}</p>}</div>)}</div>}
+    {!!response.case_references?.length && <div className="space-y-2 rounded-lg border p-3 text-sm"><h3 className="font-medium">参考案例</h3>{response.case_references.map((item) => <div key={item.id}><p>{item.title}</p>{item.source && <p className="whitespace-pre-wrap break-words text-xs text-muted-foreground">来源：{item.source}</p>}</div>)}</div>}
     <FileEvidenceList evidence={response.file_evidence ?? []} />
   </article>;
 }

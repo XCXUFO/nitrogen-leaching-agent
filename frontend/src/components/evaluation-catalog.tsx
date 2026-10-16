@@ -124,9 +124,8 @@ export function EvaluationCatalog({ token, role, cases, currentCase, onSelectCas
     });
   }
 
-  return <fieldset disabled={busy} className="min-w-0 space-y-4 rounded-lg border p-5">
-    <div className="flex flex-wrap items-center justify-between gap-2"><div><h2 className="font-semibold">{mode === "assets" ? "数据资产" : showDrafts ? "用例草稿与发布" : "用例版本目录"}</h2>
-      <p className="text-xs text-muted-foreground">{mode === "assets" ? "登记来源和文件指纹，核对模型输入输出的配对依据。" : "按类别与审核状态检索；发布新版本后保留历史标准与评分。"}</p></div>
+  return <fieldset disabled={busy} className={`min-w-0 rounded-lg border ${showDrafts || currentCase ? "space-y-4 p-5" : "space-y-3 p-3"}`}>
+    <div className="flex flex-wrap items-center justify-between gap-2"><div><h2 className="font-semibold">{mode === "assets" ? "数据资产" : showDrafts ? "用例草稿与发布" : "用例版本目录"}</h2></div>
       <div className="flex gap-2">{mode === "cases" && role === "developer" && !showDrafts && <Link href={evaluationHref("cases", "drafts")} className="rounded-lg bg-emerald-700 px-4 py-2 text-sm text-white">管理草稿</Link>}<button className={button} disabled={busy} onClick={() => void run(refresh)}>刷新目录</button></div></div>
     {error && <p role="alert" className="rounded border border-destructive/40 p-2 text-sm">{error}</p>}
     {notice && <p role="status" className="rounded border border-green-600/30 p-2 text-sm">{notice}</p>}
@@ -138,11 +137,11 @@ export function EvaluationCatalog({ token, role, cases, currentCase, onSelectCas
         <select aria-label="筛选专业审核" className={field} value={reviewFilter} onChange={(e) => setReviewFilter(e.target.value)}><option value="">全部审核状态</option>
           <option value="pending">待专业审核</option><option value="domain_expert_reviewed">已有专家审核</option></select>
       </div>
-      <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="bg-slate-50 text-xs text-slate-500"><tr>{["用例", "版本", "类别", "优先级", "专业审核", "操作"].map((label) => <th key={label} className="whitespace-nowrap p-3 font-medium">{label}</th>)}</tr></thead><tbody>
-        {visibleCases.map((item) => <tr key={`${item.case.case_id}@${item.case.version}`} className="border-t"><td className="p-3"><span className="font-medium">{item.case.case_id}</span><p className="mt-1 text-xs text-slate-500">{item.case.title}</p></td><td className="p-3">v{item.case.version}</td><td className="p-3">{item.case.category}</td><td className="p-3">{item.case.priority}</td><td className="whitespace-nowrap p-3 text-xs">{item.professional_review === "domain_expert_reviewed" ? "已有专家审核" : "待专业审核"}</td><td className="p-3"><button type="button" className="whitespace-nowrap text-emerald-700 underline" onClick={() => onSelectCase(`${item.case.case_id}@${item.case.version}`)}>查看用例</button></td></tr>)}
-      </tbody></table>{!visibleCases.length && <p className="py-8 text-center text-sm text-muted-foreground">没有匹配的用例。</p>}</div>
+      <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="bg-slate-50 text-xs text-slate-500"><tr>{["用例", "版本", "类别", "优先级", "专业审核", "操作"].map((label) => <th key={label} className="whitespace-nowrap px-3 py-2 font-medium">{label}</th>)}</tr></thead><tbody>
+        {visibleCases.map((item) => <tr key={`${item.case.case_id}@${item.case.version}`} className="border-t"><td className="px-3 py-2"><span className="font-medium">{item.case.case_id}</span><p className="mt-1 text-xs text-slate-500">{item.case.title}</p></td><td className="px-3 py-2">v{item.case.version}</td><td className="px-3 py-2">{item.case.category}</td><td className="px-3 py-2">{item.case.priority}</td><td className="whitespace-nowrap px-3 py-2 text-xs">{item.professional_review === "domain_expert_reviewed" ? "已有专家审核" : "待专业审核"}</td><td className="px-3 py-2"><button type="button" className="whitespace-nowrap text-emerald-700 underline" onClick={() => onSelectCase(`${item.case.case_id}@${item.case.version}`)}>查看用例</button></td></tr>)}
+      </tbody></table>{!visibleCases.length && <p className="py-6 text-center text-sm text-muted-foreground">没有匹配的用例。</p>}</div>
     </section>}
-    {mode === "assets" && <div className="grid gap-4 xl:grid-cols-2">
+    {mode === "assets" && <div className="grid gap-3 xl:grid-cols-2">
       {role === "developer" && <form className="space-y-2 rounded border p-3" onSubmit={(event) => { event.preventDefault(); void run(async () => {
         const added = await request<Asset>(token, "/assets", evaluationJson({ kind: assetKind, path: assetPath.trim(), source: assetSource.trim(), notes: assetNotes }));
         await refresh(); setAssetPath(""); setAssetNotes(""); setNotice(`已登记 ${added.filename} · SHA-256 ${added.sha256}`);
@@ -170,7 +169,7 @@ export function EvaluationCatalog({ token, role, cases, currentCase, onSelectCas
         <button className={button} disabled={busy}>保存{role === "reviewer" ? "核实" : "候选配对"}</button>
       </form>
     </div>}
-    {role === "developer" && <div className="grid gap-4 xl:grid-cols-2">
+    {role === "developer" && <div className="grid gap-3 xl:grid-cols-2">
       {mode === "assets" && <form className="space-y-2 rounded border p-3" onSubmit={(event) => { event.preventDefault(); void run(async () => {
         if (!assetUpload) throw new Error("请先选择资产文件。");
         const query = new URLSearchParams({ filename: assetUpload.name, kind: assetKind,

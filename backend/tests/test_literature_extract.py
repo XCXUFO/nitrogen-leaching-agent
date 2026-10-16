@@ -2,7 +2,7 @@ import fitz
 from fastapi.testclient import TestClient
 
 from src.llm.base import ChatResult, ChatUsage
-from src.api.literature_extract import local_suggestions
+from src.api.literature_extract import local_suggestions, read_pdf_for_extraction
 from tests.literature_fixture import TOKENS, create_app
 
 
@@ -148,3 +148,64 @@ def test_local_abstract_in_heading_block_does_not_pick_introduction(tmp_path):
     fields = local_suggestions(path)
     assert fields.abstract == abstract.strip()
     assert "introduction" not in fields.abstract
+
+
+def test_extraction_reads_conclusions_before_long_reference_list(tmp_path):
+    document = fitz.open()
+    for number in range(20):
+        text = f"Page {number + 1}. " + "Study of nitrogen leaching and irrigation in maize. " * 3
+        if number == 12:
+            text = "5. Conclusions\nReduced irrigation decreased nitrogen leaching.\nThis result applies to the study site."
+        if number >= 13:
+            text = "References\nEarlier papers cited by this study. " * 4
+        document.new_page().insert_textbox(fitz.Rect(72, 72, 500, 700), text)
+    path = tmp_path / "conclusion-before-references.pdf"
+    document.save(path)
+    document.close()
+    text, pages = read_pdf_for_extraction(path)
+    assert "[第 13 页]" in text
+    assert "Reduced irrigation decreased nitrogen leaching." in text
+    assert "[第 1 页]" in text
+    assert pages <= 13 and len(text) <= 40000
+
+
+def test_conclusion_suggestion_and_manual_edit_survive_reopening(tmp_path):
+    import json
+
+    conclusion = "Reduced irrigation decreased nitrogen leaching.\nResults apply to the study site."
+
+    class ConclusionLLM(FakeLLM):
+        async def chat(self, messages, **kwargs):
+            self.messages = messages
+            return ChatResult(content=json.dumps({"conclusion": conclusion}), model="test",
+                              usage=ChatUsage(prompt_tokens=10, completion_tokens=10, total_tokens=20))
+
+    app = create_app(tmp_path)
+    app.state.llm = ConclusionLLM()
+    with TestClient(app) as client:
+        client.headers["Authorization"] = f"Bearer {TOKENS['tester']}"
+        upload = client.post("/api/literature/uploads?filename=conclusions.pdf",
+                             content=pdf_bytes("5. Conclusions\n" + conclusion)).json()
+        paper = client.post("/api/literature/papers", json={"upload_id": upload["upload_id"], "title": "Original"}).json()
+        path = f"/api/literature/papers/{paper['id']}"
+        assert paper["conclusion"] == ""
+        response = client.post("/api/literature/extract", json={"paper_id": paper["id"]})
+        assert response.status_code == 200
+        assert response.json()["fields"]["conclusion"] == conclusion
+        assert client.get(path).json()["conclusion"] == ""  # Suggesting does not save.
+        saved = client.put(path, json={**paper, "conclusion": conclusion}).json()
+        edited = client.put(path, json={**saved, "conclusion": conclusion + "\n手动补充说明"})
+        assert edited.status_code == 200
+        assert "结论" in edited.json()["events"][0]["summary"]
+    app.state.literature.close()
+
+    reopened = create_app(tmp_path)
+    with TestClient(reopened) as client:
+        client.headers["Authorization"] = f"Bearer {TOKENS['reviewer']}"
+        record = client.get(path).json()
+        assert record["conclusion"] == conclusion + "\n手动补充说明"
+        old_client_payload = {key: value for key, value in record.items() if key != "conclusion"}
+        assert client.put(path, json=old_client_payload).json()["conclusion"] == record["conclusion"]
+        record = client.get(path).json()
+        assert client.put(path, json={**record, "conclusion": ""}).json()["conclusion"] == ""
+    reopened.state.literature.close()

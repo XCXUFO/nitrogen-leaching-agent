@@ -20,14 +20,14 @@ export function isWithin(id: string, ancestor: string, nodes: TaxonomyNode[]) {
 }
 
 /** Browsing a branch never selects it. A checked parent includes descendants only in search mode. */
-export function TagCascader({ dimensions, nodes, value, onChange, mode = "filter", includeDisabled = false }: {
+export function TagCascader({ dimensions, nodes, value, onChange, mode = "filter", includeDisabled = false, compact = false }: {
   dimensions: Dimension[]; nodes: TaxonomyNode[]; value: string[]; onChange: (value: string[]) => void;
-  mode?: "filter" | "assign"; includeDisabled?: boolean;
+  mode?: "filter" | "assign"; includeDisabled?: boolean; compact?: boolean;
 }) {
-  return <div className="space-y-2">
-    <div className="flex flex-wrap gap-2">{dimensions.filter((dim) => dim.enabled !== 0 && dim.enabled !== false || includeDisabled || value.some((id) => nodes.some((n) => n.id === id && n.dimension_id === dim.id))).map((dim) => <DimensionPicker key={dim.id} dimension={dim} nodes={nodes} value={value} onChange={onChange} mode={mode} includeDisabled={includeDisabled} />)}{!dimensions.length && <p className="text-xs text-slate-500">暂无分类维度，文献仍属于全局。</p>}</div>
+  return <div className={compact ? "flex flex-wrap items-center gap-2" : "space-y-2"}>
+    <div className="flex flex-wrap gap-2">{dimensions.filter((dim) => dim.enabled !== 0 && dim.enabled !== false || includeDisabled || value.some((id) => nodes.some((n) => n.id === id && n.dimension_id === dim.id))).map((dim) => <DimensionPicker key={dim.id} dimension={dim} nodes={nodes} value={value} onChange={onChange} mode={mode} includeDisabled={includeDisabled} />)}{!dimensions.length && <p className="text-xs text-slate-500">暂无分类维度，可先保存内容。</p>}</div>
     {!!value.length && <div className="flex flex-wrap gap-2">{value.map((id) => { const node = nodes.find((n) => n.id === id); return <button key={id} type="button" className="inline-flex max-w-full items-center gap-1 rounded bg-emerald-50 px-2 py-1 text-left text-xs text-emerald-900" aria-label={`移除标签 ${node?.path || id}`} onClick={() => onChange(value.filter((v) => v !== id))}><span className="break-words">{dimensions.find((d) => d.id === node?.dimension_id)?.name}：{node?.path || id}</span><X size={12} className="shrink-0" /></button>; })}</div>}
-    <p className="text-xs text-slate-500">{mode === "filter" ? "选中父标签包含全部下级；同一维度内为“或”，不同维度间为“且”。" : "按层级选择分类；选择下级会替换同一路径的上级标签。"}</p>
+    {mode === "assign" && <p className="text-xs text-slate-500">按层级选择分类；选择下级会替换同一路径的上级标签。</p>}
   </div>;
 }
 
@@ -38,6 +38,15 @@ function DimensionPicker({ dimension, nodes, value, onChange, mode, includeDisab
   const [branch, setBranch] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const trigger = useRef<HTMLButtonElement>(null);
+  const picker = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const outside = (event: PointerEvent) => {
+      if (event.target instanceof Node && !picker.current?.contains(event.target)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", outside);
+    return () => document.removeEventListener("pointerdown", outside);
+  }, [open]);
   const columns = useRef<HTMLDivElement>(null);
   useEffect(() => { if (open && columns.current) columns.current.scrollLeft = columns.current.scrollWidth; }, [branch, open]);
   const own = nodes.filter((node) => node.dimension_id === dimension.id);
@@ -46,25 +55,54 @@ function DimensionPicker({ dimension, nodes, value, onChange, mode, includeDisab
   // Keep disabled ancestors as navigation when they lead to active/selected descendants.
   const visible = own.filter((node) => selectable.some((child) => isWithin(child.id, node.id, own)));
   const count = value.filter((id) => own.some((node) => node.id === id)).length;
+  function checked(node: TaxonomyNode): boolean {
+    // Child selections do not include records assigned directly to this node.
+    return value.includes(node.id) || mode === "filter" && value.some((id) => isWithin(node.id, id, own));
+  }
+  function partial(node: TaxonomyNode): boolean {
+    return mode === "filter" && !checked(node) && value.some((id) => isWithin(id, node.id, own));
+  }
   function choose(node: TaxonomyNode) {
+    if (mode === "filter") {
+      // Expand selected ancestors before removing a branch, preserving its siblings.
+      const selected = new Set(value);
+      function expand(parent: TaxonomyNode) {
+        selected.delete(parent.id);
+        for (const child of selectable.filter((item) => item.parent_id === parent.id)) {
+          if (child.id !== node.id && isWithin(node.id, child.id, own)) expand(child);
+          else if (child.id !== node.id) selected.add(child.id);
+        }
+      }
+      if (checked(node)) {
+        for (const id of value) {
+          if (id !== node.id && isWithin(node.id, id, own)) expand(own.find((item) => item.id === id)!);
+          if (isWithin(id, node.id, own)) selected.delete(id);
+        }
+      } else {
+        for (const id of value) if (isWithin(id, node.id, own)) selected.delete(id);
+        selected.add(node.id);
+      }
+      onChange([...selected]);
+      return;
+    }
     if (value.includes(node.id)) { onChange(value.filter((id) => id !== node.id)); return; }
-    onChange([...value.filter((id) => !(mode === "assign" && dimension.selection === "single" && own.some((n) => n.id === id)) && !isWithin(id, node.id, own) && !isWithin(node.id, id, own)), node.id]);
+    onChange([...value.filter((id) => !(dimension.selection === "single" && own.some((n) => n.id === id)) && !isWithin(id, node.id, own) && !isWithin(node.id, id, own)), node.id]);
   }
   function close() { setOpen(false); trigger.current?.focus(); }
   const groups = search.trim() ? [selectable.filter((node) => node.path.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()))] : [null, ...branch].map((parent) => visible.filter((node) => node.parent_id === parent));
-  return <div className="relative max-w-full" onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }} onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); close(); } }}>
+  return <div ref={picker} className="relative max-w-full" onBlur={(event) => { if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) setOpen(false); }} onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); close(); } }}>
     <button ref={trigger} type="button" className={`${button} bg-white ${count ? "border-emerald-400 text-emerald-900" : "border-slate-300"}`} aria-label={`${dimension.name}级联选择`} aria-expanded={open} onClick={() => setOpen(!open)}>{dimension.name}{dimension.required ? " *" : ""}{count > 0 ? ` · ${count}` : mode === "filter" ? " · 不限" : " · 未选择"}<ChevronDown size={14} /></button>
     {open && <div role="dialog" aria-label={`${dimension.name}标签选择`} className="fixed inset-x-3 top-[15vh] z-40 max-h-[75vh] overflow-auto rounded-xl border border-emerald-200 bg-white p-3 shadow-xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-max sm:max-w-[min(40rem,90vw)]">
       <div className="mb-3 flex items-center gap-2"><input className={input} aria-label={`搜索${dimension.name}标签`} placeholder="搜索标签名称或完整路径" value={search} onChange={(e) => setSearch(e.target.value)} /><button type="button" className={button} aria-label="关闭标签选择" onClick={close}><X size={16} /></button></div>
       <div ref={columns} className="flex max-w-full gap-0 overflow-x-auto rounded-lg border">{groups.map((group, depth) => <div key={depth} aria-label={search.trim() ? "标签搜索结果" : `第${depth + 1}级标签`} className="max-h-64 min-w-44 flex-1 overflow-y-auto border-r last:border-r-0">
         <p className="sticky top-0 bg-slate-50 px-3 py-2 text-xs text-slate-500">{search.trim() ? "搜索结果 · 完整路径" : `第 ${depth + 1} 级`}</p>
-        {group.map((node) => { const children = visible.some((n) => n.parent_id === node.id); const inherited = mode === "filter" && !value.includes(node.id) && value.some((id) => isWithin(node.id, id, own)); return <div key={node.id} className={`flex items-center gap-1 px-2 py-2 text-sm ${branch[depth] === node.id ? "bg-emerald-50" : "hover:bg-slate-50"}`}>
-          <label className="flex min-w-0 flex-1 cursor-pointer items-start gap-2" title={node.path}><input className="mt-1 accent-emerald-600" type="checkbox" checked={value.includes(node.id)} disabled={disabled(node) && !value.includes(node.id)} aria-label={node.path} onChange={() => choose(node)} /><span className="break-words">{search.trim() ? node.path : node.name}{disabled(node) && <small className="block text-slate-400">已停用</small>}{inherited && <small className="block text-emerald-700">已由上级包含</small>}</span></label>
-          {children && !search.trim() && <button type="button" className="rounded p-1.5 hover:bg-emerald-100" aria-label={`展开 ${node.path}`} aria-expanded={branch[depth] === node.id} onClick={() => setBranch([...branch.slice(0, depth), node.id])}><ChevronRight size={16} /></button>}
+        {group.map((node) => { const children = visible.some((n) => n.parent_id === node.id); const inherited = mode === "filter" && !value.includes(node.id) && value.some((id) => isWithin(node.id, id, own)); return <div key={node.id} className={`flex items-stretch text-sm ${branch[depth] === node.id ? "bg-emerald-50" : "hover:bg-slate-50"}`}>
+          <label className="flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-2 px-3 py-2" title={node.path}><input ref={(element) => { if (element) element.indeterminate = partial(node); }} className="shrink-0 accent-emerald-600" type="checkbox" checked={checked(node)} disabled={disabled(node) && !value.includes(node.id)} aria-label={node.path} onChange={() => choose(node)} /><span className="break-words">{search.trim() ? node.path : node.name}{disabled(node) && <small className="block text-slate-400">已停用</small>}{inherited && <small className="block text-emerald-700">已由上级包含</small>}{partial(node) && <small className="block text-emerald-700">部分下级已选</small>}</span></label>
+          {children && !search.trim() && <button type="button" className="shrink-0 rounded px-3 hover:bg-emerald-100" aria-label={`展开 ${node.path}`} aria-expanded={branch[depth] === node.id} onClick={() => setBranch([...branch.slice(0, depth), node.id])}><ChevronRight size={16} /></button>}
         </div>; })}
         {!group.length && <p className="p-3 text-xs text-slate-500">暂无匹配标签</p>}
       </div>)}</div>
-      <div className="mt-3 flex items-center justify-between gap-3 text-xs"><span className="text-slate-500">{mode === "filter" ? "勾选父级包含全部下级" : dimension.selection === "single" ? "本维度单选" : "可选择多个分支"}</span><button type="button" className={button} onClick={close}>完成选择</button></div>
+
     </div>}
   </div>;
 }

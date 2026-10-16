@@ -126,7 +126,7 @@ export function EvaluationWorkspace({ section, detail = "", executionId = "", ca
   if (loading) return <p role="status" className="rounded-xl border bg-white p-8 text-sm text-muted-foreground">正在读取数据…</p>;
   if (error && targetExecution && !execution) return <div role="alert" className="rounded-xl border bg-white p-6 text-sm text-destructive">{error}</div>;
 
-  const contextSelector = <section className="flex flex-wrap items-center gap-3 rounded-xl border bg-white p-4">
+  const contextSelector = <section className="flex flex-wrap items-center gap-2 rounded-xl border bg-white p-3">
     <label className="text-sm font-medium" htmlFor="related-execution">关联执行</label>
     <select id="related-execution" className={`${inputStyle} sm:max-w-xl`} value={targetExecution} onChange={(e) => selectContext(e.target.value)}>
       <option value="">选择已有执行，或从执行详情进入</option>
@@ -136,28 +136,30 @@ export function EvaluationWorkspace({ section, detail = "", executionId = "", ca
     {execution && <Link className="text-sm text-emerald-700 underline" href={evaluationHref("executions", execution.execution_id)}>查看执行与证据</Link>}
   </section>;
 
-  return <div className="min-w-0 space-y-5">
+  return <div className={`min-w-0 ${!detail ? "space-y-3" : "space-y-5"}`}>
     {error && <p role="alert" className="rounded-lg border border-destructive/40 bg-white p-3 text-sm text-destructive">{error}</p>}
     {busy && <p role="status" className="text-sm text-muted-foreground">正在处理…</p>}
     {section === "overview" && <>
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {[{ label: "评测任务", value: tasks.length, href: "tasks" }, { label: "已发布用例版本", value: cases.length, href: "cases" },
           { label: user.role === "developer" ? "执行总数" : "近期可见执行", value: stats?.executions ?? executions.length, href: "executions" },
           { label: user.role === "developer" ? "待评分执行" : "近期待评分", value: stats?.pending ?? executions.filter((item) => item.status === "open").length, href: "executions" }].map((item) =>
-          <Link href={evaluationHref(item.href)} key={item.label} className="rounded-xl border bg-white p-5 transition-shadow hover:shadow-sm"><p className="text-xs text-slate-500">{item.label}</p><p className="mt-3 text-3xl font-semibold tabular-nums">{item.value}</p></Link>)}
+          <Link href={evaluationHref(item.href)} key={item.label} className="flex items-center justify-between gap-2 rounded-xl border bg-white px-3 py-3 transition-shadow hover:shadow-sm"><p className="text-xs text-slate-500">{item.label}</p><p className="text-2xl font-semibold tabular-nums">{item.value}</p></Link>)}
       </section>
-      <section className="rounded-xl border bg-white p-5"><h2 className="font-semibold">开始工作</h2><div className="mt-4 grid gap-3 md:grid-cols-3">
-        {evaluationModules.filter((item) => item.key !== "overview" && canViewModule(item.key, user.role)).map((item) => <Link key={item.key} href={evaluationHref(item.key)} className="group rounded-lg border p-4 hover:border-emerald-300 hover:bg-emerald-50/40"><span className="flex items-center justify-between text-sm font-medium">{item.title}<ArrowRight size={16} className="text-slate-400 group-hover:text-emerald-700" /></span><p className="mt-2 text-xs leading-5 text-slate-500">{item.description}</p></Link>)}
+      <div className={`grid items-start gap-3 ${stats ? "lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]" : ""}`}><section className="min-w-0 rounded-xl border bg-white p-3"><h2 className="font-semibold">开始工作</h2><div className="mt-2 grid gap-2 sm:grid-cols-2 2xl:grid-cols-3">
+        {evaluationModules.filter((item) => item.key !== "overview" && canViewModule(item.key, user.role)).map((item) => <Link key={item.key} href={evaluationHref(item.key)} className="group min-w-0 rounded-lg border px-3 py-2 hover:border-emerald-300 hover:bg-emerald-50/40"><span className="flex items-center justify-between text-sm font-medium">{item.title}<ArrowRight size={16} className="shrink-0 text-slate-400 group-hover:text-emerald-700" /></span></Link>)}
       </div></section>
-        {stats && <div className="space-y-3 rounded-lg border p-4">
-          <p className="text-sm">执行 {stats.executions} 次 · 已评分 {stats.reviewed} 次 · 待评分 {stats.pending} 次</p>
-          {stats.assessment_counts && <p className="text-sm">独立审核记录：AI 辅助 {stats.assessment_counts.ai_assisted} · 领域专家 {stats.assessment_counts.domain_expert}</p>}
+        {stats && <div className="min-w-0 space-y-2 rounded-xl border bg-white p-3">
+          <h2 className="font-semibold">评分概况</h2>
+          <p className="text-xs text-slate-600">执行 {stats.executions} 次 · 已评分 {stats.reviewed} 次 · 待评分 {stats.pending} 次</p>
+          {stats.assessment_counts && <p className="text-xs text-slate-600">独立审核记录：AI 辅助 {stats.assessment_counts.ai_assisted} · 领域专家 {stats.assessment_counts.domain_expert}</p>}
           <p className="text-sm">{Object.entries(stats.overall).map(([k, v]) => `${overallLabels[k]} ${v}`).join(" · ")}</p>
-          <div className="overflow-auto"><table className="w-full text-left text-sm"><thead><tr>{["维度", "有效样本", "是", "部分", "否"].map((h) => <th className="p-2" key={h}>{h}</th>)}</tr></thead><tbody>{Object.entries(stats.layers).map(([key, value]) => <tr className="border-t" key={key}><td className="p-2">{labels[key]}</td>{[value.denominator, value.yes, value.partial, value.no].map((n, i) => <td className="p-2" key={i}>{n}</td>)}</tr>)}</tbody></table></div>
-          <p className="text-xs text-muted-foreground">受阻单列，不适用不入该层分母，部分通过与通过分开。此表是开发试评评分分布，不能作为专业准确率。</p>
-          <details><summary className="cursor-pointer text-sm">按用例版本查看</summary><pre className="mt-2 overflow-auto whitespace-pre-wrap text-xs">{JSON.stringify(stats.by_case_version, null, 2)}</pre></details>
+          <div className="overflow-auto"><table className="w-full text-left text-sm"><thead><tr>{["维度", "有效样本", "是", "部分", "否"].map((h) => <th className="px-2 py-1.5" key={h}>{h}</th>)}</tr></thead><tbody>{Object.entries(stats.layers).map(([key, value]) => <tr className="border-t" key={key}><td className="px-2 py-1.5">{labels[key]}</td>{[value.denominator, value.yes, value.partial, value.no].map((n, i) => <td className="px-2 py-1.5" key={i}>{n}</td>)}</tr>)}</tbody></table></div>
+          <details className="text-xs text-muted-foreground"><summary className="cursor-pointer">统计口径</summary><p className="mt-2">受阻单列，不适用不计入分母，部分通过单列。开发试评分布不代表专业准确率。</p></details>
+          <details><summary className="cursor-pointer text-sm">按用例版本查看</summary><pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap text-xs">{JSON.stringify(stats.by_case_version, null, 2)}</pre></details>
         </div>}
 
+      </div>
     </>}
 
     {section === "tasks" && <>
@@ -182,10 +184,10 @@ export function EvaluationWorkspace({ section, detail = "", executionId = "", ca
     </>}
     {section === "assets" && user.role !== "tester" && <EvaluationCatalog token={token} role={user.role} mode="assets" cases={cases} onSelectCase={() => {}} onPublished={() => refresh()} />}
 
-    {section === "executions" && !detail && <section className="space-y-4 rounded-xl border bg-white p-5">
+    {section === "executions" && !detail && <section className="space-y-3 rounded-xl border bg-white p-3">
       <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-semibold">{user.role === "developer" ? "执行列表" : "可见执行"}</h2><Link href={evaluationHref("executions", "new")} className="inline-flex items-center gap-2 rounded-lg bg-emerald-700 px-4 py-2 text-sm text-white"><Plus size={16} />新建执行</Link></div>
-      <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="bg-slate-50 text-xs text-slate-500"><tr>{["用例版本", "测试者", "状态", "创建时间", "操作"].map((label) => <th key={label} className="whitespace-nowrap p-3 font-medium">{label}</th>)}</tr></thead>
-        <tbody>{executions.map((item) => <tr key={item.execution_id} className="border-t"><td className="p-3 font-medium">{item.case_id} v{item.case_version}</td><td className="p-3">{item.tester_id}</td><td className="p-3"><span className={`whitespace-nowrap rounded-full px-2 py-1 text-xs ${item.status === "reviewed" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800"}`}>{item.status === "reviewed" ? "已评分" : "待评分"}</span></td><td className="whitespace-nowrap p-3 text-xs text-slate-500">{new Date(item.created_at).toLocaleString()}</td><td className="p-3"><Link className="whitespace-nowrap text-emerald-700 underline" href={evaluationHref("executions", item.execution_id)}>打开执行</Link></td></tr>)}</tbody></table></div>
+      <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="bg-slate-50 text-xs text-slate-500"><tr>{["用例版本", "测试者", "状态", "创建时间", "操作"].map((label) => <th key={label} className="whitespace-nowrap px-3 py-2 font-medium">{label}</th>)}</tr></thead>
+        <tbody>{executions.map((item) => <tr key={item.execution_id} className="border-t"><td className="px-3 py-2 font-medium">{item.case_id} v{item.case_version}</td><td className="px-3 py-2">{item.tester_id}</td><td className="px-3 py-2"><span className={`whitespace-nowrap rounded-full px-2 py-1 text-xs ${item.status === "reviewed" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800"}`}>{item.status === "reviewed" ? "已评分" : "待评分"}</span></td><td className="whitespace-nowrap px-3 py-2 text-xs text-slate-500">{new Date(item.created_at).toLocaleString()}</td><td className="px-3 py-2"><Link className="whitespace-nowrap text-emerald-700 underline" href={evaluationHref("executions", item.execution_id)}>打开执行</Link></td></tr>)}</tbody></table></div>
       {!executions.length && <p className="py-8 text-center text-sm text-muted-foreground">暂无执行，选择用例新建一次测试。</p>}
       <div className="flex items-center gap-3"><span className="text-xs text-muted-foreground">第 {executionOffset / 50 + 1} 页</span>{[-50, 50].map((delta) => <button key={delta} className={buttonStyle} disabled={busy || (delta < 0 ? executionOffset === 0 : executions.length < 50)} onClick={() => void perform(async () => { const offset = Math.max(0, executionOffset + delta); setExecutions(await request<ExecutionSummary[]>(token, `/executions?offset=${offset}`)); setExecutionOffset(offset); })}>{delta < 0 ? "上一页" : "下一页"}</button>)}</div>
     </section>}

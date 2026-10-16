@@ -86,6 +86,9 @@ class CaseReference(BaseModel):
 
 
 class ChatResponse(BaseModel):
+    case_route: list[str] = Field(default_factory=list)
+    case_match: Literal["matched", "missing", "text_only", "unavailable"] | None = None
+    case_gap_recorded: bool = False
     case_references: list[CaseReference] = Field(default_factory=list)
     answer: str
     citations: list[Citation]

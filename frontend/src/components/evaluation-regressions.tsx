@@ -46,11 +46,10 @@ export function EvaluationRegressions({ token, execution, onOpenExecution }: { t
     catch (e) { setError(e instanceof Error ? e.message : "操作失败"); }
     finally { setBusy(false); }
   }
-  return <section className="space-y-4 rounded-xl border p-4 sm:p-5">
+  return <section className="space-y-3 rounded-xl border p-3">
     <h2 className="text-xl font-semibold">回归与版本比较</h2>
-    <p className="text-sm text-muted-foreground">保存旧执行为基线，用当前代码按原顺序重跑；数值、引用和回答差异分别展示。重跑会实际调用工具，知识问题会使用当前模型服务。</p>
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}{notice && <p role="status" className="text-sm text-emerald-700">{notice}</p>}
-    <fieldset disabled={busy} className="min-w-0 space-y-4">
+    <fieldset disabled={busy} className="min-w-0 space-y-3">
       <form className="space-y-2 rounded-lg bg-muted/30 p-3" onSubmit={(e) => { e.preventDefault(); if (!execution) return; void act(async () => {
         await request(token, "/regressions", evaluationJson({ execution_id: execution.execution_id, title: title.trim(), notes }));
         setTitle(""); setNotes(""); setNotice("已保存独立基线快照，原执行和评分保持不变。");
@@ -62,7 +61,7 @@ export function EvaluationRegressions({ token, execution, onOpenExecution }: { t
       </form>
       <div className="flex flex-wrap items-center gap-2"><button type="button" className={button} onClick={() => void act(async () => {})}>刷新回归列表</button><span className="text-xs text-muted-foreground">缺原附件、附件指纹变化或人工步骤无法复现时会停止，不自动跳过。</span></div>
       {!items.length && <p className="text-sm text-muted-foreground">还没有回归基线。不会自动创建或填入专业评分。</p>}
-      {items.map((item) => <article className="space-y-3 rounded-lg border p-4" key={item.regression_id}>
+      {items.map((item) => <article className="space-y-2 rounded-lg border p-3" key={item.regression_id}>
         <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-medium">{item.title} <span className="text-xs text-muted-foreground">{item.case_id} v{item.case_version}</span></h3><button type="button" className={button} disabled={item.replays.some((r) => ["queued", "running"].includes(r.state))} onClick={() => void act(async () => {
           const job = await request<Replay>(token, `/regressions/${item.regression_id}/replays`, { method: "POST" });
           setNotice(job.state === "blocked" ? job.message : "重跑已启动，可等待状态更新或取消。");

@@ -71,9 +71,8 @@ export function EvaluationTasks({ token, role, cases, tasks, currentCase, select
   const visibleCases = cases.filter((item) => `${keyOf(item)} ${item.case.title}`.toLowerCase().includes(caseSearch.toLowerCase()));
   const visibleTasks = tasks.filter((item) => `${item.title} ${item.task_id} ${item.build_version}`.toLowerCase().includes(taskSearch.toLowerCase()));
   if (view === "new" && role !== "developer") return <p role="alert">当前身份只能查看任务和准备自己的执行。</p>;
-  return <section aria-label="任务管理" className="space-y-4 rounded-lg border p-5">
-    <div className="flex flex-wrap justify-between gap-3"><div><h2 className="text-lg font-semibold">任务管理</h2>
-      <p className="text-xs text-muted-foreground">冻结多个用例版本，逐项查看执行和评分进度。已评分表示记录完整，不表示通过。</p></div>
+  return <section aria-label="任务管理" className={`rounded-lg border ${view === "list" ? "space-y-3 p-3" : "space-y-4 p-5"}`}>
+    <div className="flex flex-wrap justify-between gap-3"><div><h2 className="text-lg font-semibold">任务管理</h2></div>
       <div className="flex gap-2">{role === "developer" && view === "list" && <Link className="rounded-lg bg-emerald-700 px-4 py-2 text-sm text-white" href={evaluationHref("tasks", "new")}>新建任务</Link>}<button className={button} disabled={busy} onClick={() => void perform(async () => { await onRefresh(); setGeneration((value) => value + 1); })}>刷新任务</button></div></div>
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
     {notice && <p role="status" className="text-sm">{notice}</p>}
@@ -108,9 +107,9 @@ export function EvaluationTasks({ token, role, cases, tasks, currentCase, select
       </form>}
       {view === "list" && <div className="min-w-0 space-y-3"><h3 className="font-medium">任务列表</h3>
         <input aria-label="检索任务" className={field} value={taskSearch} placeholder="按标题、任务编号或构建检索" onChange={(e) => setTaskSearch(e.target.value)} />
-        <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="bg-slate-50 text-xs text-slate-500"><tr>{["任务名称", "用例版本数", "构建版本", "创建人", "创建时间", "操作"].map((label) => <th key={label} className="whitespace-nowrap p-3 font-medium">{label}</th>)}</tr></thead><tbody>
-          {visibleTasks.map((task) => <tr key={task.task_id} className="border-t"><td className="p-3 font-medium">{task.title}</td><td className="p-3">{task.case_versions.length}</td><td className="max-w-56 break-all p-3 text-xs">{task.build_version}</td><td className="p-3">{task.created_by}</td><td className="whitespace-nowrap p-3 text-xs">{new Date(task.created_at).toLocaleString()}</td><td className="p-3"><button className="whitespace-nowrap text-emerald-700 underline" onClick={() => onSelectTask(task.task_id)}>查看任务</button></td></tr>)}
-        </tbody></table>{!visibleTasks.length && <p className="py-10 text-center text-sm text-muted-foreground">没有匹配的任务。创建任务后，可批量准备测试执行。</p>}</div>
+        <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="bg-slate-50 text-xs text-slate-500"><tr>{["任务名称", "用例版本数", "构建版本", "创建人", "创建时间", "操作"].map((label) => <th key={label} className="whitespace-nowrap px-3 py-2 font-medium">{label}</th>)}</tr></thead><tbody>
+          {visibleTasks.map((task) => <tr key={task.task_id} className="border-t"><td className="px-3 py-2 font-medium">{task.title}</td><td className="px-3 py-2">{task.case_versions.length}</td><td className="max-w-56 break-all px-3 py-2 text-xs">{task.build_version}</td><td className="px-3 py-2">{task.created_by}</td><td className="whitespace-nowrap px-3 py-2 text-xs">{new Date(task.created_at).toLocaleString()}</td><td className="px-3 py-2"><button className="whitespace-nowrap text-emerald-700 underline" onClick={() => onSelectTask(task.task_id)}>查看任务</button></td></tr>)}
+        </tbody></table>{!visibleTasks.length && <p className="py-6 text-center text-sm text-muted-foreground">没有匹配的任务。创建任务后，可批量准备测试执行。</p>}</div>
       </div>}
     </fieldset>
     {loading && <p role="status">正在读取任务详情…</p>}

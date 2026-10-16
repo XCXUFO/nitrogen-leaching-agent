@@ -57,12 +57,14 @@ export type SessionDetail = SessionSummary & { turns: SessionTrace[] };
 
 export async function evaluationRequest<T>(token: string, path: string, init: RequestInit = {}): Promise<T> {
   let response: Response;
+  const signal = init.signal ?? (["/login", "/me", "/logout"].includes(path) ? AbortSignal.timeout(15_000) : undefined);
   try {
     response = await fetch(`${apiBaseUrl}/api/eval${path}`, {
-      ...init, cache: "no-store",
+      ...init, signal, cache: "no-store",
       headers: { ...init.headers, ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     });
   } catch {
+    if (signal?.aborted) throw new Error("登录服务响应超时，请稍后重试。");
     throw new Error("无法连接评测服务，请检查后端是否启动。");
   }
   const data = await response.json().catch(() => null);
@@ -71,7 +73,7 @@ export async function evaluationRequest<T>(token: string, path: string, init: Re
       window.dispatchEvent(new CustomEvent("evaluation-session-expired", { detail: { token } }));
     }
     if (Array.isArray(data?.detail)) throw new Error(`输入不完整或不符合评分规则：${data.detail[0]?.msg ?? "请检查表单"}`);
-    throw new Error(data?.detail?.message ?? `评测请求失败（${response.status}）`);
+    throw Object.assign(new Error(data?.detail?.message ?? `评测请求失败（${response.status}）`), { status: response.status, code: data?.detail?.code });
   }
   return data as T;
 }

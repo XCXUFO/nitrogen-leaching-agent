@@ -49,12 +49,16 @@ def decide(query: str, *, has_file: bool) -> RouteDecision:
         return RouteDecision(route=Route.DIRECT, reason_code="capability_request", skills=["capability_guidance"])
     if OUT_OF_SCOPE.fullmatch(query):
         return RouteDecision(route=Route.OUT_OF_SCOPE, reason_code="outside_supported_domain", skills=["capability_guidance"])
-    explanation = bool(re.search(r"解释|通俗|看不懂|什么意思|含义", query))
+    explanation = bool(re.search(r"解释|通俗|看不懂|什么意思|含义|对比|比较|区别|为什么", query))
     case_id = bool(case_ids_in(query))
     reference = bool(re.search(r"类似案例|参考.{0,6}(?:案例|措施)|(?:案例|措施).{0,6}参考|有没有.{0,8}(?:案例|措施)|别人.{0,15}怎么做|找.{0,6}案例", query))
+    case_referent = bool(re.search(r"(?:这个|那个|该|上述|刚才|这些|这两|第[一二三四五]个).{0,3}案例", query))
+    reference = reference or (not case_referent and "案例" in query and not case_id and (not explanation or bool(re.search(r"介绍|推荐|列举|找|有哪些", query))))
+    if reference and explanation:
+        return RouteDecision(route=Route.KNOWLEDGE, reason_code="case_reference_and_explanation", skills=["case_reference", "case_explanation"])
     if reference:
         return RouteDecision(route=Route.KNOWLEDGE, reason_code="case_reference_intent", skills=["case_reference"])
-    if case_id or (explanation and re.search(r"案例|措施|报告|这段|以下|如下|文字|文本|[:：\n]", query)):
+    if case_id or case_referent or (explanation and re.search(r"案例|措施|报告|这段|以下|如下|文字|文本|[:：\n]", query)):
         return RouteDecision(route=Route.KNOWLEDGE, reason_code="case_explanation_intent", skills=["case_explanation"])
     explicit_file = bool(FILE_REFERENCE.search(query))
     statistic = bool(STATISTIC.search(query))

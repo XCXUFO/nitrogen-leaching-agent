@@ -116,7 +116,6 @@ export function EvaluationRuns({ token, detail }: { token: string; detail: strin
       <div><dt className="text-slate-500">累计耗时</dt><dd>{session.latency_ms} ms</dd></div>
       <div><dt className="text-slate-500">问答轮数</dt><dd>{session.turn_count}</dd></div>
     </dl>
-      <p className="text-xs text-slate-500">此处展示前台问答及实际运行轨迹。完整用例评分需另建评测执行。</p>
       <ol className="space-y-5">{session.turns.map((turn, index) => <li key={turn.run_id} className="space-y-3 rounded-xl border p-4">
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500"><span>第 {index + 1} 轮 · {dateTime(turn.started_at)}</span><span>{turn.latency_ms} ms · {turn.status === "ok" ? "正常" : "异常"}</span></div>
         <div className="ml-auto max-w-[90%] rounded-xl bg-emerald-900 px-4 py-3 text-sm text-white"><p className="mb-1 text-xs opacity-75">用户</p><p className="whitespace-pre-wrap break-words">{turn.input}</p></div>
@@ -140,9 +139,8 @@ export function EvaluationRuns({ token, detail }: { token: string; detail: strin
     }
     setError(""); setLoading(true); setPage(1); setApplied({ ...draft }); setRevision((value) => value + 1);
   }
-  return <section className="space-y-4 rounded-xl border bg-white p-5"><h2 className="font-semibold">运行记录 · 会话总览</h2>
-    <p className="text-xs text-slate-500">前台会话自动进入本列表；评测执行和人工评分在“执行记录”中单独管理。耗时为会话内各轮累计。</p>
-    <form className="grid gap-3 rounded-lg bg-slate-50 p-4 sm:grid-cols-2 lg:grid-cols-4" onSubmit={submit}>
+  return <section className="space-y-3 rounded-xl border bg-white p-3"><h2 className="font-semibold">运行记录 · 会话总览</h2>
+    <form className="grid gap-2 rounded-lg bg-slate-50 p-3 sm:grid-cols-2 lg:grid-cols-4" onSubmit={submit}>
       <label className="space-y-1 text-sm">会话信息<input className={field} placeholder="会话 ID 或主题" value={draft.information} onChange={(e) => setDraft({ ...draft, information: e.target.value })} /></label>
       <label className="space-y-1 text-sm">起始时间<input className={field} type="datetime-local" value={draft.from} onChange={(e) => setDraft({ ...draft, from: e.target.value })} /></label>
       <label className="space-y-1 text-sm">结束时间<input className={field} type="datetime-local" value={draft.to} onChange={(e) => setDraft({ ...draft, to: e.target.value })} /></label>
@@ -155,8 +153,8 @@ export function EvaluationRuns({ token, detail }: { token: string; detail: strin
     </form>
     <p role="status" className="text-sm">{loading ? "正在查询…" : `共查到 ${list.total} 条会话记录`}</p>
     {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
-    <div className="overflow-x-auto rounded-lg border"><table className="w-full min-w-[900px] text-left text-sm"><thead className="bg-slate-50"><tr>{["会话 ID", "会话主题", "创建时间", "运行状态", "耗时", "操作人", "操作"].map((name) => <th key={name} className="p-3">{name}</th>)}</tr></thead>
-      <tbody>{list.items.map((item) => <tr key={item.session_id} className="border-t"><td className="max-w-48 break-all p-3 font-mono text-xs">{item.session_id}</td><td className="p-3">{item.topic}</td><td className="whitespace-nowrap p-3">{dateTime(item.created_at)}</td><td className="p-3">{item.status}</td><td className="whitespace-nowrap p-3">{item.latency_ms} ms</td><td className="max-w-48 break-all p-3 text-xs">{item.operator_id}</td><td className="p-3"><button className="text-emerald-700 underline" onClick={() => router.push(evaluationHref("runs", item.session_id))}>查看</button></td></tr>)}</tbody></table></div>
+    <div className="overflow-x-auto rounded-lg border"><table className="w-full min-w-[900px] text-left text-sm"><thead className="bg-slate-50"><tr>{["会话 ID", "会话主题", "创建时间", "运行状态", "耗时", "操作人", "操作"].map((name) => <th key={name} className="px-3 py-2">{name}</th>)}</tr></thead>
+      <tbody>{list.items.map((item) => <tr key={item.session_id} className="border-t"><td className="max-w-48 break-all px-3 py-2 font-mono text-xs">{item.session_id}</td><td className="px-3 py-2">{item.topic}</td><td className="whitespace-nowrap px-3 py-2">{dateTime(item.created_at)}</td><td className="px-3 py-2">{item.status}</td><td className="whitespace-nowrap px-3 py-2">{item.latency_ms} ms</td><td className="max-w-48 break-all px-3 py-2 text-xs">{item.operator_id}</td><td className="px-3 py-2"><button className="text-emerald-700 underline" onClick={() => router.push(evaluationHref("runs", item.session_id))}>查看</button></td></tr>)}</tbody></table></div>
     {!loading && !list.items.length && <p className="py-6 text-center text-sm text-slate-500">没有符合条件的会话。</p>}
     <div className="flex flex-wrap items-center justify-between gap-3 text-sm"><label className="flex items-center gap-2">每页<select aria-label="每页条数" className={field} value={size} onChange={(e) => { setLoading(true); setSize(Number(e.target.value)); setPage(1); }}>{pageSizes.map((count) => <option key={count} value={count}>{count}</option>)}</select>条</label>
       <nav aria-label="会话分页" className="flex flex-wrap gap-1"><button className={button} disabled={page <= 1} onClick={() => { setLoading(true); setPage(page - 1); }}>上一页</button>

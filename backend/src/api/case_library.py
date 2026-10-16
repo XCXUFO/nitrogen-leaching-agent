@@ -1,11 +1,13 @@
 """Authenticated pilot case management. All workbench roles have equal access."""
 import json
 import re
+from contextlib import nullcontext
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from src.api.literature import validate_tag_selection
 from src.evaluation.auth import current_user
 from src.evaluation.contracts import Principal
 from src.storage.case_library import AvailabilityInput, CaseInput, CaseStore, CaseUpdate, RevisionInput, fail
@@ -70,13 +72,70 @@ async def draft(body: DraftInput, request: Request):
 @router.get("")
 def listing(request: Request, keyword: str = Query(default="", max_length=500),
             availability: Literal["all", "enabled", "disabled"] = "all",
-            page: int = Query(default=1, ge=1), page_size: int = Query(default=20, ge=1, le=100)):
-    return store(request).list(keyword, availability, page, page_size)
+            page: int = Query(default=1, ge=1), page_size: int = Query(default=20, ge=1, le=100),
+            tags: str = Query(default="", max_length=4000), untagged: bool = False,
+            tag_status: Literal["all", "tagged", "untagged"] = "all"):
+    groups = {}
+    if tags:
+        db = getattr(request.app.state, "literature", None)
+        if db is None:
+            fail(503, "taxonomy_unavailable", "标签系统暂不可用，请稍后重试。")
+        taxonomy = db.taxonomy()
+        by_id = {tag["id"]: tag for tag in taxonomy["tags"]}
+        for identifier in filter(None, tags.split(",")):
+            if identifier not in by_id:
+                fail(422, "invalid_tag", "筛选标签不存在，请刷新后重试。")
+            groups.setdefault(by_id[identifier]["dimension_id"], set()).update(db.descendants(identifier, taxonomy["tags"]))
+    return store(request).list(keyword, availability, page, page_size, tag_groups=list(groups.values()), untagged=untagged, tag_status=tag_status)
 
 
 @router.post("", status_code=201)
 def create(body: CaseInput, request: Request, user: Principal = Depends(current_user)):
-    return store(request).create(body, user.tester_id)
+    db = getattr(request.app.state, "literature", None)
+    with db.write() if db is not None else nullcontext():
+        if db is not None:
+            validate_tag_selection(db, body.tag_ids)
+        elif body.tag_ids:
+            fail(503, "taxonomy_unavailable", "标签系统暂不可用，请稍后重试。")
+        return store(request).create(body, user.tester_id)
+
+
+@router.get("/taxonomy")
+def taxonomy(request: Request):
+    db = getattr(request.app.state, "literature", None)
+    if db is None:
+        fail(503, "taxonomy_unavailable", "标签系统暂不可用，请稍后重试。")
+    return db.taxonomy()
+
+
+@router.get("/coverage")
+def coverage(request: Request):
+    return {"gaps": store(request).gaps(), "duplicates": store(request).duplicates()}
+
+
+from src.api.case_tagging import router as tagging_router
+
+router.include_router(tagging_router)
+
+
+class BatchCaseRevision(RevisionInput):
+    case_id: str = Field(min_length=1, max_length=100)
+
+
+class BatchAvailabilityInput(BaseModel):
+    items: list[BatchCaseRevision] = Field(min_length=1, max_length=100)
+    enabled: bool
+
+    @model_validator(mode="after")
+    def unique_cases(self):
+        if len({item.case_id for item in self.items}) != len(self.items):
+            raise ValueError("不能重复选择案例")
+        return self
+
+
+@router.patch("/batch-availability")
+def batch_availability(body: BatchAvailabilityInput, request: Request, user: Principal = Depends(current_user)):
+    return store(request).batch_availability(body.items, body.enabled, user.tester_id)
 
 
 @router.get("/{case_id}")
@@ -86,7 +145,17 @@ def detail(case_id: str, request: Request):
 
 @router.put("/{case_id}")
 def update(case_id: str, body: CaseUpdate, request: Request, user: Principal = Depends(current_user)):
-    return store(request).change(case_id, body.expected_revision, body.model_dump(exclude={"expected_revision"}), user.tester_id)
+    db = getattr(request.app.state, "literature", None)
+    with db.write() if db is not None else nullcontext():
+        previous = store(request).get(case_id)
+        values = body.model_dump(exclude={"expected_revision"})
+        if "tag_ids" not in body.model_fields_set:
+            values.pop("tag_ids")  # Older clients must not erase labels.
+        elif db is not None:
+            validate_tag_selection(db, body.tag_ids, previous["tag_ids"])
+        elif body.tag_ids != previous["tag_ids"]:
+            fail(503, "taxonomy_unavailable", "标签系统暂不可用，请稍后重试。")
+        return store(request).change(case_id, body.expected_revision, values, user.tester_id)
 
 
 @router.patch("/{case_id}/availability")

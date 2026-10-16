@@ -204,3 +204,20 @@ def test_concurrent_same_file_save_returns_existing_record(tmp_path):
     finally:
         for client in clients: client.close()
         for app in apps: app.state.literature.close()
+
+
+def test_global_untagged_excludes_any_dimension_and_disabled_tags(client):
+    dim = client.post('/api/literature/dimensions', json={'name': '分类'}).json()['id']
+    tag = client.post(f'/api/literature/dimensions/{dim}/tags', json={'name': '旧标签'}).json()['id']
+    plain, _ = create(client, 'No tags')
+    create(client, 'Tagged', tag_ids=[tag])
+    crop = client.post('/api/literature/dimensions', json={'name': '作物'}).json()['id']
+    maize = client.post(f'/api/literature/dimensions/{crop}/tags', json={'name': '玉米'}).json()['id']
+    create(client, 'Maize only', tag_ids=[maize])
+    active = client.get('/api/literature/papers', params={'untagged': True, 'page_size': 1}).json()
+    assert active['total'] == 1
+    assert [item['id'] for item in active['items']] == [plain['id']]
+    client.put(f'/api/literature/tags/{tag}', json={'name': '旧标签', 'enabled': False})
+    result = client.get('/api/literature/papers', params={'untagged': True}).json()
+    assert [item['id'] for item in result['items']] == [plain['id']]
+    assert result['counts']['total'] == 3

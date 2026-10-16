@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Literal
+from pydantic import BaseModel, Field, field_validator
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
@@ -20,6 +21,42 @@ router = APIRouter(prefix="/eval")
 
 def service(request: Request) -> EvaluationService:
     return request.app.state.evaluation
+
+
+class StarredQuestionInput(BaseModel):
+    question: str = Field(max_length=20000)
+    answer: str = Field(default="", max_length=100000)
+
+    @field_validator("question")
+    @classmethod
+    def question_required(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("问题不能为空")
+        return value
+
+    @field_validator("answer")
+    @classmethod
+    def blank_answer(cls, value: str) -> str:
+        return value if value.strip() else ""
+
+
+@router.get("/starred-questions")
+def starred_questions(request: Request, user: Principal = Depends(current_user)):
+    return service(request).store.starred_questions()
+
+
+@router.post("/starred-questions", status_code=201)
+def create_starred_question(request: Request, body: StarredQuestionInput, user: Principal = Depends(current_user)):
+    return service(request).store.create_starred_question(body.question, body.answer)
+
+
+class StarredQuestionUpdate(StarredQuestionInput):
+    expected_revision: int = Field(ge=1)
+
+
+@router.put("/starred-questions/{question_id}")
+def update_starred_question(request: Request, question_id: str, body: StarredQuestionUpdate, user: Principal = Depends(current_user)):
+    return service(request).store.update_starred_question(question_id, body.question, body.answer, body.expected_revision)
 
 
 def knowledge_config() -> dict:

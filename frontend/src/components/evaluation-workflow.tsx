@@ -80,9 +80,8 @@ export function EvaluationWorkflow({ token, role, currentCase, execution, onOpen
     && (!issueAssigneeFilter || issue.assignee.toLowerCase().includes(issueAssigneeFilter.toLowerCase())));
   const relevantAssessments = assessments.filter((item) => item.case_id === currentCase?.case.case_id && item.case_version === currentCase?.case.version);
 
-  return <section className="space-y-5 rounded-lg border p-5">
-    <div className="flex items-center justify-between gap-2"><div><h2 className="text-lg font-semibold">{mode === "issues" ? "问题与复测" : "独立审核"}</h2>
-      <p className="text-xs text-muted-foreground">原执行和评分冻结；修复后另建执行，再关联复测。AI 辅助复核与专家签核分别保存。</p></div>
+  return <section className={`rounded-lg border ${mode === "issues" && !selectedIssue ? "space-y-3 p-3" : "space-y-5 p-5"}`}>
+    <div className="flex items-center justify-between gap-2"><div><h2 className="text-lg font-semibold">{mode === "issues" ? "问题与复测" : "独立审核"}</h2></div>
       <button className={button} disabled={busy} onClick={() => void perform(async () => { setNotice("记录已刷新。"); })}>刷新</button></div>
     {error && <p role="alert" className="rounded border border-destructive/40 p-2 text-sm text-destructive">{error}</p>}
     {notice && <p role="status" className="text-sm">{notice}</p>}
@@ -119,10 +118,10 @@ export function EvaluationWorkflow({ token, role, currentCase, execution, onOpen
         <button className={button} disabled={busy || !execution?.review || !retestIssue}>保存复测关联</button>
       </form>}
       <div className="space-y-2 rounded border p-4"><h3 className="font-medium">问题队列与处理历史</h3>
-        <select aria-label="筛选问题状态" className={field} value={issueStatusFilter} onChange={(e) => setIssueStatusFilter(e.target.value)}>
+        <div className="grid gap-2 sm:grid-cols-2"><select aria-label="筛选问题状态" className={field} value={issueStatusFilter} onChange={(e) => setIssueStatusFilter(e.target.value)}>
           <option value="">全部状态</option>{Object.entries(issueStatusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>
-        <input aria-label="筛选负责人" className={field} value={issueAssigneeFilter} onChange={(e) => setIssueAssigneeFilter(e.target.value)} placeholder="筛选负责人" />
+        <input aria-label="筛选负责人" className={field} value={issueAssigneeFilter} onChange={(e) => setIssueAssigneeFilter(e.target.value)} placeholder="筛选负责人" /></div>
         {selectedIssue && !issues.some((item) => item.issue_id === selectedIssue) && <p role="alert">未找到此问题，请返回问题列表。</p>}
         {visibleIssues.length === 0 && <p className="text-sm text-muted-foreground">没有匹配的问题。</p>}
         {visibleIssues.filter((item) => !selectedIssue || item.issue_id === selectedIssue).map((item) => <article aria-label={`问题：${item.title}`} key={item.issue_id} className="rounded border p-2 text-xs">

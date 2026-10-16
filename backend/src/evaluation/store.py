@@ -53,8 +53,37 @@ class EvaluationStore:
                   payload TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS eval_assessments (
                   assessment_id TEXT PRIMARY KEY, payload TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS eval_starred_questions (
+                  question_id TEXT PRIMARY KEY, question TEXT NOT NULL, answer TEXT NOT NULL DEFAULT '',
+                  created_at TEXT NOT NULL, updated_at TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 1);
                 CREATE INDEX IF NOT EXISTS eval_execution_owner ON eval_executions(tester_id, created_at);
             """)
+            if "revision" not in {row[1] for row in self.db.execute("PRAGMA table_info(eval_starred_questions)")}:
+                self.db.execute("ALTER TABLE eval_starred_questions ADD COLUMN revision INTEGER NOT NULL DEFAULT 1")
+
+    def starred_questions(self) -> list[dict]:
+        with self.lock:
+            rows = self.db.execute("SELECT question_id, question, answer, created_at, updated_at, revision FROM eval_starred_questions ORDER BY created_at, question_id").fetchall()
+        return [dict(zip(("question_id", "question", "answer", "created_at", "updated_at", "revision"), row)) for row in rows]
+
+    def create_starred_question(self, question: str, answer: str) -> dict:
+        timestamp = now()
+        item = {"question_id": str(uuid4()), "question": question, "answer": answer,
+                "created_at": timestamp, "updated_at": timestamp, "revision": 1}
+        with self.lock, self.db:
+            self.db.execute("INSERT INTO eval_starred_questions (question_id, question, answer, created_at, updated_at, revision) VALUES (?, ?, ?, ?, ?, ?)", tuple(item.values()))
+        return item
+
+    def update_starred_question(self, question_id: str, question: str, answer: str, expected_revision: int) -> dict:
+        timestamp = now()
+        with self.lock, self.db:
+            cursor = self.db.execute("UPDATE eval_starred_questions SET question=?, answer=?, updated_at=?, revision=revision+1 WHERE question_id=? AND revision=?", (question, answer, timestamp, question_id, expected_revision))
+            if cursor.rowcount != 1:
+                if not self.db.execute("SELECT 1 FROM eval_starred_questions WHERE question_id=?", (question_id,)).fetchone():
+                    raise fail("starred_question_not_found", "星标问题不存在。", 404)
+                raise fail("starred_question_conflict", "内容已被其他人更新。你的输入已保留，请查看最新版本后再保存。")
+            row = self.db.execute("SELECT question_id, question, answer, created_at, updated_at, revision FROM eval_starred_questions WHERE question_id=?", (question_id,)).fetchone()
+        return dict(zip(("question_id", "question", "answer", "created_at", "updated_at", "revision"), row))
 
     def seed(self, directory: Path):
         original = json.loads((directory / "manual_cases.v1.json").read_text())

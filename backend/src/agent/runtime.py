@@ -196,11 +196,11 @@ class AgentRuntime:
             trace.decision.skills = ["knowledge_search"]
             trace.decision.reason_code = "session_document_question"
         previous_case_skill = state.last_tool in {"case_reference", "case_explanation"}
-        referent = bool(re.search(r"刚才|上述|其中|该案例|再解释|详细解释|(?<!其)它|这个|那个", body.query))
-        case_followup = (previous_case_skill and not body.case_skill and not explicit_ids
+        referent = bool(re.search(r"刚才|上述|其中|该案例|这些|这两|两者|前者|后者|第[一二三四五]|对比|比较|区别|再解释|详细解释|(?<!其)它|这个|那个", body.query))
+        case_followup = (previous_case_skill and not explicit_ids
                          and not documents and not new_text
                          and trace.decision.route == Route.KNOWLEDGE
-                         and trace.decision.skills != ["case_reference"]
+                         and "case_reference" not in trace.decision.skills
                          and (referent or state.case_clarification_pending)
                          and not re.search(r"文献|论文|手册|换个话题|另一个问题", body.query))
         if case_followup:
@@ -210,7 +210,7 @@ class AgentRuntime:
             trace.decision.route = Route.KNOWLEDGE
             trace.decision.skills = ["case_reference" if body.case_skill == "reference" else "case_explanation"]
             trace.decision.reason_code = "explicit_case_skill"
-        elif explicit_ids and trace.decision.skills != ["case_reference"]:
+        elif explicit_ids and "case_reference" not in trace.decision.skills:
             trace.decision.route = Route.KNOWLEDGE
             trace.decision.skills = ["case_explanation"]
             trace.decision.reason_code = "explicit_case_ids"
@@ -228,17 +228,30 @@ class AgentRuntime:
             if len(ids) > MAX_CASE_IDS:
                 raise HTTPException(413, detail={"code": "case_capacity", "message": "单次最多指定 30 个案例，请缩小范围。"})
             next_context = context_text or body.query
-            if case_followup and state.case_clarification_pending:
+            if case_followup:
                 next_context = f"{context_text}\n用户补充：{body.query}"
                 if len(next_context) > 24000:
                     raise HTTPException(413, detail={"code": "case_capacity", "message": "累计补充内容超过容量，请在新对话中精简说明。"})
             lookup_cases = body.case_skill is None and bool(re.search(r"案例|库中|库内", body.query)) and not new_text
             result = await self._call(registry, skill, {"query": body.query, "case_ids": ids,
                                       "lookup_cases": lookup_cases, "context_text": context_text}, trace)
+            executed = [skill]
+            if len(trace.decision.skills) > 1 and result.case_references and result.outcome == "complete":
+                selected_ids = [item.id for item in result.case_references]
+                first_usage = result.usage
+                result = await self._call(registry, "case_explanation", {"query": body.query,
+                    "case_ids": selected_ids, "context_text": context_text}, trace)
+                result.usage.prompt_tokens += first_usage.prompt_tokens
+                result.usage.completion_tokens += first_usage.completion_tokens
+                result.usage.total_tokens += first_usage.total_tokens
+                executed.append("case_explanation")
+            result.case_route = executed
             # Failed calls must not switch the active subject to an unverified request.
-            state.last_tool = skill
-            state.current_case_ids = [item.id for item in result.case_references] or (ids if result.outcome == "clarification" else [])
-            state.case_context_text = next_context
+            state.last_tool = executed[-1]
+            state.current_case_ids = (ids if case_followup and result.case_references else [item.id for item in result.case_references]) or (ids if result.outcome == "clarification" else [])
+            if result.case_references:
+                next_context += "\n本轮参考案例顺序：" + "、".join(item.title for item in result.case_references)
+            state.case_context_text = next_context[-24000:]
             state.case_clarification_pending = result.outcome == "clarification"
             return result
         route = trace.decision.route

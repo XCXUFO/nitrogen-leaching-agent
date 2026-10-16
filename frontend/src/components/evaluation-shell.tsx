@@ -25,7 +25,7 @@ export function useEvaluationSession() {
   if (!session) throw new Error("Evaluation session required");
   return session;
 }
-const icons = [LayoutDashboard, BookOpen, BookOpen, Tags, ClipboardList, BookOpen, ListChecks, RotateCcw, ShieldCheck, TriangleAlert, Database, Activity];
+const icons = [LayoutDashboard, BookOpen, BookOpen, BookOpen, Tags, ClipboardList, BookOpen, ListChecks, RotateCcw, ShieldCheck, TriangleAlert, Database, Activity];
 const roles = { developer: "开发者", tester: "测试者", reviewer: "领域审核人" };
 
 export function EvaluationShell({ children }: { children: ReactNode }) {
@@ -44,6 +44,7 @@ export function EvaluationShell({ children }: { children: ReactNode }) {
   const currentModule = evaluationModules.find((item) => item.key === (parts[1] ?? "overview"));
   const title = currentModule?.title ?? "页面不存在";
   const detail = parts[2];
+  const isIndex = !!currentModule && !detail;
   const taskId = currentModule?.key === "executions" && returnTask?.pathname === pathname ? returnTask.taskId : null;
   const backHref = taskId ? evaluationHref("tasks", taskId) : evaluationHref(currentModule?.key ?? "overview");
   const backLabel = taskId ? "返回所属任务" : `返回${title}`;
@@ -72,18 +73,18 @@ export function EvaluationShell({ children }: { children: ReactNode }) {
   }
 
   function navigation(compact = false) {
-    return <nav aria-label="工作台导航" className="space-y-5 px-3 py-5">
+    return <nav aria-label="工作台导航" className="space-y-3 px-3 py-3">
       {["工作台", "评测管理", "质量管理", "资料与证据"].map((group) => {
         const items = evaluationModules.filter((item) => item.group === group && session && canViewModule(item.key, session.user.role));
         if (!items.length) return null;
         return <div key={group}>
-          <p className={`mb-2 px-3 text-[11px] font-medium tracking-wider text-slate-400 ${compact ? "sr-only" : ""}`}>{group}</p>
-          <div className="space-y-1">{items.map((item) => {
+          <p className={`mb-1 px-3 text-[11px] font-medium tracking-wider text-slate-400 ${compact ? "sr-only" : ""}`}>{group}</p>
+          <div className="space-y-0.5">{items.map((item) => {
             const Icon = icons[evaluationModules.indexOf(item)];
             const active = currentModule?.key === item.key;
             return <Link key={item.key} href={evaluationHref(item.key)} aria-current={active ? "page" : undefined}
               title={compact ? item.title : undefined} onClick={() => drawer.current?.close()}
-              className={`flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${active ? "bg-emerald-50 font-semibold text-emerald-800 ring-1 ring-inset ring-emerald-100" : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"}`}>
+              className={`flex min-h-9 items-center gap-3 rounded-lg px-3 py-1.5 lg:min-h-8 lg:py-1 text-sm transition-colors ${active ? "bg-emerald-50 font-semibold text-emerald-800 ring-1 ring-inset ring-emerald-100" : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"}`}>
               <Icon size={18} aria-hidden="true" className="shrink-0" /><span className={compact ? "sr-only" : ""}>{item.title}</span>
             </Link>;
           })}</div>
@@ -142,12 +143,11 @@ export function EvaluationShell({ children }: { children: ReactNode }) {
           <button disabled={busy} className="rounded p-1.5 hover:bg-slate-100 disabled:opacity-50" aria-label="退出登录" onClick={logout}><LogOut size={16} /></button>
         </div>
       </header>
-      <main id="evaluation-content" className="min-w-0 space-y-5 p-4 sm:p-7">
+      <main id="evaluation-content" className={`min-w-0 ${isIndex ? "space-y-3 p-3 sm:p-4" : "space-y-5 p-4 sm:p-7"}`}>
         {(error || account.error) && <p role="alert" className="text-sm text-destructive">{error || account.error}</p>}
         <div className="flex items-start gap-3">
           {detail && <Link aria-label={backLabel} title={backLabel} href={backHref} className="mt-0.5 rounded-lg border bg-white p-2"><ChevronLeft size={18} /></Link>}
-          <div><h1 className="text-2xl font-semibold tracking-tight text-slate-900">{title}{detail ? detail === "new" ? " · 新建" : detail === "drafts" ? " · 草稿" : " · 详情" : ""}</h1>
-            <p className="mt-1.5 text-sm text-slate-500">{currentModule?.description}</p></div>
+          <h1 className={`${isIndex ? "text-xl" : "text-2xl"} font-semibold tracking-tight text-slate-900`}>{title}{detail ? detail === "new" ? " · 新建" : detail === "drafts" ? " · 草稿" : " · 详情" : ""}</h1>
         </div>
         {children}
       </main>
