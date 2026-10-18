@@ -1,0 +1,118 @@
+{
+  "version": "V0.3",
+  "validation_date": "2026-10-17",
+  "file_count": 15,
+  "local_links_checked": 29,
+  "errors": [],
+  "original_acceptance_ids_preserved": true,
+  "acceptance_counts": {
+    "01_问题理解与上下文_PRD.md": 12,
+    "02_星标问题管理与优先匹配_PRD.md": 6,
+    "03_文献管理与RAG衔接_PRD.md": 10,
+    "04_案例与措施管理及检索_PRD.md": 10,
+    "05_共享标签与语义映射_PRD.md": 10,
+    "06_路由与Skill编排_PRD.md": 11,
+    "07_通俗解释与外部能力_PRD.md": 8,
+    "08_Skill可视化与有限配置_PRD.md": 8,
+    "09_前台执行进度展示_PRD.md": 14,
+    "10_后台会话审查_PRD.md": 13,
+    "11_效果大盘与迭代验证_PRD.md": 14,
+    "13_评审决策与验收安排.md": 26,
+    "14_跨模块运行与审查契约.md": 6
+  },
+  "golden_fixture": {
+    "sample_count": 6,
+    "tool_step_success": {
+      "n": 2,
+      "N": 3
+    },
+    "tool_attempt_failure": {
+      "n": 2,
+      "N": 4
+    }
+  },
+  "files": [
+    {
+      "name": "00_增量总览与模块目录.md",
+      "sha256": "e6e492cb61ffcd8a8f5ea3782c868354bfc449510a87b21e022a3413cd2600b3",
+      "bytes": 8966
+    },
+    {
+      "name": "01_问题理解与上下文_PRD.md",
+      "sha256": "b2b6ed599a197953c7f52baf6b841b1f21af50a69422178f38d146b7d7cb7db6",
+      "bytes": 8648
+    },
+    {
+      "name": "02_星标问题管理与优先匹配_PRD.md",
+      "sha256": "8425423be959a7df6dca3ba914f924cde224e05aa2a9549eec1662e1f0f0f756",
+      "bytes": 5059
+    },
+    {
+      "name": "03_文献管理与RAG衔接_PRD.md",
+      "sha256": "ebe30455c2f2fdd0d62d4ff480e9743557860bc8266cf8433f204571e921f4c9",
+      "bytes": 6379
+    },
+    {
+      "name": "04_案例与措施管理及检索_PRD.md",
+      "sha256": "974a13f1ed9a4f74e6f6492ea56bb2bc0b60b245563bb78fec160e8e6e6330c3",
+      "bytes": 5729
+    },
+    {
+      "name": "05_共享标签与语义映射_PRD.md",
+      "sha256": "5d754533a50e6d002feb09dc68220b903249c6af3e2b24be11ac8033744a336b",
+      "bytes": 5335
+    },
+    {
+      "name": "06_路由与Skill编排_PRD.md",
+      "sha256": "a9c1c7bd14b849c2be0f33d96606f72703235280c53f7d81b8528097e260ea4e",
+      "bytes": 11604
+    },
+    {
+      "name": "07_通俗解释与外部能力_PRD.md",
+      "sha256": "e7bbf34d06b371b35c35850173af1fc03323ca83efce0129cc301b64824e66d0",
+      "bytes": 9346
+    },
+    {
+      "name": "08_Skill可视化与有限配置_PRD.md",
+      "sha256": "b5db3dbeb7efe0d833c48bd82d7ae7042ee9c55a54ffd428f5d5fb26f6f5ec74",
+      "bytes": 8737
+    },
+    {
+      "name": "09_前台执行进度展示_PRD.md",
+      "sha256": "4f386180858301b05ca6eac731b07ce4fe798815adb450846dca855b2d529297",
+      "bytes": 8391
+    },
+    {
+      "name": "10_后台会话审查_PRD.md",
+      "sha256": "d19921b1765e5c38a457c53cd974129ed1f2e27bf6f364b5a4c882df5a5c54b2",
+      "bytes": 11446
+    },
+    {
+      "name": "11_效果大盘与迭代验证_PRD.md",
+      "sha256": "611feccbb549939c1674a85bb7c2e94fca54b8e0a279a876cac6af04aac60e59",
+      "bytes": 12257
+    },
+    {
+      "name": "12_能力基线与逐项差异.md",
+      "sha256": "989ac255e9445f1048185bc271aa91796f4b7d1ef5c8e683cad32bee3398509f",
+      "bytes": 7606
+    },
+    {
+      "name": "13_评审决策与验收安排.md",
+      "sha256": "2feded02af923f9ba560b3ad086f00b2a5155916a20c4792c6de7fad101f8a97",
+      "bytes": 7377
+    },
+    {
+      "name": "14_跨模块运行与审查契约.md",
+      "sha256": "0a002cb4df2fa45898c7af7094dbecce6a6e72508b398d295f7540891a3ae570",
+      "bytes": 20297
+    }
+  ],
+  "scope": "Documentation validation only; application behavior has not been changed or accepted",
+  "source_sync_status": "synced",
+  "original_archive_matches_review": true,
+  "table_and_fence_checks": "passed",
+  "source_sync_directory": "/mnt/e/研究生/毕设/项目相关文档/1017",
+  "source_synced_at": "2026-10-17T08:12:01.817840+00:00",
+  "source_files_verified": 15
+}

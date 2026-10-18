@@ -2,20 +2,20 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Leaf, PanelLeftClose, PanelLeftOpen, SquarePen } from "lucide-react";
+import { Leaf, LoaderCircle, PanelLeftClose, PanelLeftOpen, SquarePen } from "lucide-react";
 import { AccountNavigation } from "@/components/account-navigation";
 import { conversationTitle, type Conversation } from "./use-conversations";
 
 interface Props {
   conversations: Conversation[];
   activeId: string;
-  disabled: boolean;
   onCreate: () => void;
   onSelect: (id: string) => void;
+  historyMore?: { loading: boolean; load: () => void };
   children: ReactNode;
 }
 
-export function ChatShell({ conversations, activeId, disabled, onCreate, onSelect, children }: Props) {
+export function ChatShell({ conversations, activeId, onCreate, onSelect, historyMore, children }: Props) {
   const [expanded, setExpanded] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
   const drawer = useRef<HTMLDialogElement>(null);
@@ -42,21 +42,24 @@ export function ChatShell({ conversations, activeId, disabled, onCreate, onSelec
         </button>
       </div>
       <div className="px-3 pb-6 pt-2">
-        <button type="button" disabled={disabled} onClick={create}
+        <button type="button" onClick={create}
           className="flex w-full items-center gap-3 rounded-xl border border-emerald-900/10 bg-background px-3 py-3 text-sm font-medium text-emerald-900 shadow-xs hover:bg-emerald-50 disabled:opacity-40">
           <SquarePen aria-hidden="true" className="size-4" />新对话
         </button>
       </div>
       <h2 className="px-6 pb-2 text-xs text-muted-foreground">最近对话</h2>
-      <nav aria-label="对话列表" className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 pb-4">{conversations.map((item) => {
+      <nav aria-label="对话列表" className="conversation-list-scrollbar min-h-0 flex-1 space-y-1 overflow-y-auto px-3 pb-4">{conversations.map((item) => {
         const title = conversationTitle(item);
         return <button key={item.id} type="button" title={title} aria-label={`切换对话：${title}`}
-          aria-current={item.id === activeId ? "true" : undefined} disabled={disabled}
+          aria-current={item.id === activeId ? "true" : undefined} aria-busy={item.running || item.preparing || undefined}
           onClick={() => { onSelect(item.id); drawer.current?.close(); }}
-          className={`block w-full truncate rounded-lg px-3 py-2.5 text-left text-sm transition-colors disabled:opacity-40 ${item.id === activeId ? "bg-emerald-900/8 font-medium text-emerald-950" : "text-slate-600 hover:bg-slate-200/60"}`}>
-          {title.replace(/\s+/g, " ")}
+          className={`flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${item.id === activeId ? "bg-emerald-900/8 font-medium text-emerald-950" : "text-slate-600 hover:bg-slate-200/60"}`}>
+          <span className="min-w-0 flex-1 truncate">{title.replace(/\s+/g, " ")}</span>
+          {(item.running || item.preparing) && <LoaderCircle aria-hidden="true" className="size-3 shrink-0 animate-spin" />}
         </button>;
-      })}</nav>
+      })}{historyMore && <button type="button" disabled={historyMore.loading} onClick={historyMore.load}
+        className="w-full px-3 py-2.5 text-left text-xs text-muted-foreground disabled:opacity-50">
+        {historyMore.loading ? "正在加载…" : "加载更早的对话"}</button>}</nav>
     </>;
   }
 
@@ -88,7 +91,7 @@ export function ChatShell({ conversations, activeId, disabled, onCreate, onSelec
             <PanelLeftOpen aria-hidden="true" className="size-5" />
           </button>
           <h1 className="text-sm font-semibold sm:text-base">农业模型助手</h1>
-          <button type="button" aria-label="新对话" title="新对话" disabled={disabled} onClick={create}
+          <button type="button" aria-label="新对话" title="新对话" onClick={create}
             className={`${expanded ? "md:hidden" : ""} rounded-lg p-2 text-muted-foreground hover:bg-muted disabled:opacity-40`}>
             <SquarePen aria-hidden="true" className="size-5" />
           </button>

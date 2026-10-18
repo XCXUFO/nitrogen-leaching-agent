@@ -1,9 +1,11 @@
 import { accountHeaders, expireAccount, readAccount } from "./account-storage";
 import type {
   BackendErrorDetail,
+  AccountChatHistory,
   ChatHistoryMessage,
   ChatRequest,
   ChatResponse,
+  ChatRunView,
   FileReceipt,
 } from "./types";
 import {
@@ -39,15 +41,72 @@ export function getOrCreateOperatorId(): string {
 }
 
 export class ApiError extends Error {
+  runId?: string;
+  terminalRun = false;
+  public readonly userMessage: string;
   constructor(
     public readonly code: string,
     public readonly httpStatus: number | null,
-    public readonly userMessage: string,
+    userMessage: string,
     cause?: unknown,
   ) {
-    super(userMessage, { cause });
+    const message = translateErrorCode(code, userMessage);
+    super(message, { cause });
+    this.userMessage = message;
     this.name = "ApiError";
   }
+}
+
+export interface ChatSubmission {
+  turnId: string;
+  requestId: string;
+  rerunOfRunId?: string;
+  resumeOnly?: boolean;
+  onProgress?: (view: ChatRunView) => void;
+  onConnectionChange?: (recovering: boolean) => void;
+}
+
+export async function getAccountChatHistory(offset = 0, signal?: AbortSignal): Promise<AccountChatHistory> {
+  const auth = accountHeaders();
+  const response = await fetch(`${apiBaseUrl}/api/chat/history?limit=30&offset=${offset}`, {
+    headers: auth, credentials: "include", cache: "no-store", signal,
+  });
+  return readResponse<AccountChatHistory>(response, auth.Authorization?.slice(7));
+}
+
+const sessionBootstraps = new Map<string, Promise<boolean>>();
+async function ensureChatSession(auth: Record<string, string>, signal?: AbortSignal): Promise<boolean> {
+  signal?.throwIfAborted();
+  const identity = auth.Authorization ?? "visitor";
+  let pending = sessionBootstraps.get(identity);
+  if (!pending) {
+    const request = (async () => {
+      let response: Response;
+      try {
+        response = await fetch(`${apiBaseUrl}/api/chat/session`, {
+          credentials: "include", headers: auth, cache: "no-store", signal: AbortSignal.timeout(15_000),
+        });
+      } catch (err) {
+        throw new ApiError("network", null, "连接暂不可用，请检查网络后用原提交重试。", err);
+      }
+      if (response.status === 404 || response.status === 405) return false;
+      const session = await readResponse<{ protocol: string }>(response, auth.Authorization?.slice(7));
+      if (session.protocol !== "chat-runs-v1") throw new ApiError("run_protocol", null, "会话恢复服务暂不可用，请稍后重试。");
+      return true;
+    })();
+    sessionBootstraps.set(identity, request);
+    const clear = () => { if (sessionBootstraps.get(identity) === request) sessionBootstraps.delete(identity); };
+    void request.then(clear, clear);
+    pending = request;
+  }
+  if (!signal) return pending;
+  // A caller can stop waiting without cancelling another conversation's bootstrap.
+  return new Promise((resolve, reject) => {
+    const abort = () => { signal.removeEventListener("abort", abort); reject(signal.reason); };
+    signal.addEventListener("abort", abort, { once: true });
+    pending.then(value => { signal.removeEventListener("abort", abort); resolve(value); },
+      error => { signal.removeEventListener("abort", abort); reject(error); });
+  });
 }
 
 export async function postChat(
@@ -59,6 +118,7 @@ export async function postChat(
   fileId?: string,
   operatorId?: string,
   fileIds?: string[],
+  submission?: ChatSubmission,
 ): Promise<ChatResponse> {
   const body: ChatRequest = { query };
   if (history.length > 0) body.history = history;
@@ -69,6 +129,24 @@ export async function postChat(
   if (operatorId !== undefined) body.operator_id = operatorId;
 
   const auth = accountHeaders();
+  // Concurrent chats and uploads share initialization so their first responses
+  // cannot replace each other's visitor identity.
+  let recoverable = false;
+  if (submission && sessionId) {
+    try {
+      recoverable = await ensureChatSession(auth, signal);
+    } catch (err) {
+      if (err instanceof ApiError) throw err;
+      throw new ApiError("network", null, "连接暂不可用，请检查网络后用原提交重试。", err);
+    }
+    if (recoverable) {
+      body.turn_id = submission.turnId;
+      body.request_id = submission.requestId;
+      if (submission.rerunOfRunId) body.rerun_of_run_id = submission.rerunOfRunId;
+    }
+  }
+  if (recoverable && submission) return submitRecoverable(body, auth, submission, signal);
+  if (submission?.resumeOnly) throw new ApiError("run_recovery_unavailable", 409, "当前服务不支持恢复原提交，请确认后手动重试。");
   let response: Response;
   try {
     response = await fetch(`${apiBaseUrl}/api/chat`, {
@@ -89,6 +167,70 @@ export async function postChat(
   return readResponse<ChatResponse>(response, auth.Authorization?.slice(7));
 }
 
+async function submitRecoverable(body: ChatRequest, auth: Record<string, string>, submission: ChatSubmission, signal?: AbortSignal): Promise<ChatResponse> {
+  let snapshot: ChatRunView | undefined;
+  let failures = 0;
+  let posted = false;
+  const deadline = Date.now() + 6 * 60_000;
+  const accept = (value: ChatRunView) => {
+    if (value.protocol !== "chat-runs-v1" || value.request_id !== body.request_id || value.turn_id !== body.turn_id
+      || (snapshot && value.run_id !== snapshot.run_id)) {
+      throw new ApiError("run_protocol", null, "运行回执无法核对，请用原提交重试。");
+    }
+    const events = new Map(snapshot?.events.map(event => [event.sequence, event]));
+    for (const event of value.events) events.set(event.sequence, event);
+    snapshot = { ...value, events: [...events.values()].sort((a, b) => a.sequence - b.sequence) };
+    submission.onProgress?.(snapshot);
+    submission.onConnectionChange?.(false);
+  };
+  const request = (url: string, options?: RequestInit) => fetch(`${apiBaseUrl}${url}`, {
+    credentials: "include", cache: "no-store", headers: { "Content-Type": "application/json", ...auth },
+    signal: signal ?? AbortSignal.timeout(15_000), ...options,
+  });
+  while (Date.now() < deadline) {
+    try {
+      if (!snapshot) {
+        // Lookup first, including after a manual network retry. A missing owned
+        // receipt permits only the exact same idempotent submission to be sent.
+        const lookup = await request(`/api/chat/requests/${encodeURIComponent(body.request_id!)}?session_id=${encodeURIComponent(body.session_id!)}`);
+        if (lookup.status === 404 && submission.resumeOnly) throw new ApiError("request_not_found", 404, "未找到原提交的受理记录，尚未自动执行。点击重试可继续原提交。");
+        if (lookup.status === 404 && !posted) {
+          posted = true;
+          const response = await request("/api/chat", { method: "POST", body: JSON.stringify(body) });
+          if (response.ok && response.status !== 202) return readResponse<ChatResponse>(response);
+          accept(await readResponse<ChatRunView>(response, auth.Authorization?.slice(7)));
+        } else {
+          // A lost POST may not have arrived. Resubmit on the next pass with the
+          // same IDs; the server's durable uniqueness constraint decides admission.
+          if (lookup.status === 404) { posted = false; throw new Error("acceptance not yet found"); }
+          accept(await readResponse<ChatRunView>(lookup, auth.Authorization?.slice(7)));
+        }
+      } else {
+        accept(await readResponse<ChatRunView>(await request(`/api/chat/runs/${encodeURIComponent(snapshot.run_id)}?after=${snapshot.last_sequence}`), auth.Authorization?.slice(7)));
+      }
+      failures = 0;
+    } catch (err) {
+      if (err instanceof ApiError && err.httpStatus !== null && err.httpStatus < 500) throw err;
+      if (signal?.aborted) throw err;
+      submission.onConnectionChange?.(true);
+      if (++failures >= 5) throw new ApiError("run_recovery_unavailable", null, "连接暂时中断，执行可能仍在继续。点击重试会找回原运行。", err);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      continue;
+    }
+    const current = snapshot as ChatRunView | undefined;
+    if (current && current.status !== "accepted" && current.status !== "running") {
+      if (current.result) return current.result;
+      const problem = new ApiError(current.error?.code ?? `run_${current.status}`, current.error?.http_status ?? null,
+        current.error?.message ?? "原运行已结束，未获得可恢复的结果。再次重试将创建新运行。");
+      problem.runId = current.run_id;
+      problem.terminalRun = true;
+      throw problem;
+    }
+    await new Promise(resolve => setTimeout(resolve, 700));
+  }
+  throw new ApiError("run_pending", null, "本次等待已结束，执行可能仍在继续。点击重试查询原运行。");
+}
+
 export async function uploadFile(file: File, onProgress?: (percent: number) => void, sessionId?: string): Promise<FileReceipt> {
   if (!/\.(?:xls|xlsx|txt|md|pdf|doc|docx)$/i.test(file.name)) {
     throw new ApiError("unsupported_file", null, "支持 .xls、.xlsx、.txt、.md、.pdf、.doc、.docx 文件。");
@@ -96,13 +238,14 @@ export async function uploadFile(file: File, onProgress?: (percent: number) => v
   if (file.size > 10 * 1024 * 1024) {
     throw new ApiError("file_too_large", null, "文件不能超过 10 MiB。");
   }
+  const account = readAccount();
+  if (sessionId) await ensureChatSession(account ? { Authorization: `Bearer ${account.token}` } : {});
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.withCredentials = true;
     const params = new URLSearchParams({ filename: file.name });
     if (sessionId) params.set("session_id", sessionId);
     xhr.open("POST", `${apiBaseUrl}/api/files?${params}`);
-    const account = readAccount();
     if (account) xhr.setRequestHeader("Authorization", `Bearer ${account.token}`);
     xhr.setRequestHeader("Content-Type", "application/octet-stream"); xhr.timeout = 60000;
     xhr.upload.onprogress = (event) => { if (event.lengthComputable) onProgress?.(Math.round(event.loaded / event.total * 100)); };

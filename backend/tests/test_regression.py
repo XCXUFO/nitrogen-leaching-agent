@@ -101,13 +101,11 @@ def test_replays_original_file_and_inherits_metric(regression_client):
 def test_replays_fixture_from_published_case_snapshot(regression_client):
     c = regression_client
     path = 'data/demo/Nbal_out.xls'
-    asset = c.post('/api/eval/assets', headers=headers('dev'), json={
-        'kind': 'result_fixture', 'path': path, 'source': 'local test fixture'}).json()
     original = next(item['case'] for item in c.get('/api/eval/cases?latest=false',
         headers=headers('dev')).json() if item['case']['case_id'] == 'F05' and item['case']['version'] == 2)
     case = {**original, 'case_id': 'CATREPLAY', 'version': 1, 'title': 'Published fixture replay'}
     draft = c.post('/api/eval/case-drafts', headers=headers('dev'), json={
-        'case': case, 'fixture_asset_ids': [asset['asset_id']]}).json()
+        'case': case}).json()
     published = c.post(f"/api/eval/case-drafts/{draft['draft_id']}/publish",
         headers=headers('dev'), json={'expected_revision': draft['revision']}).json()
     assert published['fixtures'][0]['path'] == path

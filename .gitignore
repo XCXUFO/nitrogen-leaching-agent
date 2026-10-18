@@ -54,6 +54,9 @@ node_modules/
 .next-workbench/
 .next-demo/
 .next-chat-p00/
+.next-skills/
+.next-runs/
+.next-prd/
 out/
 next-env.d.ts
 
@@ -140,3 +143,4 @@ data/papers_duplicates_m16/*.pdf
 # Ignore local scratch
 scratch/
 tmp/
+outputs/

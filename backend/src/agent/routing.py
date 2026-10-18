@@ -10,10 +10,10 @@ import re
 from src.agent.case_ids import case_ids_in
 from src.agent.contracts import Route, RouteDecision
 from src.agent.file_chat import needs_file
+from src.agent.query_intent import has_statistic_request
 from src.agent.composition import MECHANISM_INTENT
 from src.model_tools.whcns_results import SCHEMAS
 
-STATISTIC = re.compile(r"最大|最小|最高|最低|峰值|(?<![a-z-])(?:min|max|minimum|maximum)(?![a-z])", re.I)
 CALCULATION = re.compile(r"(?:总量|平均值|均值|总和|浓度)(?:是多少|多少|呢)?[?？。]*$")
 FILE_REFERENCE = re.compile(r"[\w-]+\.xlsx?\b|nbal_out|wtabal_out|waterbal_out|这[份个张].{0,6}(文件|表|输出)|(?:文件|表格|表)中|(?:上述|上传的|当前)(?:文件|表格|表)|根据.{0,8}文件", re.I)
 LITERATURE = re.compile(r"文献|论文|研究中|研究表明|手册", re.I)
@@ -61,7 +61,7 @@ def decide(query: str, *, has_file: bool) -> RouteDecision:
     if case_id or case_referent or (explanation and re.search(r"案例|措施|报告|这段|以下|如下|文字|文本|[:：\n]", query)):
         return RouteDecision(route=Route.KNOWLEDGE, reason_code="case_explanation_intent", skills=["case_explanation"])
     explicit_file = bool(FILE_REFERENCE.search(query))
-    statistic = bool(STATISTIC.search(query))
+    statistic = has_statistic_request(query)
     composed = statistic and bool(MECHANISM_INTENT.search(query))
     # Explicitly asking about a paper's result remains a literature request.
     paper_result = bool(re.search(r"(?:论文|文献|研究)中", query)) and not explicit_file

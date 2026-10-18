@@ -35,6 +35,7 @@ class KnowledgeInput(Contract):
     k: int | None = Field(default=None, ge=1, le=20)
     history: list[DialogueTurn] = Field(default_factory=list)
     mode: Literal["answer", "mechanisms"] = "answer"
+    allow_general_knowledge: bool = False
     crop: str | None = None
     purpose: Literal["general", "peak", "maize_factors"] = "general"
     session_documents: list[dict] = Field(default_factory=list)
@@ -91,14 +92,21 @@ class SkillRegistry:
                  "output_schema": skill.output_model.model_json_schema()}
                 for skill in self._skills.values()]
 
+    def label(self, name: SkillName) -> str:
+        return self._skills[name].description
 
-def build_registry(service: ChatService | None, get_report: Callable[[str], Awaitable[dict]], *, case_store=None, llm=None) -> SkillRegistry:
+
+def build_registry(service: ChatService | None, get_report: Callable[[str], Awaitable[dict]], *, case_store=None, llm=None, expression_config=None,
+                   understanding=None, tag_mapping=None, retrieval_observer=None, tool_runner=None) -> SkillRegistry:
     async def knowledge(inputs: KnowledgeInput) -> ChatResponse:
         if service is None:
             raise KnowledgeUnavailable("rag_not_configured")
-        result = (await service.explain_mechanisms(inputs.query, crop=inputs.crop, k=inputs.k, purpose=inputs.purpose)
+        result = (await service.explain_mechanisms(inputs.query, crop=inputs.crop, k=inputs.k, purpose=inputs.purpose,
+                                                **({"tool_runner": tool_runner, "understanding": understanding, "tag_mapping": tag_mapping, "retrieval_observer": retrieval_observer} if isinstance(service, ChatService) else {}))
                   if inputs.mode == "mechanisms" else
                   await service.answer(inputs.query, k=inputs.k, history=inputs.history,
+                                       **({"understanding": understanding, "tag_mapping": tag_mapping, "retrieval_observer": retrieval_observer, "tool_runner": tool_runner,
+                                           "allow_general_knowledge": inputs.allow_general_knowledge} if isinstance(service, ChatService) else {}),
                                        **({"session_documents": inputs.session_documents} if inputs.session_documents else {})))
         if inputs.mode == "mechanisms" and (not result.citations or not result.claims):
             raise MechanismEvidenceError("mechanism_evidence_missing")
@@ -108,10 +116,11 @@ def build_registry(service: ChatService | None, get_report: Callable[[str], Awai
                                                     citation_indices=[claim.citation_index]) for claim in result.claims])
 
     async def inspect(inputs: InspectInput) -> InspectOutput:
-        return InspectOutput(report=await get_report(inputs.file_id))
+        report = await tool_runner("读取并校验附件", lambda: get_report(inputs.file_id)) if tool_runner else await get_report(inputs.file_id)
+        return InspectOutput(report=report)
 
     async def analyze(inputs: AnalyzeInput) -> ChatResponse:
-        return answer_file(inputs.query, inputs.report)
+        return await tool_runner("计算已校验字段的整表极值", lambda: answer_file(inputs.query, inputs.report)) if tool_runner else answer_file(inputs.query, inputs.report)
 
     async def clarify(inputs: ClarificationInput) -> ChatResponse:
         return reply(inputs.message)
@@ -124,10 +133,11 @@ def build_registry(service: ChatService | None, get_report: Callable[[str], Awai
         return result
 
     async def reference(inputs: CaseSkillInput) -> ChatResponse:
-        return await answer_cases(inputs, mode="reference", store=case_store, llm=llm)
+        return await answer_cases(inputs, mode="reference", store=case_store, llm=llm, understanding=understanding, tag_mapping=tag_mapping, retrieval_observer=retrieval_observer, tool_runner=tool_runner)
 
     async def explanation(inputs: CaseSkillInput) -> ChatResponse:
-        return await answer_cases(inputs, mode="explain", store=case_store, llm=llm)
+        return await answer_cases(inputs, mode="explain", store=case_store, llm=llm, expression_config=expression_config,
+                                  understanding=understanding, tag_mapping=tag_mapping, retrieval_observer=retrieval_observer, tool_runner=tool_runner)
 
     registry = SkillRegistry()
     for skill in (

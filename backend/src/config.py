@@ -45,6 +45,8 @@ class Settings(BaseSettings):
 
     agent_trace_db: str = str(BASE_DIR / "var/agent/runs.sqlite3")
     agent_build_version: str = "local-unversioned"
+    chat_run_retention_seconds: int = Field(default=86400, ge=600, le=604800)
+    chat_run_max_active: int = Field(default=32, ge=1, le=256)
 
     eval_enabled: bool = False
     eval_access_file: str = str(BASE_DIR / "var/eval/access-keys.json")

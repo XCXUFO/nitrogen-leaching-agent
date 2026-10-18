@@ -23,7 +23,8 @@ test('three-level showcase cascades include descendants and combine dimensions o
   await page.getByRole('checkbox', { name: '广西 / 南宁', exact: true }).uncheck();
   await expect(page.getByRole('checkbox', { name: '广西', exact: true })).not.toBeChecked();
   await page.getByRole('checkbox', { name: '广西 / 南宁', exact: true }).check();
-  await expect(page.getByRole('checkbox', { name: '广西', exact: true })).toBeChecked();
+  await expect(page.getByRole('checkbox', { name: '广西', exact: true })).not.toBeChecked();
+  await expect(page.getByRole('checkbox', { name: '广西', exact: true })).toHaveJSProperty('indeterminate', true);
   await page.getByRole('button', { name: '关闭标签选择' }).click();
   await expect(page.getByRole('status')).toHaveText('共 2 条示例文献');
   await page.getByRole('button', { name: '研究对象级联选择' }).click();

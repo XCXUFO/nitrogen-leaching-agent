@@ -1,0 +1,108 @@
+{
+  "verified_at": "2026-10-17T09:26:36.565643+00:00",
+  "scope": "M06 owned recoverable submissions and M09 real Skill progress increment; not all PRDs complete",
+  "backend": [
+    {
+      "command": "timeout 90s backend/.venv/bin/python -m pytest backend/tests/test_chat_runs.py backend/tests/test_public_demo.py backend/tests/test_agent_runtime.py backend/tests/test_evaluation.py backend/tests/test_run_store_sessions.py backend/tests/test_chat_route.py backend/tests/test_skill_catalog.py backend/tests/test_config.py -q",
+      "passed": 135
+    },
+    {
+      "command": "timeout 90s backend/.venv/bin/python -m pytest backend/tests/test_session_files.py backend/tests/test_evaluation_accounts.py backend/tests/test_file_chat.py backend/tests/test_composition.py backend/tests/test_versioning.py -q",
+      "passed": 96
+    }
+  ],
+  "browser": [
+    {
+      "files": [
+        "chat-runs.spec.ts",
+        "chat-regenerate.spec.ts",
+        "chat.spec.ts",
+        "conversation-history.spec.ts"
+      ],
+      "passed": 35
+    },
+    {
+      "files": [
+        "chat-runs.spec.ts"
+      ],
+      "reason": "final progress label and visible unsaved-result warning",
+      "passed": 6
+    }
+  ],
+  "frontend_checks": {
+    "typescript": "passed",
+    "changed_file_eslint": "passed",
+    "build": "NITROGEN_NEXT_DIST_DIR=.next-runs pnpm build passed",
+    "build_id": "2blsWbKqZIU5JHHND_gWX"
+  },
+  "live_preview": {
+    "frontend": "http://localhost:3000",
+    "backend": "http://localhost:8000",
+    "source": "real-local-example-no-remote-model",
+    "run_id": "31b0e327-ba24-4c4e-af82-6f31a02f1575",
+    "rerun_id": "2c17c042-b999-4614-99c8-088bbacec1bd",
+    "primary_run_id": "31b0e327-ba24-4c4e-af82-6f31a02f1575",
+    "known_example_model_day": 283,
+    "result_saved": true,
+    "event_types": [
+      "run_accepted",
+      "plan_created",
+      "step_started",
+      "step_finished",
+      "step_started",
+      "step_finished",
+      "run_finished"
+    ],
+    "skills": [
+      "file_inspector",
+      "whcns_analyzer"
+    ],
+    "duplicate_run_reused": true,
+    "request_lookup_exact_result": true,
+    "outsider_status": 404,
+    "browser_errors": [],
+    "screenshot": "/tmp/chat-runs-live-example.png"
+  },
+  "health": {
+    "frontend_http": 200,
+    "backend_http": 200,
+    "backend_status": "ok"
+  },
+  "deployment": {
+    "workers": 1,
+    "frontend_dist": ".next-runs",
+    "state": "backend/var/service/chat-run-recovery-preview.json"
+  },
+  "limitations": [
+    "client submission IDs are memory-only; refresh restoration deferred",
+    "user cancel and token streaming deferred",
+    "single backend worker only",
+    "expired result cleanup is lazy on recovery reads",
+    "legacy synchronous clients retain their existing execution behavior"
+  ],
+  "sha256": {
+    "backend/src/storage/chat_runs.py": "d888dcb1c00a422ab832d825683a3473e641c8483b3587c031b6ecc15f1fbf64",
+    "backend/src/storage/run_store.py": "14762fab3cb272c483c49afc93a5ee6681ea960fa445765edeb851d033a392f0",
+    "backend/src/agent/submissions.py": "1d79703f5d2d6b3c8d6b97c7ccea74b8e6c778f73c824cc1a4158b1c1b1c4959",
+    "backend/src/agent/runtime.py": "bcaf9fa10307b4ae93b71007a58a61c9bc71a3313f28cb5f6cb84c05be7defc4",
+    "backend/src/agent/contracts.py": "65a9ec27ab76b62dc7fd300f308c21f435359aa04936725248122b07c6c4d66b",
+    "backend/src/agent/skills.py": "50c259f8c2e897f541cbffa41083219c1d3c8034f045da32f1b3d1247238653a",
+    "backend/src/api/chat.py": "44425a92f262fda36452b0b297f9088574ddd7277cd779580e140902ac5e07c9",
+    "backend/src/api/chat_schema.py": "6e08229a6966a0288efb74ffafaedc0ae5a9f2ee4b993ae21165f9a35590e410",
+    "backend/src/operations/public_access.py": "c5dc6bee9f371f8fce3530dd259e7243187040dc231b9c4b4a08edf27a338195",
+    "backend/src/operations/visitor_identity.py": "c32b2ff06bb35714311823352353b85ef1c07d31af35fad8f776940f4ed0597b",
+    "backend/src/evaluation/versioning.py": "95190446bf0ee62c595dfc06628bf53b7578cd39635681a878c0f43296609e1a",
+    "backend/src/config.py": "2718059f3c88dedd70f2bd48283104610562b7bac7d41cae0e2b5100b61468d3",
+    "backend/src/main.py": "3d21200df007095feebd9dbbde9676aa7364c753123fa38a26999a993b69c9f4",
+    "backend/tests/test_chat_runs.py": "58634dfc6f445367917e9d1634dd78a991c41f9ce3c28155588aa1fcbda633ee",
+    "frontend/src/lib/api.ts": "add7a5cc57d4800179cf577c4984d9bd00af1d10afd5308e62f522148ae62254",
+    "frontend/src/lib/types.ts": "2edbb533d1bd0608394ff940ad4d483bd42085c9e7890ab0ea6b3db7a001d407",
+    "frontend/src/lib/error-messages.ts": "4095e2c9aaef846ad0c5f5867021b3892344e642ec08d7a2d2fe0b09ef19f28d",
+    "frontend/src/app/page.tsx": "ab81a919a62abd8562a989344048e4c71cf193bb69215d9bf4fc5a6eca42a8e8",
+    "frontend/src/components/chat/use-conversations.ts": "8fca7bf1869d46cefc4036e97d89943e34f349284f6d6e8d5a9951b82071dcd5",
+    "frontend/src/components/chat/execution-progress.tsx": "7ae171ab1af2c95877a6ec374a68de3f68d5717317260ddbc82f2533b148cb93",
+    "frontend/tests/chat-runs.spec.ts": "f8eb7424c0f34f3d6be65379587205025d8a84b4300f754752f111b8bf23fd9f",
+    "frontend/next.config.ts": "2ef1a79fced9e7e2362b9d7ab28229c53c850e35fd5e4b713cbd8967eea70955",
+    ".env.example": "e0d8afb7fc6f572de7ac2d0e238085a41df55be24394ff9706a33f03e2333073"
+  }
+}

@@ -3,8 +3,10 @@ from __future__ import annotations
 import time
 import hashlib
 import asyncio
+import json
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi.responses import JSONResponse
 from loguru import logger
 from openai import (
     APIConnectionError,
@@ -18,13 +20,62 @@ from src.agent.chat_service import RAGQueryError
 from src.agent.runtime import AgentRuntime
 from src.agent.skills import KnowledgeUnavailable
 from src.agent.state import ConversationBusy, StateCapacityError
-from src.api.chat_schema import ChatRequest, ChatResponse
+from src.agent.submissions import ChatRunManager
+from src.config import settings
+from src.api.chat_schema import ChatRequest, ChatResponse, ChatRunView
 from src.api.files import file_store
-from src.evaluation.auth import front_principal
+from src.evaluation.auth import current_user, front_principal
 from src.rag.documents import citation_metadata
 
 router = APIRouter()
 CHAT_REQUEST_TIMEOUT_S = 240.0
+
+
+def run_manager(request: Request) -> ChatRunManager:
+    if not hasattr(request.app.state, "agent_runtime"):
+        request.app.state.agent_runtime = AgentRuntime()
+    if not hasattr(request.app.state, "chat_runs"):
+        public = getattr(request.app.state, "public_settings", None)
+        capacity = public.public_max_concurrent if public and public.public_demo_enabled else settings.chat_run_max_active
+        request.app.state.chat_runs = ChatRunManager(request.app.state.agent_runtime.runs.live,
+                                                   retention_seconds=settings.chat_run_retention_seconds, max_active=capacity)
+    return request.app.state.chat_runs
+
+
+def recovery_owner(request: Request):
+    user = front_principal(request)
+    owner = "internal_" + user.tester_id if user else getattr(request.state, "public_visitor", None)
+    if owner is None:
+        raise HTTPException(401, detail={"code": "chat_session_required", "message": "请先初始化会话后再提交。"})
+    return owner
+
+
+@router.get("/chat/session")
+def chat_session(request: Request):
+    recovery_owner(request)
+    manager = run_manager(request)
+    return JSONResponse({"protocol": "chat-runs-v1", "recovery_window_seconds": manager.retention_seconds}, headers={"Cache-Control": "no-store"})
+
+
+@router.get("/chat/history")
+def account_chat_history(request: Request, limit: int = Query(30, ge=1, le=100), offset: int = Query(0, ge=0)):
+    user = current_user(request)
+    run_manager(request)
+    return JSONResponse(request.app.state.agent_runtime.runs.history.list(user.tester_id, limit=limit, offset=offset),
+                        headers={"Cache-Control": "no-store"})
+
+
+@router.get("/chat/requests/{request_id}", response_model=ChatRunView)
+def find_submission(request: Request, request_id: str,
+                    session_id: str = Query(min_length=1, max_length=100, pattern=r"^[A-Za-z0-9_-]+$")):
+    owner = recovery_owner(request)
+    session = hashlib.sha256((owner + ":" + session_id).encode()).hexdigest()
+    return JSONResponse(run_manager(request).lookup(owner, session, request_id), headers={"Cache-Control": "no-store"})
+
+
+@router.get("/chat/runs/{run_id}", response_model=ChatRunView)
+def get_chat_run(request: Request, run_id: str, after: int = Query(default=0, ge=0)):
+    return JSONResponse(run_manager(request).get(recovery_owner(request), run_id, after), headers={"Cache-Control": "no-store"})
 
 
 def _ms(t0: float) -> int:
@@ -67,8 +118,9 @@ def _fail(
     )
 
 
-@router.post("/chat", response_model=ChatResponse)
-async def chat(request: Request, body: ChatRequest) -> ChatResponse:
+@router.post("/chat", response_model=ChatResponse, responses={202: {"model": ChatRunView, "description": "已受理的可恢复运行"}})
+async def chat(request: Request, body: ChatRequest) -> ChatResponse | JSONResponse:
+    client_session_id = body.session_id or "default"
     visitor = getattr(request.state, "public_visitor", None)
     internal = front_principal(request)
     if internal:
@@ -92,18 +144,75 @@ async def chat(request: Request, body: ChatRequest) -> ChatResponse:
         # application configures persistent traces in its lifespan.
         request.app.state.agent_runtime = AgentRuntime()
     runtime: AgentRuntime = request.app.state.agent_runtime
+    attachments = []
+    if internal:
+        for token in ([body.file_id] if body.file_id else []) + (body.file_ids or []):
+            entry = file_store(request).entries.get(token)
+            if entry is not None:
+                attachments.append({"file_id": token, "filename": entry.filename, "sha256": entry.sha256,
+                    "format": entry.format, "status": "pending", "kind": None, "rows": None, "expires_in_seconds": 0})
+    if body.request_id:
+        owner = recovery_owner(request)
+        expression_config = runtime.expression_snapshot()
+        fingerprint_input = body.model_dump(exclude={"request_id", "turn_id", "rerun_of_run_id", "operator_id"})
+        fingerprint = hashlib.sha256(json.dumps(fingerprint_input, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+        async def execute(record, observer):
+            context = {key: record[key] for key in ("turn_id", "request_id", "primary_run_id", "rerun_of_run_id", "source", "mode")}
+            return await execute_chat(request, body, runtime, run_id=record["run_id"], observer=observer, run_context=context, expression_config=expression_config)
+
+        guard = getattr(request.app.state, "public_access", None)
+        slot = getattr(request.state, "public_slot_acquired", False)
+
+        def transfer_slot():
+            request.state.public_slot_transferred = True
+
+        def release_slot():
+            guard.active -= 1
+
+        receipt = run_manager(request).submit(execute=execute, owner=owner, session_id=body.session_id,
+                                             turn_id=body.turn_id, request_id=body.request_id,
+                                             fingerprint=fingerprint, rerun_of_run_id=body.rerun_of_run_id,
+                                             config_version=runtime.config_version + ":" + expression_config["version"] + ":" + expression_config["communication"]["version"], mode="specified" if body.case_skill else "auto",
+                                             on_created=transfer_slot if slot else None, on_finished=release_slot if slot else None)
+        if internal:
+            runtime.runs.history.record(internal.tester_id, client_session_id, body.session_id,
+                                        body.model_dump(), receipt, attachments)
+        return JSONResponse(receipt, status_code=202, headers={"Cache-Control": "no-store"})
+    # This function also serves the authenticated evaluation query endpoint.
+    # Stamp its trusted origin before execution so failed runs keep it as well;
+    # the client cannot choose this through ChatRequest.
+    context = {"source": "evaluation", "mode": "auto"} if request.url.path.startswith("/api/eval/") else {"source": "formal", "mode": "auto"} if internal else None
+    response = await execute_chat(request, body, runtime, run_context=context)
+    if internal:
+        runtime.runs.history.record(internal.tester_id, client_session_id, body.session_id, body.model_dump(),
+            {"run_id": response.run_id, "turn_id": response.run_id, "request_id": response.run_id,
+             "status": "succeeded", "result": response.model_dump(mode="json")}, attachments)
+    return response
+
+
+async def execute_chat(request: Request, body: ChatRequest, runtime: AgentRuntime, **execution_options) -> ChatResponse:
     t0 = time.perf_counter()
     try:
         response = await asyncio.wait_for(runtime.execute(body, service=getattr(request.app.state, "chat_service", None),
                                          get_report=file_store(request).inspect,
                                          get_documents=file_store(request).documents,
                                          case_store=getattr(request.app.state, "case_library", None),
-                                         llm=getattr(request.app.state, "llm", None)), timeout=CHAT_REQUEST_TIMEOUT_S)
-        response.citations = [citation.model_copy(update=(
-            {"title": citation.source.rsplit("/", 1)[-1], "author_hint": None, "year": None,
-             "document_id": citation.source.split("/", 3)[2], "document_available": False}
-            if citation.source.startswith("session://") else citation_metadata(citation.source)))
-                              for citation in response.citations]
+                                         taxonomy_provider=getattr(getattr(request.app.state, "literature", None), "taxonomy", None),
+                                         starred_provider=getattr(getattr(getattr(request.app.state, "evaluation", None), "store", None), "starred_questions", None),
+                                         llm=getattr(request.app.state, "llm", None), **execution_options), timeout=CHAT_REQUEST_TIMEOUT_S)
+        library = getattr(request.app.state, "literature", None)
+        enriched = []
+        for citation in response.citations:
+            if citation.source.startswith("session://"):
+                metadata = {"title": citation.source.rsplit("/", 1)[-1], "author_hint": None, "year": None,
+                            "document_id": citation.source.split("/", 3)[2], "document_available": False}
+            else:
+                metadata = library.search_index.citation_metadata(citation.source) if library else None
+                if metadata is None:
+                    metadata = citation_metadata(citation.source)
+            enriched.append(citation.model_copy(update=metadata))
+        response.citations = enriched
         return response
     except HTTPException as exc:
         if isinstance(exc.detail, dict):

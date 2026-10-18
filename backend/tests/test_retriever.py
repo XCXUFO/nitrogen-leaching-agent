@@ -202,6 +202,30 @@ class _FakeReranker:
         return ranked
 
 
+def test_unavailable_candidates_do_not_call_reranker(store, embedder):
+    _seed(store, embedder, [("draft", "alpha", {"source": "draft.pdf"})])
+    reranker = _FakeReranker()
+    retriever = Retriever(embedder, store, reranker=reranker)
+
+    assert retriever.retrieve("alpha", eligibility_filter=lambda hit: False) == []
+    assert reranker.calls == []
+
+
+def test_eligibility_precedes_reference_minimum_and_top_k_cut(store, embedder):
+    _seed(store, embedder, [
+        ("draft", "alpha", {"source": "draft.pdf"}),
+        ("ready", "beta", {"source": "ready.pdf"}),
+    ])
+    reranker = _FakeReranker()
+    retriever = Retriever(embedder, store, reranker=reranker, top_k_recall=1,
+                          reference_filter_enabled=True, reference_filter_overfetch=2)
+
+    result = retriever.retrieve("alpha", k=1, eligibility_filter=lambda hit: hit.chunk_id == "ready")
+
+    assert [hit.chunk_id for hit in result] == ["ready"]
+    assert reranker.calls == [("alpha", 1)]
+
+
 def test_retriever_disabled_reranker_keeps_embedding_order(
     store: ChromaStore, embedder: FakeEmbedder
 ) -> None:

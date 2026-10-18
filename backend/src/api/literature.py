@@ -160,6 +160,8 @@ class LiteratureStore:
             if "revision" not in {r[1] for r in self.db.execute("PRAGMA table_info(papers)")}:
                 self.db.execute("ALTER TABLE papers ADD COLUMN revision INTEGER NOT NULL DEFAULT 1")
         self.prune_uploads()
+        from src.rag.literature_index import LiteratureIndex
+        self.search_index = LiteratureIndex(self)
 
     def close(self):
         self.db.close()
@@ -229,6 +231,8 @@ class LiteratureStore:
         data.setdefault("conclusion", "")
         result = data | {key: row[key] for key in ("id", "revision", "filename", "sha256", "registration", "usage", "created_by", "created_at", "updated_by", "updated_at", "registered_by", "registered_at")}
         result["tag_ids"] = [r[0] for r in self.db.execute("SELECT tag_id FROM paper_tags WHERE paper_id=?", (row["id"],))]
+        if hasattr(self, "search_index"):
+            result["search_sync"] = self.search_index.status(result)
         if full:
             result["events"] = self.events("paper", row["id"])
             result["related_papers"] = [{"id": i, "title": (json.loads(r["data"])["title"] if (r := self.db.execute("SELECT data,deleted FROM papers WHERE id=?", (i,)).fetchone()) and not r["deleted"] else "关联文献已删除"), "deleted": not bool(r) or bool(r["deleted"])} for i in data.get("related_paper_ids", [])]
@@ -563,7 +567,7 @@ def update_paper_record(db: LiteratureStore, paper_id: str, body: PaperUpdateInp
 
 
 @router.get("/papers")
-def list_papers(request: Request, keyword: str = "", field: str = "all", publication_type: str = "", year_from: int | None = None, year_to: int | None = None, year_unknown: bool = False, language: str = "", registration: str = "all", usage: str = "normal", creators: str = "", editors: str = "", created_from: str = "", created_to: str = "", updated_from: str = "", updated_to: str = "", tags: str = "", untagged: bool = False, include_disabled_tags: bool = False, sort: str = "updated", direction: str = "desc", page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100), user: Principal = Depends(current_user)):
+def list_papers(request: Request, search_status: Literal["all", "not_prepared", "processing", "ready", "stale", "failed", "excluded"] = "all", keyword: str = "", field: str = "all", publication_type: str = "", year_from: int | None = None, year_to: int | None = None, year_unknown: bool = False, language: str = "", registration: str = "all", usage: str = "normal", creators: str = "", editors: str = "", created_from: str = "", created_to: str = "", updated_from: str = "", updated_to: str = "", tags: str = "", untagged: bool = False, include_disabled_tags: bool = False, sort: str = "updated", direction: str = "desc", page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100), user: Principal = Depends(current_user)):
     # Date inputs and displayed timestamps share the library's business timezone.
     bounds = {}
     for key, value in (("created_from", created_from), ("created_to", created_to), ("updated_from", updated_from), ("updated_to", updated_to)):
@@ -592,6 +596,7 @@ def list_papers(request: Request, keyword: str = "", field: str = "all", publica
         query = keyword.strip().casefold(); key_doi = doi_key(query)
         def match(row):
             p = db.paper(row)
+            if search_status != "all" and p.get("search_sync", {}).get("status") != search_status: return False
             if untagged and p["tag_ids"]: return False
             if registration != "all" and p["registration"] != registration or usage != "all" and p["usage"] != usage: return False
             if types and p["publication_type"] not in types or langs and p["language"] not in langs: return False
@@ -620,6 +625,13 @@ def list_papers(request: Request, keyword: str = "", field: str = "all", publica
 @router.get("/papers/{paper_id}")
 def get_paper(request: Request, paper_id: str, user: Principal = Depends(current_user)):
     return store(request).get_paper(paper_id, full=True)
+
+
+@router.post("/papers/{paper_id}/search-sync")
+async def sync_paper_search(request: Request, paper_id: str, user: Principal = Depends(current_user)):
+    import asyncio
+    retriever = getattr(getattr(request.app.state, "chat_service", None), "_retriever", None)
+    return await asyncio.to_thread(store(request).search_index.sync, paper_id, actor=user.tester_id, retriever=retriever)
 
 
 @router.get("/papers/{paper_id}/file")

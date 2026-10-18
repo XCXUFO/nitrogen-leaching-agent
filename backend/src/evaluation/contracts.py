@@ -109,26 +109,8 @@ class ReviewResolutionInput(Contract):
     rationale: str = Field(min_length=1, max_length=5000)
 
 
-class AssetInput(Contract):
-    kind: Literal["paper", "model_input", "model_output", "result_fixture", "evidence"]
-    path: str = Field(min_length=1, max_length=500)
-    source: str = Field(min_length=1, max_length=500)
-    source_date: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
-    notes: str = Field(default="", max_length=3000)
-
-
-class AssetPairInput(Contract):
-    input_asset_id: str
-    output_asset_id: str
-    status: Literal["candidate", "verified"]
-    evidence_asset_id: str | None = None
-    supersedes_pair_id: str | None = None
-    notes: str = Field(default="", max_length=3000)
-
-
 class CaseDraftInput(Contract):
     case: EvalCase
-    fixture_asset_ids: list[str] = Field(default_factory=list, max_length=20)
     notes: str = Field(default="", max_length=3000)
 
 

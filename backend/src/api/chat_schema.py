@@ -33,6 +33,17 @@ class ChatRequest(BaseModel):
     file_id: str | None = Field(default=None, min_length=1, max_length=100)
     file_ids: list[str] | None = Field(default=None, max_length=10)
     history: list[ChatHistoryMessage] = Field(default_factory=list, max_length=12)
+    turn_id: str | None = Field(default=None, min_length=1, max_length=100, pattern=r"^[A-Za-z0-9_-]+$")
+    request_id: str | None = Field(default=None, min_length=1, max_length=100, pattern=r"^[A-Za-z0-9_-]+$")
+    rerun_of_run_id: str | None = Field(default=None, min_length=1, max_length=100, pattern=r"^[A-Za-z0-9_-]+$")
+
+    @model_validator(mode="after")
+    def submission_identity(self) -> "ChatRequest":
+        if bool(self.turn_id) != bool(self.request_id) or (self.rerun_of_run_id and not self.request_id):
+            raise ValueError("turn_id and request_id must be supplied together")
+        if self.request_id and not self.session_id:
+            raise ValueError("recoverable submissions require session_id")
+        return self
 
     @field_validator("file_ids")
     @classmethod
@@ -107,3 +118,24 @@ class ChatResponse(BaseModel):
     attachments: list[AttachmentState] = Field(default_factory=list)
     sections: list[AnswerSection] = Field(default_factory=list)
     warnings: list[RunWarning] = Field(default_factory=list)
+
+
+class ChatRunView(BaseModel):
+    protocol: Literal["chat-runs-v1"] = "chat-runs-v1"
+    run_id: str
+    turn_id: str
+    request_id: str
+    primary_run_id: str
+    rerun_of_run_id: str | None = None
+    status: Literal["accepted", "running", "succeeded", "failed", "cancelled", "interrupted", "unknown"]
+    outcome: str | None = None
+    accepted_at: str
+    expires_at: float
+    config_version: str
+    source: Literal["formal"] = "formal"
+    mode: Literal["auto", "specified"]
+    events: list[dict] = Field(default_factory=list)
+    last_sequence: int
+    result: ChatResponse | None = None
+    error: dict | None = None
+    result_saved: bool = False

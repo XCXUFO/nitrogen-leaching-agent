@@ -2,7 +2,7 @@ export type DemoTag = { id: string; dimension: string; name: string; parent: str
 export type DemoPaper = {
   id: string; title: string; authors: string; venue: string; year: string; language: string;
   source: string; tags: string[]; registration: "draft" | "registered"; disabled: boolean;
-  events: string[];
+  abstract: string; conclusion: string; events: string[];
 };
 export const demoDimensions = [
   { id: "region", name: "地区", description: "省、市、县逐级组织；选择上级包含全部下级。" },
@@ -23,7 +23,7 @@ export const initialDemoTags: DemoTag[] = [
 ];
 export const blankDemoPaper = (): DemoPaper => ({
   id: "", title: "", authors: "", venue: "", year: "", language: "中文", source: "",
-  tags: [], registration: "draft", disabled: false, events: [],
+  tags: [], registration: "draft", disabled: false, abstract: "", conclusion: "", events: [],
 });
 export const initialDemoPapers: DemoPaper[] = [
   { ...blankDemoPaper(), id: "SAMPLE-001", title: "水氮管理研究笔记（流程示例）", year: "2024", source: "合成示例资料", events: ["示例维护员 · 保存草稿，分类待补充"] },

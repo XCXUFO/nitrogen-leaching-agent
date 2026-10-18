@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 
 test.skip(!process.env.CANDIDATE_MANAGEMENT || !process.env.EVAL_TEST_API, 'Isolated candidate backend only.');
 
-test('candidate Case upload/import and review queue remain usable', async ({ page }) => {
+test('candidate Case import and review queue remain usable', async ({ page }) => {
   const api = process.env.EVAL_TEST_API!;
   const token = await testSession(page.request, api);
   const errors: string[] = [];
@@ -21,23 +21,21 @@ test('candidate Case upload/import and review queue remain usable', async ({ pag
   const row = page.getByRole('row').filter({ hasText: 'F05' }).filter({ hasText: 'v2' });
   await row.getByRole('button', { name: '查看用例' }).click();
   await expect(page).toHaveURL(/F05%402$/);
-  await page.getByRole('navigation', { name: '工作台导航' }).first().getByRole('link', { name: '资产目录', exact: true }).click();
-  await page.getByLabel('资产类型').selectOption('evidence');
-  await page.getByLabel('资产来源').fill('isolated candidate browser test');
-  await page.getByLabel('上传资产文件').setInputFiles({ name: 'candidate-proof.txt', mimeType: 'text/plain', buffer: Buffer.from('synthetic evidence') });
-  await page.getByRole('button', { name: '上传资产', exact: true }).click();
-  await expect(page.getByRole('status').filter({ hasText: '已上传并登记 candidate-proof.txt' })).toBeVisible();
   const headers = { Authorization: `Bearer ${token}` };
   const cases = await (await page.request.get(`${api}/api/eval/cases?latest=false`, { headers })).json();
   const template = cases.find((item: { case: { case_id: string; version: number } }) => item.case.case_id === 'NEW01' && item.case.version === 2).case;
   const unique = `CANDIDATE${Date.now()}`;
   await page.getByRole('navigation', { name: '工作台导航' }).first().getByRole('link', { name: '用例库', exact: true }).click();
+  await expect(page).toHaveURL(/\/evaluation\/cases$/);
+  await expect(page.getByRole('heading', { name: '用例版本目录' })).toBeVisible();
   await page.getByText('批量导入草稿', { exact: true }).click();
   await page.getByLabel('批量导入用例 JSON').fill(JSON.stringify([{ ...template, case_id: unique, version: 1, attachment_requirements: [] }]));
   await page.getByRole('button', { name: '导入草稿' }).click();
   await expect(page.getByRole('status').filter({ hasText: '已导入 1 份草稿' })).toBeVisible();
   await page.getByRole('link', { name: '管理草稿' }).click();
   await expect(page.getByLabel('已有用例草稿').locator('option').filter({ hasText: unique })).toHaveCount(1);
+  const pending = await page.request.post(`${api}/api/eval/executions`, { headers, data: { case_id: 'NEW01', case_version: 2 } });
+  expect(pending.status()).toBe(201);
   await page.getByRole('navigation', { name: '工作台导航' }).first().getByRole('link', { name: '审核队列', exact: true }).click();
   await page.getByLabel('筛选审核状态').selectOption('pending_development');
   await expect(page.getByLabel('独立审核队列')).toContainText('待开发评分');

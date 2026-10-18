@@ -7,6 +7,12 @@ from pathlib import Path
 from threading import Lock
 
 from src.agent.contracts import RunTrace
+from src.storage.chat_runs import ChatRuns
+from src.storage.account_history import AccountHistory
+from src.storage.prompt_versions import PromptVersions
+from src.agent.skill_config import SkillConfigurations
+from src.evaluation.online_metrics import OnlineMetrics
+from src.evaluation.session_reviews import SessionReviews
 
 
 class RunStore:
@@ -38,6 +44,13 @@ class RunStore:
             WHERE session_id NOT IN (SELECT session_id FROM chat_sessions) ORDER BY started_at, rowid""").fetchall():
             self._index(json.loads(raw), session_id, operator_id or "未知")
         self._connection.commit()
+        self.live = ChatRuns(self._connection, self._lock)
+        self.history = AccountHistory(self._connection, self._lock)
+        self.live.history = self.history
+        self.skill_config = SkillConfigurations(self._connection, self._lock)
+        self.prompts = PromptVersions(self._connection, self._lock)
+        self.online_metrics = OnlineMetrics(self._connection, self._lock)
+        self.reviews = SessionReviews(self._connection, self._lock)
 
     @staticmethod
     def _topic(question: str) -> str:
@@ -74,6 +87,7 @@ class RunStore:
                  created_to: str | None = None, status: str | None = None,
                  duration_mode: str | None = None, duration_ms: int | None = None,
                  duration_max_ms: int | None = None, operator_id: str = "",
+                 review_status: str | None = None,
                  limit: int = 20, offset: int = 0) -> dict:
         clauses, values = [], []
         if information:
@@ -86,6 +100,8 @@ class RunStore:
             clauses.append("created_at <= ?"); values.append(created_to)
         if status:
             clauses.append("status = ?"); values.append(status)
+        if review_status:
+            clauses.append("review_status = ?"); values.append(review_status)
         if operator_id:
             clauses.append("operator_id LIKE ? ESCAPE '\\'")
             escaped = operator_id.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
@@ -97,10 +113,11 @@ class RunStore:
                 clauses.append("latency_ms <= ?"); values.append(duration_max_ms)
         where = " WHERE " + " AND ".join(clauses) if clauses else ""
         with self._lock:
-            total = self._connection.execute("SELECT COUNT(*) FROM chat_sessions" + where, values).fetchone()[0]
-            rows = self._connection.execute("SELECT * FROM chat_sessions" + where +
-                " ORDER BY created_at DESC, session_id DESC LIMIT ? OFFSET ?", [*values, limit, offset]).fetchall()
-        keys = ("session_id", "topic", "created_at", "operator_id", "status", "latency_ms", "turn_count")
+            total = self._connection.execute("SELECT COUNT(*) FROM reviewed_sessions" + where, values).fetchone()[0]
+            cursor = self._connection.execute("SELECT * FROM reviewed_sessions" + where +
+                " ORDER BY created_at DESC, session_id DESC LIMIT ? OFFSET ?", [*values, limit, offset])
+            keys = [column[0] for column in cursor.description]
+            rows = cursor.fetchall()
         return {"total": total, "items": [dict(zip(keys, row)) for row in rows]}
 
     def session(self, identifier: str) -> dict | None:
@@ -113,8 +130,13 @@ class RunStore:
             session_id = row[0]
             summary = self._connection.execute("SELECT * FROM chat_sessions WHERE session_id=?", (session_id,)).fetchone()
             turns = self._connection.execute("SELECT payload FROM agent_runs WHERE session_id=? ORDER BY started_at, rowid", (session_id,)).fetchall()
+            review = self.reviews.detail_locked(session_id)
         keys = ("session_id", "topic", "created_at", "operator_id", "status", "latency_ms", "turn_count")
-        return {**dict(zip(keys, summary)), "turns": [json.loads(turn[0]) for turn in turns]}
+        open_count = sum(item["status"] == "open" for item in review["issues"])
+        review_status = "needs_changes" if open_count else "pending" if review["reviewed_turn_count"] < len(turns) else "passed"
+        return {**dict(zip(keys, summary)), "turns": [json.loads(turn[0]) for turn in turns],
+                "review": review, "review_status": review_status, "review_revision": review["revision"],
+                "reviewed_turn_count": review["reviewed_turn_count"], "open_issue_count": open_count}
 
     def get(self, run_id: str) -> RunTrace | None:
         with self._lock:

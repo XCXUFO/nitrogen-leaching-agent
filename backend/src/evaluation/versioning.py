@@ -56,9 +56,16 @@ def build_manifest(settings: Settings) -> dict:
         BASE_DIR / "src/storage/case_content.py",
         BASE_DIR / "src/main.py", BASE_DIR / "src/llm/deepseek.py",
         BASE_DIR / "src/operations/public_access.py",
+        BASE_DIR / "src/operations/visitor_identity.py", BASE_DIR / "src/storage/chat_runs.py",
+        BASE_DIR / "src/storage/run_store.py",
+        BASE_DIR / "src/storage/prompt_versions.py",
+        BASE_DIR / "src/api/online_metrics.py", BASE_DIR / "src/api/explanation_trials.py", BASE_DIR / "src/api/literature.py",
+        BASE_DIR / "src/evaluation/online_metrics.py", BASE_DIR / "src/evaluation/explanation_trials.py",
     ]
     prompt_paths = [BASE_DIR / "src/agent/prompt.py", BASE_DIR / "src/agent/composition.py",
-                    BASE_DIR / "src/agent/curated_evidence.py"]
+                    BASE_DIR / "src/agent/curated_evidence.py", BASE_DIR / "src/agent/explanation_method.py",
+                    BASE_DIR / "src/agent/case_skills.py", BASE_DIR / "src/agent/skill_config.py",
+                    BASE_DIR / "src/storage/prompt_versions.py"]
     retriever_paths = sorted((BASE_DIR / "src/rag").glob("*.py"))
     config = {key: value for key, value in settings.model_dump().items()
               if key.startswith(("rag_", "chat_")) or key in {"embedding_model", "deepseek_model",

@@ -52,7 +52,7 @@ export function ChatForm({ value, onValueChange: setValue, onSubmit, disabled, o
     onDrop={(event) => { event.preventDefault(); dragDepth.current = 0; setDragging(false); select(event.dataTransfer.files); }}>
     {files.length > 0 && <div className="flex max-w-full gap-2 overflow-x-auto pb-1" aria-label="会话文件列表">{files.map((file) => {
         const ready = file.phase === "stored" && !!file.receipt;
-        const removeLabel = file.used ? `收起文件：${file.filename}（仍可在本会话引用）` : `移除附件：${file.filename}`;
+        const removeLabel = `移除附件：${file.filename}`;
         const Icon = /\.xlsx?$/i.test(file.filename) ? FileSpreadsheet : FileText;
         return <div key={file.clientId} className={`flex w-44 shrink-0 items-start gap-2 rounded-xl border p-2 text-xs ${file.phase === "error" ? "border-destructive/50 bg-destructive/5" : "bg-muted/20"}`}>
           <Icon aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" />

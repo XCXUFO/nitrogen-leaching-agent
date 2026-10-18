@@ -25,7 +25,7 @@ test('live new conversation and Nbal_out attachment evidence', async ({ page }) 
   await page.goto('/');
   await page.getByLabel('问题输入').fill('你能做什么？');
   await page.getByRole('button', { name: '发送', exact: true }).click();
-  await expect(page.getByLabel('对话记录').getByText('农业模型助手', { exact: false })).toBeVisible();
+  await expect(page.getByLabel('对话记录').locator('article')).toBeVisible();
   await page.getByRole('button', { name: '新对话' }).click();
   await page.getByLabel('问题输入').fill('你能做什么？');
   await page.getByRole('button', { name: '发送', exact: true }).click();
@@ -42,10 +42,11 @@ test('live new conversation and Nbal_out attachment evidence', async ({ page }) 
   await page.getByLabel('问题输入').fill('那最小值呢？');
   await page.getByRole('button', { name: '发送', exact: true }).click();
   await expect.poll(() => responses.length).toBe(4);
-  await expect(page.getByLabel('会话文件列表').getByText('Nbal_out.xls', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('会话文件列表')).toHaveCount(0);
   await expect(page.getByRole('button', { name: '移除附件', exact: true })).toHaveCount(0);
   await page.screenshot({ path: '/tmp/ui06-after.png' });
-  await page.getByRole('button', { name: /收起文件：Nbal_out.xls/ }).click();
+  await page.getByLabel('选择会话文件').setInputFiles({ name: 'Nbal_out.xls', mimeType: 'application/vnd.ms-excel', buffer: readFileSync(source) });
+  await expect(page.getByLabel('会话文件列表').getByText('已上传', { exact: true })).toBeVisible();
   await page.getByLabel('问题输入').fill('那最小值呢？');
   await page.getByRole('button', { name: '发送', exact: true }).click();
   await expect.poll(() => responses.length).toBe(5);
@@ -58,8 +59,8 @@ test('live new conversation and Nbal_out attachment evidence', async ({ page }) 
   expect(sent[1].session_id).not.toBe(sent[0].session_id);
   expect(sent[1].history).toBeUndefined();
   expect(sent[2].file_ids).toHaveLength(1);
-  expect(sent[3].file_ids).toEqual(sent[2].file_ids);
-  expect(sent[4].file_ids).toEqual(sent[2].file_ids);
+  expect(sent[3].file_ids).toEqual([]);
+  expect(sent[4].file_ids).toHaveLength(1);
   expect(sent[4].history).toBeDefined();
   expect(sent[5].session_id).not.toBe(sent[4].session_id);
   expect(sent[5].file_ids).toEqual([]);

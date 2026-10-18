@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { evaluationJson, evaluationRequest, type Evaluator } from "@/lib/evaluation-api";
 import { readAccount, storeAccount, type StoredAccount } from "@/lib/account-storage";
 
-export const accountRoleLabels = { developer: "开发者", tester: "测试者", reviewer: "领域审核人" };
+export const accountRoleLabels = { developer: "开发者", tester: "协作者", reviewer: "复核者" };
 type Account = StoredAccount & { user: Evaluator };
 const Context = createContext<{
   session: Account | null; ready: boolean; error: string;

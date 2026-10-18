@@ -9,7 +9,7 @@ from src import __version__
 from src.agent.chat_service import ChatService
 from src.agent.runtime import AgentRuntime
 from src.storage.run_store import RunStore
-from src.api import case_library, chat, demo, documents, evaluation, files, health, literature
+from src.api import case_library, chat, demo, documents, evaluation, explanation_trials, files, health, literature, online_metrics
 from src.operations.public_access import PublicAccess, public_access
 from src.evaluation.auth import load_access
 from src.evaluation.service import EvaluationService
@@ -40,6 +40,7 @@ async def lifespan(app: FastAPI):
     app.state.eval_access = None
     app.state.literature = None
     app.state.literature_cleanup = None
+    app.state.literature_index_sync = None
     if settings.eval_enabled:
         try:
             access = load_access(settings.eval_access_file)
@@ -62,6 +63,7 @@ async def lifespan(app: FastAPI):
         config_version=f"{settings.agent_build_version}:{config_hash}",
         config_manifest=app.state.version_manifest,
     )
+    from src.evaluation.explanation_trials import ExplanationTrials
     logger.info(
         "Backend starting | env={} | model={} | cors_origins={} | "
         "llm_timeout_s={} | llm_max_retries={}",
@@ -88,6 +90,9 @@ async def lifespan(app: FastAPI):
         try:
             embedder = BGEEmbedder(model_id=settings.embedding_model)
             store = ChromaStore(chroma_dir, settings.rag_collection)
+            if app.state.literature is not None:
+                restored = await asyncio.to_thread(app.state.literature.search_index.adopt_legacy_index, store)
+                logger.info("Legacy literature index reconciled | {}", restored)
 
             reranker: Reranker | None = None
             if settings.rag_reranker_enabled:
@@ -123,6 +128,7 @@ async def lifespan(app: FastAPI):
                 top_k=chat_top_k,
                 max_context_chars=settings.chat_max_context_chars,
                 temperature=settings.chat_temperature,
+                literature_index=app.state.literature.search_index if app.state.literature is not None else None,
             )
             logger.info(
                 "RAG enabled | chroma_dir={} | collection={} | "
@@ -151,11 +157,39 @@ async def lifespan(app: FastAPI):
     else:
         logger.info("RAG or API key unavailable; file chat remains available")
 
+    if app.state.literature is not None:
+        prepared = await asyncio.to_thread(app.state.literature.search_index.prepare_pending)
+        logger.info("Saved literature fulltext prepared | {}", prepared)
+        async def sync_saved_literature():
+            while True:
+                await asyncio.sleep(2)
+                operation = asyncio.create_task(asyncio.to_thread(app.state.literature.search_index.prepare_pending))
+                try:
+                    await asyncio.shield(operation)
+                except asyncio.CancelledError:
+                    await asyncio.gather(operation, return_exceptions=True)
+                    raise
+                except Exception:
+                    logger.exception("Saved literature fulltext synchronization failed")
+        app.state.literature_index_sync = asyncio.create_task(sync_saved_literature())
+
+    # Admission/recovery uses the same durable database and the single worker.
+    from src.agent.submissions import ChatRunManager
+    app.state.chat_runs = ChatRunManager(run_store.live, retention_seconds=settings.chat_run_retention_seconds,
+                                        max_active=settings.public_max_concurrent if settings.public_demo_enabled else settings.chat_run_max_active)
+    app.state.explanation_trials = ExplanationTrials(app.state.agent_runtime, manager=app.state.chat_runs)
     try:
         yield
     finally:
+        await app.state.chat_runs.shutdown()
+        await app.state.explanation_trials.shutdown()
         if settings.eval_enabled:
             await app.state.regressions.shutdown()
+            app.state.literature_index_sync.cancel()
+            try:
+                await app.state.literature_index_sync
+            except asyncio.CancelledError:
+                pass
             app.state.literature_cleanup.cancel()
             try:
                 await app.state.literature_cleanup
@@ -190,6 +224,8 @@ app.include_router(chat.router, prefix="/api", tags=["chat"])
 app.include_router(files.router, prefix="/api", tags=["files"])
 app.include_router(documents.router, prefix="/api", tags=["documents"])
 app.include_router(evaluation.router, prefix="/api", tags=["evaluation"])
+app.include_router(online_metrics.router, prefix="/api", tags=["online-metrics"])
+app.include_router(explanation_trials.router, prefix="/api", tags=["explanation-trials"])
 app.include_router(case_library.router, prefix="/api", tags=["case-library"])
 app.include_router(literature.router, prefix="/api", tags=["literature"])
 app.state.public_settings = settings
@@ -199,6 +235,6 @@ app.middleware("http")(public_access)
 @app.middleware("http")
 async def evaluation_no_cache(request, call_next):
     response = await call_next(request)
-    if request.url.path.startswith(("/api/eval", "/api/case-library")):
+    if request.url.path.startswith(("/api/eval", "/api/case-library", "/api/chat")):
         response.headers["Cache-Control"] = "no-store"
     return response

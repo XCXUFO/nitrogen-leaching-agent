@@ -1,0 +1,118 @@
+{
+  "review_date": "2026-10-17",
+  "source_directory": "/mnt/e/研究生/毕设/项目相关文档/1017",
+  "reference_head": "8469a7c6f89d2d860477231a2fc7de98f6058424",
+  "baseline": "Current working tree, including pre-existing uncommitted changes",
+  "file_count": 14,
+  "total_bytes": 95679,
+  "total_lines": 1441,
+  "broken_source_relative_links": [],
+  "files": [
+    {
+      "name": "00_增量总览与模块目录.md",
+      "bytes": 7759,
+      "sha256": "657090dddfbcb222610148b3306cb4f973f2f23b2455d23524019047b44762b9"
+    },
+    {
+      "name": "01_问题理解与上下文_PRD.md",
+      "bytes": 7657,
+      "sha256": "f1173b3169a299d55b19f5207f3461dd5e0b8fe20da70064af5e770d229bba03"
+    },
+    {
+      "name": "02_星标问题管理与优先匹配_PRD.md",
+      "bytes": 4529,
+      "sha256": "9f195d777acc681d8a351b95d0bc8aae212db4e3fe399330c9b9a64317565eb2"
+    },
+    {
+      "name": "03_文献管理与RAG衔接_PRD.md",
+      "bytes": 5339,
+      "sha256": "72fe4460ef1bdf7e9934cf53882130da03bb4a417641a278c3f324fa66cb17a0"
+    },
+    {
+      "name": "04_案例与措施管理及检索_PRD.md",
+      "bytes": 4260,
+      "sha256": "ec5cddd2c69834889df19aa254060174d84c0c8fef27f16d65a8b5f210b1136d"
+    },
+    {
+      "name": "05_共享标签与语义映射_PRD.md",
+      "bytes": 4021,
+      "sha256": "b9ee27f839373f64bee2667cc36f62918178d89745fff19656e08c931b5d48b2"
+    },
+    {
+      "name": "06_路由与Skill编排_PRD.md",
+      "bytes": 8885,
+      "sha256": "5b32a47967ab676c1a432df37a5d0cfe585b6620c5b72c2fc46cb4c050a7c0d2"
+    },
+    {
+      "name": "07_通俗解释与外部能力_PRD.md",
+      "bytes": 8852,
+      "sha256": "c67c3ffcfc50701d28e3e0aceee7e406600fa095972717ca98de92124224a6d2"
+    },
+    {
+      "name": "08_Skill可视化与有限配置_PRD.md",
+      "bytes": 8180,
+      "sha256": "63c6afdb2b1b0d259e7fa2dd72dacbd73bf5aa159a74a3b53ed8829e7ee8608a"
+    },
+    {
+      "name": "09_前台执行进度展示_PRD.md",
+      "bytes": 6713,
+      "sha256": "603e368ba69c8df09e12fea68032812c8d1e4b2fc77ec14996c4155550af7e12"
+    },
+    {
+      "name": "10_后台会话审查_PRD.md",
+      "bytes": 9007,
+      "sha256": "edd194e998fea94d99dffbc9fac986980241f611b2aa6867117bba82b934c7b7"
+    },
+    {
+      "name": "11_效果大盘与迭代验证_PRD.md",
+      "bytes": 9745,
+      "sha256": "2b4eac6f7044a8d40934ce46d1881d43105af6ebe2d1deeb11fd2947978b2eb2"
+    },
+    {
+      "name": "12_能力基线与逐项差异.md",
+      "bytes": 6567,
+      "sha256": "4deaa9206828a68670263f13eddff30757c359e3bd910c172ba887e1fca008f5"
+    },
+    {
+      "name": "13_评审决策与验收安排.md",
+      "bytes": 4165,
+      "sha256": "db1b6a73b7b5d74ba110570867c13ad2d88a1f42787b98278339c7500f22b0db"
+    }
+  ],
+  "checks": {
+    "existing_capacity_test": {
+      "command": "backend/.venv/bin/python -m pytest backend/tests/test_case_library.py::test_capacity_is_explicit_and_can_be_narrowed -q",
+      "exit_code": 0,
+      "result": "1 passed in 2.18s"
+    },
+    "isolated_memory_database": {
+      "independent_enabled_cases": 31,
+      "all_cases_http_status": 413,
+      "all_cases_error_code": "case_capacity",
+      "explicit_selection_returned_count": 1,
+      "business_database_modified": false
+    },
+    "contract_inspection": {
+      "chat_request_has_turn_id": false,
+      "chat_request_has_request_id": false,
+      "trace_has_response_field": false,
+      "review_fields": [
+        "overall",
+        "route_correct",
+        "tool_correct",
+        "evidence_correct",
+        "answer_correct",
+        "usability",
+        "tags",
+        "notes"
+      ]
+    }
+  },
+  "limitations": [
+    "No production validation",
+    "No live LLM calls",
+    "No full RAG retrieval evaluation",
+    "No agronomy expert review",
+    "No full external license audit"
+  ]
+}

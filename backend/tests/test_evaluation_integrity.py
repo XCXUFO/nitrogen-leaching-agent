@@ -104,25 +104,3 @@ def test_retest_without_single_run_version_cannot_resolve_issue(client, mixed):
     result = client.post(f'/api/eval/issues/{issue["issue_id"]}/retests', headers=headers('dev'),
                          json={'execution_id': eid, 'fix_version': 'unconfigured'})
     assert result.status_code == 422 and result.json()['detail']['code'] == 'retest_version_mismatch'
-
-
-@pytest.mark.parametrize('changed', ['input.xls', 'output.xls', 'proof.txt'])
-def test_pair_verification_rechecks_registered_originals(client, tmp_path, monkeypatch, changed):
-    from src.evaluation import catalog
-    monkeypatch.setattr(catalog, 'ROOT', tmp_path)
-    (tmp_path / 'data').mkdir()
-    assets = []
-    for filename, kind in [('input.xls', 'model_input'), ('output.xls', 'model_output'), ('proof.txt', 'evidence')]:
-        (tmp_path / 'data' / filename).write_text('synthetic contract test only')
-        response = client.post('/api/eval/assets', headers=headers('dev'), json={
-            'kind': kind, 'path': f'data/{filename}', 'source': 'isolated synthetic fixture'})
-        assert response.status_code == 201
-        assets.append(response.json())
-    body = {'input_asset_id': assets[0]['asset_id'], 'output_asset_id': assets[1]['asset_id'], 'status': 'candidate'}
-    candidate = client.post('/api/eval/asset-pairs', headers=headers('dev'), json=body).json()
-    (tmp_path / 'data' / changed).write_text('changed after registration')
-    response = client.post('/api/eval/asset-pairs', headers=headers('expert'), json={
-        **body, 'status': 'verified', 'supersedes_pair_id': candidate['pair_id'],
-        'evidence_asset_id': assets[2]['asset_id'], 'notes': 'test only, never a real expert attestation'})
-    assert response.status_code == 422 and response.json()['detail']['code'] == 'pair_asset_changed'
-    assert client.get('/api/eval/asset-pairs', headers=headers('dev')).json() == [candidate]

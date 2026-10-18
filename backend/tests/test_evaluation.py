@@ -65,6 +65,22 @@ def test_disabled_and_missing_credentials_never_expose_records(client):
     assert client.get('/api/eval/cases', headers=headers('dev')).status_code == 404
 
 
+def test_new_evaluation_runs_keep_trusted_source_on_success_and_failure(client):
+    eid = start(client)
+    assert ask(client, eid, '你能做什么？').status_code == 200
+    # Query failures are retained in the execution as well as the Run trace.
+    assert ask(client, eid, '氮素淋失是什么？').status_code == 200
+    runs = client.app.state.agent_runtime.runs
+    summary = runs.online_metrics.summary({'source': 'evaluation', 'mode': 'auto'})
+    assert summary['questions'] == 2 and summary['sessions'] == 1
+    assert summary['states'] == {'succeeded': 1, 'failed': 1}
+    assert runs.online_metrics.summary({'source': 'legacy'})['questions'] == 0
+    assert runs.online_metrics.summary({'source': 'formal'})['questions'] == 0
+    for run_id in summary['population_run_ids']:
+        trace = runs.get(run_id)
+        assert trace.source == 'evaluation' and trace.mode == 'auto'
+
+
 def test_frontend_conversations_are_grouped_filterable_and_separate_from_executions(client):
     visitor = 'visitor_12345678'
     for query, history in (('你好', []), ('你能做什么？', [
@@ -75,7 +91,7 @@ def test_frontend_conversations_are_grouped_filterable_and_separate_from_executi
     other = client.post('/api/chat', json={
         'query': '你好', 'session_id': 'front-session-two', 'operator_id': visitor})
     assert other.status_code == 200
-    assert client.get('/api/eval/sessions', headers=headers()).status_code == 403
+    assert client.get('/api/eval/sessions', headers=headers()).status_code == 200
     assert client.get('/api/eval/executions', headers=headers('dev')).json() == []
 
     listing = client.get('/api/eval/sessions', headers=headers('dev')).json()
@@ -307,16 +323,22 @@ def test_idle_execution_attachment_is_not_revived(client):
 
 
 def test_k01_workbench_first_question_preserves_article_evidence_without_auto_review(client):
-    from tests.test_composition import service
+    from tests.test_composition import DOCUMENT, service
 
-    client.app.state.chat_service = service()[0]
+    # General factor questions now use a normal answer, while service()'s
+    # default JSON is the separate event-mechanism contract.
+    answer = '该玉米研究条件下，排水可能促进硝态氮向根区以下迁移。[1]'
+    client.app.state.chat_service = service(text=answer, documents=[DOCUMENT])[0]
     eid = start(client, case='K01', version=4)
     result = ask(client, eid, '玉米农田氮素淋失主要受哪些因素影响？').json()
     event = result['events'][-1]
     assert event['run_id'] and result['status'] == 'open' and result['review'] is None
     assert event['response']['agent_route'] == 'KNOWLEDGE'
-    assert len(event['response']['citations']) == 2
-    assert all(citation['title'] and citation['snippet'] for citation in event['response']['citations'])
+    assert event['response']['answer'] == answer
+    assert len(event['response']['citations']) == 1
+    assert event['response']['citations'][0]['chunk_id'] == 'synthetic-0'
+    citation = event['response']['citations'][0]
+    assert citation['source'] == 'synthetic-0.txt' and citation['snippet'] == DOCUMENT
     reopened = client.get(f'/api/eval/executions/{eid}', headers=headers()).json()
     assert reopened['events'] == result['events'] and reopened['review'] is None
 
@@ -461,37 +483,12 @@ def test_task_issue_retest_and_review_identity_form_a_preserved_chain(client):
     assert client.get('/api/eval/assessments', headers=headers()).status_code == 403
 
 
-def test_asset_provenance_candidate_pair_and_versioned_case_publication(client):
-    def asset(kind, path):
-        response = client.post('/api/eval/assets', headers=headers('dev'), json={
-            'kind': kind, 'path': path, 'source': 'isolated catalog contract test', 'source_date': '2026-10-04'})
-        assert response.status_code == 201, response.text
-        return response.json()
-
-    base = 'data/demo/'
-    fixture = asset('result_fixture', base + 'Nbal_out.xls')
-    model_input = asset('model_input', base + 'synthetic-model-input.txt')
-    model_output = asset('model_output', base + 'Nbal_out.xls')
-    evidence = asset('evidence', 'docs/public-demo.md')
-    assert fixture['sha256'] == hashlib.sha256((ROOT / (base + 'Nbal_out.xls')).read_bytes()).hexdigest()
-    assert client.post('/api/eval/assets', headers=headers('dev'), json={
-        'kind': 'evidence', 'path': '/etc/passwd', 'source': 'forged'}).status_code == 422
-    assert client.get('/api/eval/assets', headers=headers()).status_code == 403
-    pair_body = {'input_asset_id': model_input['asset_id'], 'output_asset_id': model_output['asset_id'],
-                 'status': 'candidate', 'notes': '配对尚未证实'}
-    candidate = client.post('/api/eval/asset-pairs', headers=headers('dev'), json=pair_body)
-    assert candidate.status_code == 201
-    verification = {**pair_body, 'status': 'verified', 'evidence_asset_id': evidence['asset_id'],
-                    'supersedes_pair_id': candidate.json()['pair_id'], 'notes': 'isolated test attestation only'}
-    assert client.post('/api/eval/asset-pairs', headers=headers('dev'), json=verification).status_code == 403
-    verified = client.post('/api/eval/asset-pairs', headers=headers('expert'), json=verification)
-    assert verified.status_code == 201 and verified.json()['reviewer_role'] == 'reviewer'
-    assert verified.json()['input_sha256'] == model_input['sha256']
-
+def test_versioned_case_publication_reuses_evaluation_fixtures(client):
+    fixture = client.app.state.evaluation.store.fixtures['Nbal_out.xls']
     original = client.app.state.evaluation.store.case('NEW01', 2)
-    new_case = {**original['case'], 'version': 3, 'title': '版本化附件目录试验',
+    new_case = {**original['case'], 'version': 3, 'title': '版本化评测附件试验',
                 'attachment_requirements': ['Nbal_out.xls'], 'supersedes': 'NEW01@2'}
-    draft_body = {'case': new_case, 'fixture_asset_ids': [fixture['asset_id']], 'notes': 'draft only'}
+    draft_body = {'case': new_case, 'notes': 'draft only'}
     created = client.post('/api/eval/case-drafts', headers=headers('dev'), json=draft_body)
     assert created.status_code == 201, created.text
     draft = created.json()

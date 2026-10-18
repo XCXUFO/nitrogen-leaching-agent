@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from src.rag.base import Embedder
@@ -89,7 +90,8 @@ class Retriever:
         self._numeric_boost_weight = numeric_boost_weight
         self._numeric_boost_band = numeric_boost_band
 
-    def retrieve(self, query: str, k: int = 5) -> list[RetrievalResult]:
+    def retrieve(self, query: str, k: int = 5, *,
+                 eligibility_filter: Callable[[RetrievalResult], bool] | None = None) -> list[RetrievalResult]:
         if not query.strip():
             return []
         if k <= 0:
@@ -123,6 +125,11 @@ class Retriever:
                     metadata=dict(meta) if meta else {},
                 )
             )
+
+        # Exclude unavailable or outdated papers before spending cross-encoder
+        # inference on them, and before a top-k cut can crowd out usable hits.
+        if eligibility_filter is not None:
+            results = [item for item in results if eligibility_filter(item)]
 
         if self._reference_filter_enabled and results:
             results, _ = filter_reference_chunks(

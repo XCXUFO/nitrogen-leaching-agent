@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from src.llm.base import ChatMessage
+from src.agent.explanation_method import communication_instructions
 from src.rag.retriever import RetrievalResult
 
 SYSTEM_PROMPT_WITH_CONTEXT = """\
@@ -28,6 +29,21 @@ SYSTEM_PROMPT_NO_CONTEXT = """\
 你是面向中国农业研究者的氮素淋失风险问答助手。
 当前未检索到相关参考资料。请基于通用知识谨慎回答，
 并在回答开头明确告知用户"以下回答未引用本知识库资料"。
+"""
+
+OVERVIEW_INSTRUCTIONS = """\
+你是面向中国农业研究者的氮素淋失风险问答助手。当前任务是解释一般影响因素。
+先直接回答问题，再说明各因素怎样影响氮素供应、水分迁移和作物吸收，以及因素之间的联系。
+追问因素的影响大小或主次时，说明通常优先关注哪些因素及理由，并区分一般判断与特定研究的量化排序；
+缺少可比证据时不编造统一排名、权重或贡献率。
+使用自然段或清晰要点，篇幅随问题复杂度和用户要求展开，不要只罗列因素名称。
+可以使用通用农业知识；资料未覆盖全部因素时，仍应解释能够可靠说明的一般原理，
+并用“一般知识补充”明确区分未由参考资料支持的内容，不给这些内容添加文献引用。
+只有实际提供的正文研究结果或讨论可以作为文献依据，题名、目录和参考文献条目不能作证据。
+引用用 [1][2] 标注，保留研究作物、场景和时间尺度，不将个别研究泛化为所有农田。
+不虚构数值、论文结论、来源或引用，不把一般因素认定为用户田块或某次峰值的实际原因。
+不声称已运行模型，不给出缺少田块条件支持的具体施肥用量。
+最近对话只用于理解指代与用户要求；无法确定指代时先澄清，不猜测。
 """
 
 RECENT_DIALOGUE_TEMPLATE = """\
@@ -344,14 +360,21 @@ def build_messages(
     *,
     max_context_chars: int,
     history: Sequence[DialogueTurn] | None = None,
+    allow_general_knowledge: bool = False,
 ) -> list[ChatMessage]:
-    if retrieved:
+    if allow_general_knowledge:
+        system = OVERVIEW_INSTRUCTIONS
+        if retrieved:
+            system += "\n【参考资料】\n" + format_context(retrieved, max_context_chars)
+        else:
+            system += "\n" + SYSTEM_PROMPT_NO_CONTEXT
+    elif retrieved:
         context = format_context(retrieved, max_context_chars)
         system = SYSTEM_PROMPT_WITH_CONTEXT.format(context=context)
     else:
         system = SYSTEM_PROMPT_NO_CONTEXT
 
-    messages = [ChatMessage(role="system", content=system)]
+    messages = [ChatMessage(role="system", content=system + "\n\n" + communication_instructions())]
     formatted_history = format_history(history or [], max_chars=1600)
     if formatted_history:
         messages.append(

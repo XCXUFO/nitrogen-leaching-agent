@@ -35,6 +35,9 @@ for name in sorted(set(paths)):
     if not name or not (name.startswith(PREFIXES) or name in SINGLES):
         continue
     path = ROOT / name
+    # Deleted tracked files are part of the current working-tree state.
+    if not path.exists() and not path.is_symlink():
+        continue
     if path.is_symlink() or not path.is_file():
         raise ValueError(f'Unexpected source path: {name}')
     files[name] = hashlib.sha256(path.read_bytes()).hexdigest()

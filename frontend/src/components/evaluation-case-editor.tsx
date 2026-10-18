@@ -47,6 +47,6 @@ export function EvaluationCaseEditor({ text, onChange }: { text: string; onChang
           <button className={button} type="button" disabled={value.steps.length <= 1} onClick={() => change({ steps: value.steps.filter((_, i) => i !== index) })}>移除</button></div>
       </div>)}
     </div>
-    <p className="mt-2 text-xs text-muted-foreground">表单与下方 JSON 同步。提交时仍由服务端校验用例结构、附件资产与版本；已发布版本不可改写。</p>
+    <p className="mt-2 text-xs text-muted-foreground">表单与下方 JSON 同步。提交时由服务端校验用例结构、评测附件与版本；已发布版本不可改写。</p>
   </details>;
 }

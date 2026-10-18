@@ -77,6 +77,19 @@ class ChromaStore:
     def count(self) -> int:
         return self._collection.count()
 
+    def iter_chunks(self, *, batch_size: int = 1000):
+        """Read existing text and provenance without embedding or reindexing."""
+        if batch_size <= 0:
+            raise ValueError("batch_size must be positive")
+        offset = 0
+        while True:
+            batch = self._collection.get(limit=batch_size, offset=offset, include=["documents", "metadatas"])
+            if not batch["ids"]:
+                return
+            for identifier, document, metadata in zip(batch["ids"], batch["documents"], batch["metadatas"]):
+                yield {"chunk_id": identifier, "document": document, "metadata": metadata or {}}
+            offset += len(batch["ids"])
+
     def has_document(self, document_id: str) -> bool:
         result = self._collection.get(
             where={"document_id": document_id},

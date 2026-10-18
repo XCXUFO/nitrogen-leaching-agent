@@ -6,13 +6,16 @@ from pydantic import BaseModel, Field, field_validator
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
+from src.agent.skill_catalog import SkillDetail, SkillSummary, describe_skills
+from src.agent.skill_config import ExpressionUpdate, ExpressionReset
 from src.api.chat import chat
 from src.api.chat_schema import ChatHistoryMessage, ChatRequest
 from src.api.files import file_store, upload_file
 from src.evaluation.auth import current_user, login, require_developer, sessions as login_sessions
 from src.evaluation.contracts import LoginInput
-from src.evaluation.contracts import AssetInput, AssetPairInput, AssessmentInput, CaseDraftBatchInput, CaseDraftInput, CaseDraftRevision, CasePublishInput, EvaluationQuery, IssueInput, IssueUpdateInput, ManualAction, Principal, RegressionInput, RetestInput, ReviewAssignmentInput, ReviewResolutionInput, ReviewInput, StartExecution, TaskInput
+from src.evaluation.contracts import AssessmentInput, CaseDraftBatchInput, CaseDraftInput, CaseDraftRevision, CasePublishInput, EvaluationQuery, IssueInput, IssueUpdateInput, ManualAction, Principal, RegressionInput, RetestInput, ReviewAssignmentInput, ReviewResolutionInput, ReviewInput, StartExecution, TaskInput
 from src.evaluation.service import EvaluationService
+from src.evaluation.session_reviews import SessionReviewInput, SessionRetestInput
 from src.evaluation.store import fail
 from src.config import settings
 
@@ -21,6 +24,47 @@ router = APIRouter(prefix="/eval")
 
 def service(request: Request) -> EvaluationService:
     return request.app.state.evaluation
+
+
+def skill_catalog(request: Request) -> list[SkillDetail]:
+    state = request.app.state
+    return describe_skills(service=getattr(state, "chat_service", None), llm=getattr(state, "llm", None),
+                           case_store=getattr(state, "case_library", None), runtime=getattr(state, "agent_runtime", None))
+
+
+@router.get("/skills", response_model=list[SkillSummary])
+def skills(request: Request, user: Principal = Depends(current_user)):
+    return skill_catalog(request)
+
+
+@router.get("/skills/{name}", response_model=SkillDetail)
+def skill(request: Request, name: str, user: Principal = Depends(current_user)):
+    item = next((item for item in skill_catalog(request) if item.name == name), None)
+    if item is None:
+        raise HTTPException(404, detail={"code": "skill_not_found", "message": "未找到该能力，请返回能力列表。"})
+    return item
+
+
+def expression_store(request, name):
+    if name != "case_explanation":
+        raise HTTPException(400, detail={"code": "skill_read_only", "message": "此能力不支持配置编辑。"})
+    return request.app.state.agent_runtime.runs.skill_config
+
+
+@router.get("/skills/{name}/configuration")
+def expression_configuration(request: Request, name: str, user: Principal = Depends(current_user)):
+    store = expression_store(request, name)
+    return {"current": store.current(), "history": store.history()}
+
+
+@router.put("/skills/{name}/configuration")
+def save_expression_configuration(request: Request, name: str, body: ExpressionUpdate, user: Principal = Depends(current_user)):
+    return expression_store(request, name).update(expected_revision=body.expected_revision, values=body.values.model_dump(), actor=user.tester_id)
+
+
+@router.post("/skills/{name}/configuration/reset")
+def reset_expression_configuration(request: Request, name: str, body: ExpressionReset, user: Principal = Depends(current_user)):
+    return expression_store(request, name).update(expected_revision=body.expected_revision, values={}, actor=user.tester_id, reset=True)
 
 
 class StarredQuestionInput(BaseModel):
@@ -230,8 +274,8 @@ def sessions(request: Request, information: str = Query("", max_length=100),
              duration_mode: Literal["gt", "lt", "eq", "between"] | None = None,
              duration_ms: int | None = Query(None, ge=0), duration_max_ms: int | None = Query(None, ge=0),
              operator_id: str = Query("", max_length=100), limit: int = Query(20, ge=1, le=100),
+             review_status: Literal["pending", "passed", "needs_changes"] | None = None,
              offset: int = Query(0, ge=0), user: Principal = Depends(current_user)):
-    require_developer(user)
     if duration_mode and (duration_ms is None or (duration_mode == "between" and
        (duration_max_ms is None or duration_max_ms < duration_ms))):
         raise fail("invalid_duration_filter", "请填写有效的耗时条件。", 422)
@@ -243,16 +287,66 @@ def sessions(request: Request, information: str = Query("", max_length=100),
     return service(request).store.runs.sessions(information=information.strip(), created_from=start,
         created_to=end, status=status, duration_mode=duration_mode,
         duration_ms=duration_ms, duration_max_ms=duration_max_ms,
-        operator_id=operator_id.strip(), limit=limit, offset=offset)
+        operator_id=operator_id.strip(), review_status=review_status, limit=limit, offset=offset)
 
 
 @router.get("/sessions/{session_id}")
 def session_detail(request: Request, session_id: str, user: Principal = Depends(current_user)):
-    require_developer(user)
     result = service(request).store.runs.session(session_id)
     if result is None:
         raise fail("session_not_found", "未找到会话记录。", 404)
     return result
+
+
+@router.post("/sessions/{session_id}/reviews")
+def review_session(request: Request, session_id: str, body: SessionReviewInput, user: Principal = Depends(current_user)):
+    store = service(request).store.runs
+    session = store.session(session_id)
+    if session is None:
+        raise fail("session_not_found", "未找到会话记录。", 404)
+    store.reviews.apply(session["session_id"], body, user.tester_id)
+    return store.session(session["session_id"])
+
+
+@router.post("/sessions/{session_id}/retests", status_code=202)
+async def retest_session(request: Request, session_id: str, body: SessionRetestInput, user: Principal = Depends(current_user)):
+    import hashlib
+    import json
+
+    from src.api.chat import execute_chat, run_manager
+
+    store = service(request).store.runs
+    session = store.session(session_id)
+    original = next((turn for turn in (session or {}).get("turns", []) if turn["run_id"] == body.source_run_id), None)
+    if original is None:
+        raise fail("review_run_mismatch", "未找到当前会话的原回答。", 404)
+    if body.issue_id and not any(issue["issue_id"] == body.issue_id and issue["run_id"] == body.source_run_id for issue in session["review"]["issues"]):
+        raise fail("review_issue_not_found", "该问题与原回答不匹配。", 422)
+    snapshot = original.get("request_snapshot") or {}
+    if not snapshot or snapshot.get("query") != original["input"]:
+        raise fail("retest_input_missing", "这条历史记录缺少原请求，请复制问题到前台补充上下文后验证。", 422)
+    if (snapshot.get("has_attachments") or (original.get("state_before") or {}).get("attachment_ref")
+            or any(item.get("source_type") == "file" for item in original.get("evidence", []))):
+        raise fail("retest_files_required", "原问题使用了附件，请到前台重新上传原文件后验证，并在此填写确认依据。", 422)
+    owner = "internal_" + user.tester_id
+    isolated_session = hashlib.sha256((owner + ":review:" + body.submission_id).encode()).hexdigest()
+    replay = ChatRequest.model_validate({key: value for key, value in snapshot.items()
+        if key not in {"has_attachments", "request_id", "turn_id", "rerun_of_run_id"}}).model_copy(
+            update={"session_id": isolated_session, "operator_id": user.tester_id})
+    fingerprint = hashlib.sha256(json.dumps({"source": body.source_run_id, "issue": body.issue_id, "request": snapshot}, sort_keys=True).encode()).hexdigest()
+    manager = run_manager(request)
+    expression_config = request.app.state.agent_runtime.expression_snapshot()
+
+    async def execute(record, observer):
+        return await execute_chat(request, replay, request.app.state.agent_runtime, run_id=record["run_id"], observer=observer, expression_config=expression_config,
+            run_context={"source": "test", "mode": original.get("mode") or "auto", "replay_of_run_id": body.source_run_id,
+                         "replay_comparability": "current_materials_with_original_text_context"})
+
+    result = manager.submit(owner=owner, session_id=isolated_session, turn_id=body.submission_id,
+        request_id=body.submission_id, fingerprint=fingerprint, rerun_of_run_id=None,
+        config_version=request.app.state.agent_runtime.config_version, source="test", mode=original.get("mode") or "auto", execute=execute)
+    store.reviews.record_retest(session["session_id"], body, result["run_id"], user.tester_id)
+    return store.session(session["session_id"])
 
 
 @router.get("/runs/{run_id}")
@@ -308,46 +402,6 @@ def prepare_task(request: Request, task_id: str, user: Principal = Depends(curre
 def task_dashboard(request: Request, task_id: str, user: Principal = Depends(current_user)):
     require_developer(user)
     return service(request).workflow.dashboard(task_id)
-
-
-@router.get("/assets")
-def assets(request: Request, user: Principal = Depends(current_user)):
-    if user.role not in {"developer", "reviewer"}:
-        raise fail("evaluation_forbidden", "资产目录仅供开发者或专家审核人查看。", 403)
-    return service(request).catalog.assets()
-
-
-@router.post("/assets", status_code=201)
-def register_asset(request: Request, body: AssetInput, user: Principal = Depends(current_user)):
-    require_developer(user)
-    return service(request).catalog.register_asset(body, user)
-
-
-@router.post("/assets/upload", status_code=201)
-async def upload_asset(request: Request, filename: str = Query(..., min_length=1, max_length=200),
-                       kind: Literal["paper", "model_input", "model_output", "result_fixture", "evidence"] = Query(...),
-                       source: str = Query(..., min_length=1, max_length=500),
-                       notes: str = Query("", max_length=3000), user: Principal = Depends(current_user)):
-    require_developer(user)
-    body = AssetInput(kind=kind, path="data/eval/uploads/pending", source=source, notes=notes)
-    raw = bytearray()
-    async for chunk in request.stream():
-        if len(raw) + len(chunk) > 40 * 1024 * 1024:
-            raise fail("asset_upload_too_large", "资产超过 40 MiB，请使用本地路径登记或较小原件。", 413)
-        raw.extend(chunk)
-    return service(request).catalog.upload_asset(bytes(raw), filename, body, user)
-
-
-@router.get("/asset-pairs")
-def asset_pairs(request: Request, user: Principal = Depends(current_user)):
-    if user.role not in {"developer", "reviewer"}:
-        raise fail("evaluation_forbidden", "资产配对仅供开发者或专家审核人查看。", 403)
-    return service(request).catalog.pairs()
-
-
-@router.post("/asset-pairs", status_code=201)
-def register_asset_pair(request: Request, body: AssetPairInput, user: Principal = Depends(current_user)):
-    return service(request).catalog.register_pair(body, user)
 
 
 @router.get("/case-drafts")

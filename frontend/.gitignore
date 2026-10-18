@@ -19,6 +19,12 @@
 /.next-workbench/
 /.next-demo/
 /.next-chat-p00/
+/.next-skills/
+/.next-runs/
+/.next-prd/
+/.next-prompts/
+/.next-prompts-md/
+/.next-reviews/
 /out/
 
 # production

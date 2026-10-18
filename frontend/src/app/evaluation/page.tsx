@@ -1,5 +1,5 @@
-import { EvaluationWorkspace } from "@/components/evaluation-workspace";
+import { RunReviewWorkspace } from "@/components/run-review-workspace";
 
 export default function Page() {
-  return <EvaluationWorkspace section="overview" />;
+  return <RunReviewWorkspace detail="" query="" />;
 }

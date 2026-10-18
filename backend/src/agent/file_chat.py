@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import re
 
+from src.agent.query_intent import has_statistic_request
 from src.api.chat_schema import ChatResponse, FileEvidence
 from src.llm.base import ChatUsage
 from src.model_tools.provenance import output_source_note
@@ -18,7 +19,7 @@ def reply(answer: str, *, evidence: list[FileEvidence] | None = None) -> ChatRes
 
 def needs_file(query: str) -> bool:
     explicit = re.search(r"上传|这[份个张].{0,6}(文件|表|输出)|[\w-]+\.xlsx?\b|nbal_out|wtabal_out", query, re.I)
-    statistic = re.search(r"最大|最小|最高|最低|峰值|\b(?:min|max|minimum|maximum)\b", query, re.I)
+    statistic = has_statistic_request(query)
     field = re.search(r"硝态氮|铵态氮|降水|灌溉|排水|leak_NO3|leak_NH4|Draining|\b(?:PREC|IRRI|ET0|ETp|ETa|Ep|Ea|Tp|Ta|runoff)\b", query, re.I)
     literature = re.search(r"文献|论文|研究|手册|含义|是什么", query)
     return bool(explicit or (statistic and field and not literature))

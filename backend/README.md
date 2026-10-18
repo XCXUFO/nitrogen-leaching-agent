@@ -25,6 +25,13 @@ backend/
 
 ## 本地启动
 
+登录账户的前台历史会话保存在 `AGENT_TRACE_DB` 对应的 SQLite 数据库中，通过
+`GET /api/chat/history?limit=30&offset=0` 按当前登录身份分页读取。问答、引用和计算结果
+在服务端自动保存，刷新页面、退出后重新登录或重启后端均可恢复；各账户只能读取自己的会话。
+已有明确账户归属的普通问答在首次读取时自动接入，不导入游客或评测执行记录。
+历史消息长期保存，24 小时恢复窗口仅限制原运行的查询和重跑，旧会话仍可发送新问题。
+上传文件仍使用临时文件生命周期，历史消息保存文件名和回答依据，继续分析过期附件时需要重新上传。
+
 ```bash
 # 安装依赖（会自动创建 .venv 并拉取 Python 3.11）
 uv sync
@@ -262,16 +269,16 @@ Agent、Prompt、Retriever 代码、依赖锁、回答配置和启动时本地�
 开发者专用 `/api/eval/regressions` 保存不可覆盖的执行/Trace 基线；
 `/regressions/{id}/replays` 启动最多两项并行的后台重跑，
 `/api/eval/replays/{id}/comparison` 返回逐轮差异。
-重跑使用新执行，旧评分保留；仅支持可复原的提问、上下文操作和已登记且指纹一致的本地附件。
+重跑使用新执行，旧评分保留；仅支持可复原的提问、上下文操作和指纹与冻结记录一致的本地评测附件。
 重跑按顺序执行可复原步骤，遇人工步骤或无法复原的上传失败时保留已完成轮次并标记受阻；
 重启会标记未完成重跑为中断。Task 冻结用例版本与版本清单；Issue 关联失败评分、
 原问题和 Run，复测使用新执行与独立评分。AI 辅助复核与专家审核分别存档。
-开发者可通过 `/api/eval/assets`、`/case-drafts` 登记文件来源、维护草稿并发布新 Case；
-输入输出配对先记候选，`reviewer` 身份依据证据资产另存核实记录。新 Case 的冻结附件也可按指纹重放。
+开发者可通过 `/api/eval/case-drafts` 维护草稿并发布新 Case；附件要求按文件名使用已有评测样例，冻结附件可按指纹重放。
+资产目录模块已移除，不再提供结果表登记、资产上传和输入输出配对。聊天仍可上传本次 WHCNS 输出进行分析。
 
 详见 [使用与部署说明](../docs/iterations/2026-09-29-agent-harness/evaluation-guide.md)。
 
-### 2026-10-12 项目审查后的交付启动
+### 2026-10-18 封版审查后的交付启动
 
 在仓库根目录执行（启动前应停止占用 8000/3000 的旧服务）：
 
@@ -280,7 +287,7 @@ backend/.venv/bin/python backend/scripts/start_delivery.py --check
 backend/.venv/bin/python backend/scripts/start_delivery.py
 ```
 
-默认使用 `delivery-source-manifest-2026-10-12-review.json`，绑定 `.next-workbench` 生产构建及 `http://127.0.0.1:8000` API 转发。启动器校验源码和构建文件，等待健康检查成功后保存进程号；端口冲突会在启动前报错，启动失败会清理本次已启动的进程。日志和进程号位于 `backend/var/service/`。业务配置继续读取现有环境和 `.env`。
+默认使用 `delivery-source-manifest-2026-10-18-release.json`，绑定 `.next-candidate` 生产构建及 `http://127.0.0.1:8000` API 转发。启动器校验源码和构建文件，等待健康检查成功后保存进程号；端口冲突会在启动前报错，启动失败会清理本次已启动的进程。日志和进程号位于 `backend/var/service/`。业务配置继续读取现有环境和 `.env`。封版检查结果见[发布记录](../docs/releases/2026-10-18-reviewed-candidate.md)。
 
 修改代码后须重新构建并生成**新的**清单文件，随后以 `--manifest 新文件名` 启动；不要覆盖正在提供服务的构建目录。构建目录选项须与新清单一致。
 
@@ -291,3 +298,12 @@ backend/.venv/bin/python backend/scripts/start_delivery.py
 ### 文献后台 V1.1
 
 V1.1 原交付清单为 `delivery-source-manifest-2026-10-11-v1.1.json`；当前启动清单见上节。后台和公开 showcase 均支持可展开标签树、节点内新增和多列级联选择。详见 `docs/iterations/2026-10-11-literature-v1.1/implementation.md`。本次沿用已有父子标签数据，不需要迁移或重新打标；正式文献仍默认全局可见。
+
+
+## 1017 跨模块增量
+
+统一问题理解、星标覆盖、全量案例候选、标签用途核对和文献全文同步已接入运行。正式 Run 可直接人工审查，线上指标固定首次主运行并按独立维度计算；Prompt 迭代对照走可信测试来源，受限表达配置和全局 Prompt 版本固定到每次受理快照。所有新增表复用原 SQLite 存储，旧评测权限保持原规则。
+
+Prompt 版本与唯一全局选择存入原运行数据库，初始保留原版与增强版表达指令。保存、对比不会切换全局版本；显式选择已保存版本后，新回答统一加载该版本，历史与运行中回答保持快照。见 [Prompt 版本与全局表达](../docs/iterations/2026-10-17-prompt-iteration/README.md)。
+
+部署仍使用单 worker。已保存且启用的 PDF 自动同步正文，题录草稿也可参与检索；历史索引经原件指纹及正文位置核对后关联，失败可手动重试。恢复保留期与幂等沿用聊天运行配置。全文衔接修复见 [全量文献检索记录](../docs/iterations/2026-10-18-general-factor-answers/implementation.md)，其余 API、边界及专业人工评审事项见 [开发交付记录](../docs/iterations/2026-10-17-prd-completion/README.md)。

@@ -5,7 +5,7 @@ import type { ChatResponse } from '../src/lib/types';
 
 test.skip(!process.env.P00_LIVE_API, 'Requires isolated P00 local backend');
 
-test('fresh P00 session uses real nitrogen and water workbooks throughout the conversation', async ({ page }) => {
+test('fresh P00 session only attaches explicitly uploaded nitrogen and water workbooks', async ({ page }) => {
   const records: { query: string; request: unknown; response: ChatResponse }[] = [];
   const directory = '/tmp/nitrogen-p00-evidence';
   mkdirSync(directory, { recursive: true });
@@ -36,21 +36,31 @@ test('fresh P00 session uses real nitrogen and water workbooks throughout the co
   await send('你能做什么？');
   const root = resolve(process.cwd(), '../data/demo');
   const input = page.getByLabel('选择会话文件');
-  await input.setInputFiles(['Nbal_out.xls', 'waterbal_out.xls'].map(name => ({ name, mimeType: 'application/vnd.ms-excel', buffer: readFileSync(resolve(root, name)) })));
-  await expect(page.getByLabel('会话文件列表').getByText('已上传', { exact: true })).toHaveCount(2);
+  const attach = async (...names: string[]) => {
+    await input.setInputFiles(names.map(name => ({ name, mimeType: 'application/vnd.ms-excel', buffer: readFileSync(resolve(root, name)) })));
+    await expect(page.getByLabel('会话文件列表').getByText('已上传', { exact: true })).toHaveCount(names.length);
+  };
+  await attach('Nbal_out.xls', 'waterbal_out.xls');
   const maximum = await send('硝态氮最大值及日序');
   expect(maximum.file_evidence[0].value).toBeCloseTo(3.65926384925842, 12);
   expect(maximum.file_evidence[0].cell).toBe('Nbal_out!C284');
   expect(maximum.answer).toContain('352 条记录');
+  await expect(page.getByLabel('会话文件列表')).toHaveCount(0);
+  await attach('Nbal_out.xls');
   const minimum = await send('那最小值呢？');
   expect(minimum.file_evidence[0]).toMatchObject({ value: 0, model_day: 2, occurrences: 191, cell: 'Nbal_out!C3' });
-  await page.getByRole('button', { name: /收起文件：Nbal_out.xls/ }).click();
+  await expect(page.getByLabel('会话文件列表')).toHaveCount(0);
+  await attach('Nbal_out.xls');
   expect((await send('那最小值呢？')).file_evidence[0].value).toBe(0);
+  await attach('waterbal_out.xls');
   const rain = await send('PREC 最大值及日序');
   expect(rain.file_evidence[0]).toMatchObject({ value: 86, model_day: 276, cell: 'WtaBal_out!K277' });
+  await attach('Nbal_out.xls');
   expect((await send('Nbal_out.xls 中 PREC 最大值')).file_evidence).toEqual([]);
+  await attach('Nbal_out.xls', 'waterbal_out.xls');
   const combined = await send('硝态氮和 PREC 的最大值及日序');
   expect(combined.file_evidence).toHaveLength(2);
+  await attach('Nbal_out.xls');
   await input.setInputFiles({ name: '重复副本.xls', mimeType: 'application/vnd.ms-excel', buffer: readFileSync(resolve(root, 'Nbal_out.xls')) });
   await expect(page.getByText(/已跳过重复文件/)).toBeVisible();
   await page.getByLabel('对话记录').evaluate(el => { el.scrollTo({ top: el.scrollHeight, behavior: 'instant' }); });

@@ -113,11 +113,11 @@ def test_concurrency_and_rate_limit(app):
     assert "频繁" in guard.reserve("one", False)
 
 
-def test_published_example_matches_advertised_fingerprint(app):
+def test_published_example_remains_available_without_asset_catalog(app):
     with TestClient(app) as client:
-        asset = client.get("/api/demo/catalog").json()["assets"][0]
+        assert "assets" not in client.get("/api/demo/catalog").json()
         raw = client.get("/api/demo/examples/nitrogen").content
-        assert hashlib.sha256(raw).hexdigest() == asset["sha256"]
+        assert raw == (Path(__file__).resolve().parents[2] / "data/demo/Nbal_out.xls").read_bytes()
 
 
 def test_internal_identity_survives_public_visitor_middleware(app):

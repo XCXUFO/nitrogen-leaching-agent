@@ -190,6 +190,16 @@ class CaseStore:
                 counts[identifier] = counts.get(identifier, 0) + 1
         return counts
 
+    def candidates(self, case_ids: list[str] | None = None):
+        """Eligibility-only read; caller ranks all records before selecting material."""
+        with self.lock:
+            sql = "SELECT id,title,body,body_format,explanation,supplementary,source,revision,tag_ids FROM reference_cases WHERE enabled=1 AND deleted=0"
+            params = []
+            if case_ids:
+                sql += " AND id IN (" + ",".join("?" for _ in case_ids) + ")"
+                params.extend(case_ids)
+            return [dict(row) | {"tag_ids": json.loads(row["tag_ids"])} for row in self.db.execute(sql + " ORDER BY updated_at DESC,id", params)]
+
     def available(self, case_ids: list[str] | None = None, *, max_chars=24000, max_cases=30):
         """Bound small pilot corpus as a whole; never silently omit/truncate facts."""
         with self.lock:

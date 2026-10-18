@@ -178,11 +178,10 @@ export function EvaluationWorkspace({ section, detail = "", executionId = "", ca
           <h3 className="text-sm font-medium">通过标准</h3><ul className="list-disc space-y-1 pl-5 text-sm">{currentCase.case.expected.map((value, i) => <li key={i}>{value}</li>)}</ul>
           <Link className="inline-flex rounded-lg bg-emerald-700 px-4 py-2 text-sm text-white" href={`${evaluationHref("executions", "new")}?case=${encodeURIComponent(selectedCase)}`}>使用此版本新建执行</Link>
         </section>}
-        {(!currentCase || user.role === "developer") && <EvaluationCatalog token={token} role={user.role} mode="cases" showDrafts={detail === "drafts" || !!currentCase} cases={cases} currentCase={currentCase}
+        {(!currentCase || user.role === "developer") && <EvaluationCatalog token={token} role={user.role} showDrafts={detail === "drafts" || !!currentCase} cases={cases} currentCase={currentCase}
           onSelectCase={(id) => router.push(evaluationHref("cases", id))} onPublished={() => refresh()} />}
       </>}
     </>}
-    {section === "assets" && user.role !== "tester" && <EvaluationCatalog token={token} role={user.role} mode="assets" cases={cases} onSelectCase={() => {}} onPublished={() => refresh()} />}
 
     {section === "executions" && !detail && <section className="space-y-3 rounded-xl border bg-white p-3">
       <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-semibold">{user.role === "developer" ? "执行列表" : "可见执行"}</h2><Link href={evaluationHref("executions", "new")} className="inline-flex items-center gap-2 rounded-lg bg-emerald-700 px-4 py-2 text-sm text-white"><Plus size={16} />新建执行</Link></div>

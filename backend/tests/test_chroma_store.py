@@ -25,6 +25,17 @@ def test_count_zero_on_fresh_collection(tmp_path: Path) -> None:
     assert store.count() == 0
 
 
+def test_iter_chunks_reads_all_batches_without_vectors_or_updates(tmp_path):
+    store = ChromaStore(tmp_path / "chroma", _COLLECTION)
+    store.add(ids=["a", "b", "c"], documents=["one", "two", "three"],
+              embeddings=[[1., 0.], [0., 1.], [1., 1.]], metadatas=[{"source": name} for name in ["a.pdf", "b.pdf", "c.pdf"]])
+    chunks = list(store.iter_chunks(batch_size=2))
+    assert {item["chunk_id"]: item["document"] for item in chunks} == {"a": "one", "b": "two", "c": "three"}
+    assert all(item["metadata"]["source"] == item["chunk_id"] + ".pdf" for item in chunks)
+    assert store.count() == 3
+    with pytest.raises(ValueError): list(store.iter_chunks(batch_size=0))
+
+
 def test_add_then_count_reflects_inserted_documents(tmp_path: Path) -> None:
     store = ChromaStore(persist_dir=tmp_path, collection_name=_COLLECTION)
     store.add(

@@ -4,7 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 
-DIST_DIRS = ('.next', '.next-candidate', '.next-workbench', '.next-demo')
+DIST_DIRS = ('.next', '.next-candidate', '.next-workbench', '.next-demo', '.next-prompts', '.next-prompts-md')
 
 
 def fingerprint(path: Path) -> str:

@@ -15,6 +15,10 @@ export interface Citation {
   year?: string | null;
   document_id?: string | null;
   document_available?: boolean;
+  content_version?: string | null;
+  file_sha256?: string | null;
+  char_start?: number | null;
+  char_end?: number | null;
 }
 
 export interface ChatHistoryMessage {
@@ -24,12 +28,74 @@ export interface ChatHistoryMessage {
 
 export interface ChatRequest {
   query: string;
+  turn_id?: string;
+  request_id?: string;
+  rerun_of_run_id?: string;
   k?: number;
   session_id?: string;
   operator_id?: string;
   history?: ChatHistoryMessage[];
   file_id?: string;
   file_ids?: string[];
+}
+
+export interface ChatRunEvent {
+  event_id: string;
+  run_id: string;
+  sequence: number;
+  time: string;
+  type: string;
+  step_id?: string;
+  name?: string;
+  status: string;
+  outcome?: string;
+  summary?: string;
+  kind?: "skill" | "tool" | "service" | "container";
+  attempt_no?: number;
+  parent_step_id?: string | null;
+  subtask_ids?: string[];
+}
+
+export interface ChatRunView {
+  protocol: "chat-runs-v1";
+  run_id: string;
+  turn_id: string;
+  request_id: string;
+  primary_run_id: string;
+  rerun_of_run_id: string | null;
+  status: "accepted" | "running" | "succeeded" | "failed" | "cancelled" | "interrupted" | "unknown";
+  outcome: string | null;
+  events: ChatRunEvent[];
+  last_sequence: number;
+  result: ChatResponse | null;
+  result_saved: boolean;
+  error: { code: string; message: string; http_status: number } | null;
+  expires_at?: number;
+}
+
+export interface SavedChatTurn {
+  run_id: string;
+  turn_id: string;
+  request: { query: string; history: ChatHistoryMessage[]; attachments: FileReceipt[];
+    turnId: string; requestId: string; rerunOfRunId?: string | null };
+  status: ChatRunView["status"];
+  response: ChatResponse | null;
+  error: { code: string; message: string; http_status: number } | null;
+  expires_at: number | null;
+  recoverable: boolean;
+}
+
+export interface SavedConversation {
+  id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+  turns: SavedChatTurn[];
+}
+
+export interface AccountChatHistory {
+  items: SavedConversation[];
+  total: number;
 }
 
 export interface ChatResponse {

@@ -1,0 +1,177 @@
+{
+  "recorded_at": "2026-10-17T12:42:25.991153+00:00",
+  "scope": "1017 V0.3 PRD first-scope engineering delivery; not human agricultural acceptance",
+  "backend": {
+    "full_offline": {
+      "command": "timeout 240s backend/.venv/bin/python -m pytest backend/tests -m 'not live' -q --tb=short --show-capture=no",
+      "passed": 626,
+      "skipped": 3,
+      "deselected": 1,
+      "duration_seconds": 158.11,
+      "stage": "before final scoped refinements"
+    },
+    "final_affected_scope": {
+      "passed": 82,
+      "duration_seconds": 38.98,
+      "files": [
+        "test_explanation_trials.py",
+        "test_formal_reviews.py",
+        "test_chat_runs.py",
+        "test_public_demo.py",
+        "test_unified_pipeline.py",
+        "test_skill_config.py",
+        "test_literature_search_sync.py",
+        "test_literature.py",
+        "test_documents.py",
+        "test_chat_service.py",
+        "test_release_readiness.py",
+        "test_versioning.py"
+      ]
+    },
+    "note": "Overlapping runs are not added together. All live/paid-model checks were excluded."
+  },
+  "browser": {
+    "validated_unique_cases": 54,
+    "chat_catalog_navigation": {
+      "unique_cases": 46,
+      "initial_second_run_passed": 45,
+      "infrastructure_failure": "Concurrent commands reused one Playwright artifact directory; assertions passed but trace teardown returned ENOENT.",
+      "resolved_by": "All 8 chat-runs.spec.ts cases rerun sequentially and passed in 28.3 s."
+    },
+    "formal_reviews_final": {
+      "passed": 3,
+      "duration_seconds": 23.2
+    },
+    "literature_and_paired_trials_final": {
+      "passed": 5,
+      "duration_seconds": 30.7
+    },
+    "config": "/tmp/skill-catalog-playwright.config.cjs",
+    "paid_model_requests": 0
+  },
+  "checks": {
+    "typescript": "passed",
+    "changed_frontend_eslint": "passed",
+    "python_compileall": "passed",
+    "git_diff_check": "passed",
+    "production_build": "passed"
+  },
+  "preview": {
+    "build_id": "Uc8_lb7Bm45bFisR_VZxl",
+    "frontend_dist": ".next-prd",
+    "frontend": "http://localhost:3000",
+    "backend": "http://localhost:8000",
+    "processes": [
+      {
+        "service": "backend",
+        "pid": 19695,
+        "log": "/root/projects/nitrogen-leaching-agent/backend/var/service/prd-completion-backend.log"
+      },
+      {
+        "service": "frontend",
+        "pid": 19696,
+        "log": "/root/projects/nitrogen-leaching-agent/backend/var/service/prd-completion-frontend.log"
+      }
+    ],
+    "ready_check": "passed",
+    "verified_at": "2026-10-17T12:42:25.991153+00:00",
+    "real_example_verified": true
+  },
+  "real_example": {
+    "frontend": "http://localhost:3000",
+    "backend": "http://localhost:8000",
+    "source": "real-local-example-no-remote-model",
+    "tool_steps": 2,
+    "run_id": "93b11de2-d20f-41e4-8edc-e716c2acd942",
+    "rerun_id": "bff41249-145f-4f20-9be0-4cf54dd81b2c",
+    "primary_run_id": "93b11de2-d20f-41e4-8edc-e716c2acd942",
+    "known_example_model_day": 283,
+    "result_saved": true,
+    "event_types": [
+      "run_accepted",
+      "step_started",
+      "step_finished",
+      "step_started",
+      "step_finished",
+      "plan_created",
+      "step_started",
+      "step_started",
+      "step_finished",
+      "step_finished",
+      "step_started",
+      "step_started",
+      "step_finished",
+      "step_finished",
+      "run_finished"
+    ],
+    "skills": [
+      "file_inspector",
+      "whcns_analyzer"
+    ],
+    "duplicate_run_reused": true,
+    "request_lookup_exact_result": true,
+    "outsider_status": 404,
+    "browser_errors": [],
+    "screenshot": "/tmp/prd-completion-live-example.png"
+  },
+  "manual_acceptance": {
+    "M07": "Real agricultural fidelity and target-user comprehensibility must be evaluated by humans in the delivered paired-trial UI; no expert result or improvement percentage was fabricated.",
+    "all_modules": "Engineering contract/example verification is separate from final business sign-off and real-query calibration."
+  },
+  "policies": {
+    "workers": 1,
+    "literature_sync": "manual",
+    "stale_index": "excluded until current version ready",
+    "case_material_budget_chars": 24000,
+    "case_material_max_records": 30,
+    "case_candidates": "all eligible",
+    "pending_browser_cache_max_hours": 24,
+    "primary_run": "first accepted",
+    "candidate_explanation_method": "trial only"
+  },
+  "source_sha256": {
+    "backend/src/agent/understanding.py": "9c1a2e52fe2d8f7f72d9ddedac0ee945c82393d7f43785142ef2cb4c22c0edce",
+    "backend/src/agent/starred_match.py": "fe9b51cd24be41743b3191971af737bce558f154db970358e5932fc6e1cc3f77",
+    "backend/src/agent/case_retrieval.py": "9e4d91a8aa5ee32cb62a8505e90c837a4305eccc9e2e9eff0d1c0b0fa750e43b",
+    "backend/src/agent/skill_config.py": "e74d386df395d4df664dc62315dd1f0981fa5f4f7a0ac0b0413e7f64ecf8060b",
+    "backend/src/agent/explanation_method.py": "a462506628beaea02fa8a9197fde78ba585469c264571d656a4c7cf1c4603786",
+    "backend/src/agent/runtime.py": "b02e3a9c838b1706e32827ca971dc4c77f06e50ba61ce136fa91e2cd2d221b5a",
+    "backend/src/agent/case_skills.py": "572c474a777aec22ff3ac447b8f8065a0f732a311189169f3daff5294ea09463",
+    "backend/src/agent/skills.py": "46474f0dbda009946041f92008685a46fe5ebd0dadd3caa4fe77417a4bb05ae5",
+    "backend/src/agent/chat_service.py": "abf4bb3eddcf5cdd146e2d17b2c41a3332e2d918fcabfe25620d7ddfaafaf463",
+    "backend/src/agent/contracts.py": "9c9379166f395b341b4105dffb3b92ccbc136a821f7250afe2ad837fb3704b6f",
+    "backend/src/agent/submissions.py": "1d79703f5d2d6b3c8d6b97c7ccea74b8e6c778f73c824cc1a4158b1c1b1c4959",
+    "backend/src/storage/chat_runs.py": "07361621445f03a032bda7643fb33ec4c52a747209ed1cb4b56dfc4fb0abf7d6",
+    "backend/src/storage/run_store.py": "491c262da954010c58bfe08b5ac0eb021d26e0680f03b72a8fd7cc409e2928fe",
+    "backend/src/storage/case_library.py": "0ecb9215bfc31de5e3b36cf9c603c9c290ca465e966195ba3f328631c26cd65b",
+    "backend/src/rag/literature_index.py": "2f6a85ca975600d5c107e002d13b3058eeece37cede6c2944117675bfae0dd7c",
+    "backend/src/api/formal_reviews.py": "4f80f99158c8a50d86b4331dd63114515146e442b9b5164722997446e71d3917",
+    "backend/src/evaluation/formal_reviews.py": "af2a6546ca0a484f7c1faf1e5a8c71e6830296d8115dd749b87cddf966456ae8",
+    "backend/src/evaluation/explanation_trials.py": "d865d3f9b888dd990c9518e444c19f60616b9228652794fcfda1707655372f75",
+    "backend/src/api/literature.py": "b821ed7af2aac9729910a597c028aba089d03edcd5a3cc45188fee94c563546f",
+    "backend/src/api/documents.py": "20411ad0681295e9893e8c3dd8e97ee8fdd97e1837d576fd889f0d3106d4d570",
+    "backend/src/api/chat.py": "39119bf9a6933e9d5d95003a6cf9dc92b3b4ef15260207b92bff68b8c8fa741e",
+    "backend/src/api/evaluation.py": "70dd66820cd781548beeda5eee882da9505e9fd32d8904a77b527344320bec34",
+    "backend/src/operations/public_access.py": "deb0f271bce54f4342aa959064c3447e43392cc64279f964140f6de035d7234e",
+    "backend/src/main.py": "8703253c8131896e3ac674171430d0c6465ae75ee7ca6ed35cfa06a765b46cce",
+    "backend/src/evaluation/versioning.py": "74481c97f226bb421e0a115bd6ec329a63515a8de33751fc33e0d3c5e5dde3df",
+    "frontend/src/components/formal-workspace.tsx": "10e53cb76e6e4106eb94d2cb8a4e3953510393e3e78c6245e3aa1cf1d8f396da",
+    "frontend/src/components/formal-review-editor.tsx": "d377b6dffab0b8ae4d1e07bc84fab8528c40cea3b808b3db981a0e3ea1b6461b",
+    "frontend/src/components/skill-expression-editor.tsx": "84b2908a4fcd6c5182dd48125839d874ddd6e4c57003f5d77c987a8fb52d0b09",
+    "frontend/src/components/skill-workspace.tsx": "02c90938b969e7ca26f50bbc4e16f687f4b9128c30f2541ddf50405930b3e1ae",
+    "frontend/src/components/explanation-trials.tsx": "237e2b632da04ceecad077cff80c95d194ac89cddada781e9d793ca7a26ecf1c",
+    "frontend/src/components/literature-search-sync.tsx": "05892a821aedf623c30aa5d97264cac43fa0e3148543ac4211415e0ac70401d9",
+    "frontend/src/components/literature-workspace.tsx": "62e6cbce5037a26b0a0c10fc3a4850bac8779e6a23d39f31c6756e0c5d106f90",
+    "frontend/src/components/chat/execution-progress.tsx": "645aa31e61ba48dd6ff17d6273b6ddd6459f28af3b56d79998cc1c76a9b86370",
+    "frontend/src/components/chat/use-conversations.ts": "9a27a8f088be368fadc499d79e4109c3bbcf266381f62321db35176af192db0c",
+    "frontend/src/components/chat/citation-list.tsx": "c86c228f31a05bd8bf60d35b585e2a7a81f0fed369ec5173e036d701bf2152ca",
+    "frontend/src/components/evaluation-runs.tsx": "d2dda95f977141abfe5d063dfcfe293823ec489eaa96b9e00e0fd8d894f756fe",
+    "frontend/src/app/page.tsx": "0f17755bbd4575c983d69d66b9636b41a1f2d96450df0052ce4ac891de6225ed",
+    "frontend/src/lib/api.ts": "6d613d3fd5c52f2e3034dfbcbbe4ef6d0184b58243a8d0aad1852f41cddcc987",
+    "frontend/src/app/evaluation/[...path]/page.tsx": "8b15a15a9998273ece868a6907e3482304daaa5997415c94c34f11ff73db97fb",
+    "frontend/src/lib/formal-reviews.ts": "24feec1bbda5be4a82586d001b79b9e5c669da1d4961f8a9470869d668258e47",
+    "frontend/src/lib/types.ts": "4869a608bdca66120dce76b5639cf8814f4716ccec4bfac13e5522a6a5bd0bdb",
+    "frontend/src/lib/evaluation-navigation.ts": "5936e5fe711c1f3a22f2d151bbe02b53990809bdec0672c8b440c77d95b43dff",
+    "frontend/next.config.ts": "8fa9a7021ac6436190242d597ebcaad6cca300fda636b1936fc5556d8e68819e"
+  }
+}

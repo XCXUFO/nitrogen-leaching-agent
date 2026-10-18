@@ -2,8 +2,8 @@ import { expect, test } from '@playwright/test';
 
 test.skip(!process.env.ACCOUNTS_TEST_API, 'Requires tests.accounts_fixture with a temporary database');
 const accounts = [
-  ['cau_dev', '开发者'], ['cau_expert1', '领域审核人'], ['cau_expert2', '领域审核人'],
-  ['cau_tester1', '测试者'], ['cau_tester2', '测试者'], ['cau_tester3', '测试者'],
+  ['cau_dev', '开发者'], ['cau_expert1', '复核者'], ['cau_expert2', '复核者'],
+  ['cau_tester1', '协作者'], ['cau_tester2', '协作者'], ['cau_tester3', '协作者'],
 ];
 
 test.beforeEach(async ({ page }) => {
@@ -25,8 +25,8 @@ for (const [username, role] of accounts) {
     const token = (await (await response).json()).token;
     await expect(page.locator('header').getByText(role, { exact: true })).toBeVisible();
     const nav = page.getByRole('navigation', { name: '工作台导航' }).first();
-    await expect(nav.getByRole('link', { name: '审核队列', exact: true })).toHaveCount(role === '测试者' ? 0 : 1);
-    await expect(nav.getByRole('link', { name: '运行记录', exact: true })).toHaveCount(role === '开发者' ? 1 : 0);
+    await expect(nav.getByRole('link', { name: '审核队列', exact: true })).toHaveCount(role === '协作者' ? 0 : 1);
+    await expect(nav.getByRole('link', { name: '运行记录', exact: true })).toHaveCount(1);
     await nav.getByRole('link', { name: '任务管理', exact: true }).click();
     await expect(page.getByRole('button', { name: '退出登录' })).toBeVisible();
     await page.getByRole('button', { name: '退出登录' }).click();

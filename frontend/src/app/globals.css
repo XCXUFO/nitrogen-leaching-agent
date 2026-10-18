@@ -128,6 +128,22 @@
     @apply font-sans;
   }
 }
+.conversation-list-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-gutter: stable;
+  scrollbar-color: transparent transparent;
+}
+.conversation-list-scrollbar:hover {
+  scrollbar-color: var(--muted-foreground) transparent;
+}
+.conversation-list-scrollbar::-webkit-scrollbar { width: 6px; }
+.conversation-list-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.conversation-list-scrollbar::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: transparent;
+}
+.conversation-list-scrollbar:hover::-webkit-scrollbar-thumb { background: var(--muted-foreground); }
+
 .markdown-answer > :first-child { margin-top: 0; }
 .markdown-answer p { margin: .65rem 0; }
 .markdown-answer h1, .markdown-answer h2, .markdown-answer h3, .markdown-answer h4 { font-weight: 650; margin: 1.15rem 0 .5rem; line-height: 1.5; }

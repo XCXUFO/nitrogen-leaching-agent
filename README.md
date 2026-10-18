@@ -21,12 +21,14 @@ can inherit a successfully queried metric within the same active conversation.
 Uploads now defer domain validation until analysis. Supported extrema + mechanism
 questions combine computed file facts with cited general mechanisms; failed steps
 leave a clearly marked partial answer. An authenticated `/evaluation` workspace
-now supports versioned cases, multi-turn executions, independent reviews and
-developer traces. Chat now renders Markdown with navigable citations and supports
-attachment drag-and-drop, upload progress and request retries. Developers can
-freeze regression baselines, replay supported steps and compare versions by turn.
-Professional review remains pending; see the
-[evaluation guide](docs/iterations/2026-09-29-agent-harness/evaluation-guide.md).
+now opens directly on saved conversations: approve an expected answer, mark a
+specific turn for correction, update materials or prompts, and confirm a new
+answer. One human reviewer is sufficient; collaborators can add a second opinion.
+Materials and prompt iteration stay in the main navigation; legacy evaluation
+features remain available under extra tools and history. See the
+[lightweight review guide](docs/iterations/2026-10-18-lightweight-review/README.md).
+Chat renders Markdown with navigable citations and supports attachment drag-and-drop,
+upload progress and request retries.
 See the [implementation scope](docs/iterations/2026-09-29-agent-harness/spec.md).
 
 The project currently provides a working foundation for RAG-based agronomy QA:
@@ -128,20 +130,22 @@ value/day cells, data range and file hash. Nitrogen and water balance schemas ar
 validated by content. One explicit field and whole-table min/max are supported;
 ambiguous fields, time subsets and seasonal totals require clarification.
 
-Attachments are limited to 10 MiB and expire after 30 minutes. The prototype stores
-only parsed summaries in process memory (maximum 32 files, single backend worker);
-temporary originals are deleted after parsing. Refresh/restart requires re-upload.
-The active attachment is shown beside the input; knowledge questions do not require
-removing it. After a successful explicit query, “那最小值呢？” reuses the metric
-only while the same file and conversation remain valid. Clearing starts a new session.
+Attachments are limited to 10 MiB and expire after 30 minutes. The prototype keeps
+parsed content in process memory (maximum 32 files, single backend worker);
+temporary originals are deleted after parsing. Files attach to one message and
+leave the input area immediately after sending. Upload the file again to use it
+in a later question; retrying or regenerating a message reuses its original valid
+attachments. Refresh/restart requires re-upload for new file analysis.
 Model version, calendar origin, input/output pairing and professional review remain
 unconfirmed. Reading an output is not a reproduced simulation case.
 
 Run traces are stored in `backend/var/agent/runs.sqlite3` by default. Configure
 `AGENT_TRACE_DB` and set `AGENT_BUILD_VERSION` to the evaluated build/snapshot ID.
-The developer workbench groups saved Run traces into read-only conversations at
-`/evaluation/runs`. It does not restore chat state after a reload or create a
-scored evaluation Execution. Trace and review APIs require evaluator access.
+Signed-in users can restore their own saved conversations and continue chatting
+after a reload or login. Guest pages retain recovery information for pending
+requests within the recovery window. The workbench groups traces and human reviews
+at `/evaluation/runs`; reviewing a conversation does not create a scored evaluation
+Execution. Trace and review APIs require evaluator access.
 
 ## Safety and Scope
 
@@ -154,14 +158,17 @@ scored evaluation Execution. Trace and review APIs require evaluator access.
 
 ## Documentation
 
-Public resume demo: `/` offers one-click sample-file analysis; `/showcase` exposes
-only an explicitly selected read-only evidence snapshot. `/evaluation` remains
+Public resume demo: `/` offers knowledge and case questions plus file upload; `/showcase` exposes
+an explicitly selected read-only evidence snapshot plus isolated synthetic workflows
+for literature AI processing, cases, shared tags and starred questions. Workflow edits
+stay in page memory and reset on refresh. `/evaluation` remains
 the authenticated management workspace. See [public demo setup](docs/public-demo.md)
 for visitor isolation, request budgets, deployment settings and evidence scope.
 
 - [Backend setup](backend/README.md)
 - [Frontend setup](frontend/README.md)
 - [Development guide](docs/development.md)
+- [1017 PRD 剩余开发交付与验收](docs/iterations/2026-10-17-prd-completion/README.md)
 - [工具能力盘点归档：Skill、MCP 与后续优化候选（2026-10-16）](docs/iterations/2026-10-16-tool-capability-inventory/README.md)
 - [工作台使用说明与文档导航](docs/iterations/2026-09-29-agent-harness/evaluation-guide.md)
 - [资料管理使用说明：文献、AI 打标与结论、案例、星标问题](docs/iterations/2026-09-29-agent-harness/workbench-materials-guide.md)

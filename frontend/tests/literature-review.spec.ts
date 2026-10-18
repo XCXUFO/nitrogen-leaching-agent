@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('slow upload preserves a title typed while waiting', async ({ page }) => {
+test('slow upload preserves manual metadata and uses it for automatic tagging', async ({ page }) => {
   let release!: () => void;
   let entered!: () => void;
   const pending = new Promise<void>((resolve) => { release = resolve; });
@@ -16,6 +16,10 @@ test('slow upload preserves a title typed while waiting', async ({ page }) => {
     else if (path === '/api/literature/config') json = { max_pdf_mb: 100 };
     else if (path === '/api/literature/uploads') { entered(); await pending; json = { upload_id: 'mock-upload', filename: 'source.pdf' }; }
     else if (path === '/api/literature/extract') json = { fields: { title: 'AI title' }, pages_read: 1, method: 'ai', warning: '' };
+    else if (path === '/api/literature/suggest-tags') {
+      expect(route.request().postDataJSON().title).toBe('手工填写的论文标题');
+      json = { tag_ids: [], added_tag_ids: [] };
+    }
     else throw new Error(`Unexpected API request: ${path}`);
     await route.fulfill({ status: 200, json });
   });
@@ -27,9 +31,14 @@ test('slow upload preserves a title typed while waiting', async ({ page }) => {
   await received;
   const title = page.getByRole('group', { name: '论文标题', exact: true }).getByRole('textbox');
   await title.fill('手工填写的论文标题');
+  await page.locator('summary').filter({ hasText: '来源与补充说明' }).click();
+  const note = page.getByRole('group', { name: '内部备注', exact: true }).getByRole('textbox');
+  await note.fill('上传期间补充的核对备注');
   release();
-  await expect(page.getByRole('main').getByRole('status')).toContainText('已读取 PDF');
+  await expect(page.getByRole('main').getByRole('status').filter({ hasText: '已读取 PDF' })).toBeVisible();
   await expect(title).toHaveValue('手工填写的论文标题');
+  await expect(note).toHaveValue('上传期间补充的核对备注');
+  await expect(page.getByRole('button', { name: 'AI 一键打标', exact: true })).toBeEnabled();
 });
 
 test('conflicting edit preserves inputs until latest version is explicitly loaded', async ({ page }) => {

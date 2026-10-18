@@ -13,6 +13,7 @@ async function mockApi(page: Page, role = 'developer', taskId: string | null = t
     let value: unknown = [];
     if (path === '/me') value = { tester_id: 'navigation-user', role };
     else if (path === '/login') value = { token: 'mock-session-token', user: { tester_id: 'navigation-user', role } };
+    else if (path === '/sessions') value = { total: 0, items: [] };
     else if (path === '/config') value = { build_version: 'navigation-test', runtime_config_version: 'navigation-test:config' };
     else if (path === '/cases') value = [fixture];
     else if (path === '/executions') value = [execution];
@@ -42,7 +43,9 @@ test('sidebar routes preserve login, open linked records and restore a deep link
   await mockApi(page);
   await page.goto('/evaluation'); await login(page);
   const nav = page.getByRole('navigation', { name: '工作台导航' }).first();
-  await expect(page.getByRole('heading', { name: '开始工作' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '运行记录 · 会话审核' })).toBeVisible();
+  await nav.getByText('更多工具与历史记录', { exact: true }).click();
+  await expect(nav.getByRole('link', { name: '资产目录', exact: true })).toHaveCount(0);
   await nav.getByRole('link', { name: '任务管理', exact: true }).click();
   await expect(page).toHaveURL(/\/evaluation\/tasks$/);
   await expect(nav.getByRole('link', { name: '任务管理', exact: true })).toHaveAttribute('aria-current', 'page');
@@ -75,13 +78,26 @@ test('tester navigation and direct URLs respect module permissions', async ({ pa
   await expect(page.getByRole('main').getByRole('alert')).toContainText('无权访问');
   const nav = page.getByRole('navigation', { name: '工作台导航' }).first();
   await expect(nav.getByRole('link', { name: '问题管理', exact: true })).toHaveCount(0);
-  await expect(nav.getByRole('link', { name: '运行记录', exact: true })).toHaveCount(0);
+  await expect(nav.getByRole('link', { name: '运行记录', exact: true })).toBeVisible();
   expect(requests).not.toContain('/issues');
+  if (!await nav.getByRole('link', { name: '用例库', exact: true }).isVisible()) await nav.getByText('更多工具与历史记录', { exact: true }).click();
   await nav.getByRole('link', { name: '用例库', exact: true }).click();
   await expect(page.getByRole('button', { name: '查看用例' })).toBeVisible();
   await expect(page.getByRole('link', { name: '管理草稿' })).toHaveCount(0);
   expect(requests).not.toContain('/assets');
   expect(requests).not.toContain('/case-drafts');
+});
+
+test('removed asset pages are unavailable in the workbench and showcase', async ({ page }) => {
+  await mockApi(page);
+  await page.goto('/evaluation/cases'); await login(page);
+  await expect(page.getByRole('heading', { name: '用例版本目录' })).toBeVisible();
+  for (const path of ['/evaluation/assets', '/showcase/assets']) {
+    await page.goto(path);
+    // Next.js can send HTTP 200 after the loading boundary starts streaming.
+    await expect(page.getByRole('heading', { name: '404', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: '资产目录', exact: true })).toHaveCount(0);
+  }
 });
 
 test('mobile drawer supports navigation and Escape without horizontal overflow', async ({ page }) => {
@@ -92,10 +108,11 @@ test('mobile drawer supports navigation and Escape without horizontal overflow',
   await page.getByRole('button', { name: '打开导航' }).click();
   const dialog = page.getByRole('dialog', { name: '移动端导航' });
   await expect(dialog).toBeVisible();
-  await dialog.getByRole('link', { name: '资产目录', exact: true }).click();
+  await expect(dialog.getByRole('link', { name: '资产目录', exact: true })).toHaveCount(0);
+  await dialog.getByRole('link', { name: '用例库', exact: true }).click();
   await expect(dialog).not.toBeVisible();
-  await expect(page).toHaveURL(/\/evaluation\/assets$/);
-  await expect(page.getByRole('heading', { name: '核实输入输出配对' })).toBeVisible();
+  await expect(page).toHaveURL(/\/evaluation\/cases$/);
+  await expect(page.getByRole('heading', { name: '用例版本目录' })).toBeVisible();
   await page.getByRole('button', { name: '打开导航' }).click();
   await page.keyboard.press('Escape');
   await expect(dialog).not.toBeVisible();

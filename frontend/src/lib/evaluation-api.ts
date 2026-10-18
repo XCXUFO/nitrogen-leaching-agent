@@ -42,6 +42,8 @@ export type RunSummary = {
 export type SessionSummary = {
   session_id: string; topic: string; created_at: string; operator_id: string;
   status: "正常" | "异常"; latency_ms: number; turn_count: number;
+  review_status?: "pending" | "passed" | "needs_changes";
+  reviewed_turn_count?: number; open_issue_count?: number; review_revision?: number;
 };
 export type SessionTrace = {
   run_id: string; started_at: string; input: string; answer: string | null;
@@ -52,8 +54,18 @@ export type SessionTrace = {
   state_before?: Record<string, unknown>; state_after?: Record<string, unknown> | null;
   evidence?: unknown[]; sections?: unknown[]; warnings?: unknown[];
   config_version?: string; config_manifest?: unknown;
+  skill_config?: unknown; understanding?: unknown; tag_mapping?: unknown;
+  starred_match?: unknown; retrieval?: unknown; execution_steps?: unknown;
+  request_snapshot?: { has_attachments?: boolean; query?: string };
 };
-export type SessionDetail = SessionSummary & { turns: SessionTrace[] };
+export type SessionIssue = { issue_id: string; run_id: string; note: string; status: "open" | "resolved";
+  recorded_by: string; verification_run_id?: string | null; resolution_note?: string };
+export type SessionRetest = { run_id: string; source_run_id: string; issue_id?: string | null;
+  recorded_by: string; recorded_at: string; status: string; answer?: string | null; error?: string | null };
+export type SessionDetail = SessionSummary & { turns: SessionTrace[]; review?: {
+  revision: number; reviewed_turn_count: number; issues: SessionIssue[]; retests: SessionRetest[];
+  history: { action: string; recorded_by: string; recorded_at: string; note?: string; review_kind: string }[];
+} };
 
 export async function evaluationRequest<T>(token: string, path: string, init: RequestInit = {}): Promise<T> {
   let response: Response;

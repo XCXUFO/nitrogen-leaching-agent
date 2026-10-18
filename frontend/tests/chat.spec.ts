@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 
 const reply = (answer: string) => ({
-  answer, citations: [{ index: 1, source: 'data/papers/synthetic_maize.pdf', chunk_id: 'synthetic::001', score: .8, snippet: 'Synthetic browser test evidence. This is not an agronomic source.', title: '测试论文题名', author_hint: '测试作者', year: '2024', document_id: 'test-document', document_available: true }],
+  answer, citations: [{ index: 1, source: 'data/papers/synthetic_maize.pdf', chunk_id: 'synthetic::001', score: .8, snippet: 'Synthetic browser test evidence. This is not an agronomic source.', char_start: 3138, char_end: 3586, title: '测试论文题名', author_hint: '测试作者', year: '2024', document_id: 'test-document', document_available: true }],
   usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 }, retrieved_count: 1, model: 'test-only',
   route: 'knowledge', agent_route: 'KNOWLEDGE', file_evidence: [], run_id: 'test-run', conversation_id: 'test-session', trace_saved: true,
   outcome: 'complete', attachment: null, sections: [], warnings: [],
@@ -11,6 +11,7 @@ async function send(page: Page, text: string) {
 }
 
 test.beforeEach(async ({ page }) => {
+  await page.route('**/api/chat/session', route => route.fulfill({ status: 404, json: {} }));
   await page.route('**/api/files/status', route => route.fulfill({ json: {
     files: route.request().postDataJSON().file_ids.map((file_id: string) => ({ file_id, status: 'available' })),
   } }));
@@ -30,9 +31,12 @@ test('Markdown tables, code, scoped citations and mobile overflow', async ({ pag
   await page.getByRole('button', { name: '查看引用 1', exact: true }).click();
   await expect(page.getByText('测试论文题名')).toBeVisible();
   await expect(page.getByText('作者：测试作者 · 年份：2024')).toBeVisible();
-  await expect(page.getByRole('blockquote')).toHaveCount(1);
+  await expect(page.getByRole('blockquote')).toHaveCount(0);
+  await expect(page.locator('article')).not.toContainText('Synthetic browser test evidence');
+  await expect(page.locator('article')).not.toContainText('正文字符');
+  await expect(page.locator('article')).not.toContainText('文本定位');
   await expect(page.getByText('开发者定位')).toHaveCount(0);
-  await page.getByRole('button', { name: '返回回答' }).click();
+  await expect(page.getByRole('button', { name: '返回回答' })).toHaveCount(0);
   expect(await page.evaluate(() => 'badScript' in window)).toBe(false);
   await expect(page.locator('.markdown-answer img')).toHaveCount(0);
   await expect(page.locator('a[href^="javascript:"]')).toHaveCount(0);
@@ -65,19 +69,29 @@ test('copy feedback changes on every click and resets', async ({ page }) => {
 
 test('retry does not duplicate user turn or history, clear rotates conversation', async ({ page }) => {
   const requests: Record<string, unknown>[] = [];
+  await page.route('**/api/files?*', route => route.fulfill({ json: {
+    file_id: 'retry-file', filename: 'original.txt', status: 'pending', sha256: 'retry-hash', format: 'txt', expires_in_seconds: 1800,
+  } }));
   await page.route('**/api/chat', (route) => {
     requests.push(route.request().postDataJSON());
     return requests.length === 1 ? route.fulfill({ status: 502, json: { detail: { code: 'llm_unreachable', message: 'offline' } } }) : route.fulfill({ json: reply('恢复成功') });
   });
-  await page.goto('/'); await send(page, '失败后重试');
+  await page.goto('/');
+  await page.getByLabel('选择会话文件').setInputFiles({ name: 'original.txt', mimeType: 'text/plain', buffer: Buffer.from('original') });
+  await expect(page.getByText('已上传', { exact: true })).toBeVisible();
+  await send(page, '失败后重试');
+  await expect(page.getByLabel('会话文件列表')).toHaveCount(0);
   await page.getByRole('button', { name: '重试', exact: true }).click();
   await expect(page.getByText('恢复成功')).toBeVisible();
   await expect(page.getByLabel('对话记录').getByText('失败后重试', { exact: true })).toHaveCount(1);
   expect(requests[0].history).toEqual(requests[1].history);
+  expect(requests[0].file_ids).toEqual(['retry-file']);
+  expect(requests[1].file_ids).toEqual(['retry-file']);
   await page.getByRole('button', { name: '新对话' }).click();
   await send(page, '新会话');
   await expect.poll(() => requests.length).toBe(3);
   expect(requests[2].session_id).not.toBe(requests[0].session_id);
+  expect(requests[2].file_ids).toEqual([]);
 });
 
 test('dragged attachments, invalid files and expired attachment clear stale state', async ({ page }) => {
@@ -142,38 +156,60 @@ test('question input grows to its old limit and returns to one line after sendin
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
-test('sent files stay available when collapsed and new conversation clears context', async ({ page }) => {
+test('sending clears attachments immediately and only a fresh upload attaches them again', async ({ page }) => {
   const requests: Record<string, unknown>[] = [];
+  let finishFirst!: () => void;
   await page.route('**/api/files?*', route => route.fulfill({ json: {
     file_id: 'browser-file', filename: 'Nbal_out.xlsx', status: 'pending', sha256: 'test',
     format: 'xlsx', kind: null, rows: null, expires_in_seconds: 1800,
   } }));
-  await page.route('**/api/chat', route => {
+  await page.route('**/api/chat', async route => {
     requests.push(route.request().postDataJSON());
+    if (requests.length === 1) await new Promise<void>(resolve => { finishFirst = resolve; });
     const withFile = Boolean((requests.at(-1)?.file_ids as string[])?.length);
     const numeric = withFile;
+    const minimum = String(requests.at(-1)?.query).includes('最小值');
     return route.fulfill({ json: {
-      ...reply(numeric ? '数值结果' : '请先上传文件'),
+      ...reply(numeric ? minimum ? '最小值结果' : '最大值结果' : '请先上传文件'),
       route: numeric ? 'file' : 'clarification',
       agent_route: numeric ? 'FILE_ANALYSIS' : 'CLARIFY',
       attachment: numeric ? { filename: 'Nbal_out.xlsx', status: 'ready', rows: 352, kind: 'nitrogen' } : null,
       file_evidence: numeric ? [{ filename: 'Nbal_out.xlsx', sha256: 'test', sheet: 'Nbal_out',
-        field: 'leak_NO3(kg N ha-1)', unit: 'kg N ha-1', operation: 'max', value: 3.6593,
-        model_day: 283, cell: 'Nbal_out!C284', day_cell: 'Nbal_out!A284', occurrences: 1,
+        field: 'leak_NO3(kg N ha-1)', unit: 'kg N ha-1', operation: minimum ? 'min' : 'max', value: minimum ? 0 : 3.6593,
+        model_day: minimum ? 2 : 283, cell: minimum ? 'Nbal_out!C3' : 'Nbal_out!C284',
+        day_cell: minimum ? 'Nbal_out!A3' : 'Nbal_out!A284', occurrences: minimum ? 191 : 1,
         data_range: 'Nbal_out!C2:C353', tool_version: 'test', schema_id: 'test' }] : [],
     } });
   });
   await page.goto('/');
-  await page.getByLabel('选择会话文件').setInputFiles({ name: 'Nbal_out.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: Buffer.from('test') });
+  const workbook = { name: 'Nbal_out.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: Buffer.from('test') };
+  await page.getByLabel('选择会话文件').setInputFiles(workbook);
+  await expect(page.getByText('已上传', { exact: true })).toBeVisible();
   await send(page, '硝态氮最大值及日序');
-  await expect(page.getByLabel('会话文件列表').getByText('Nbal_out.xlsx', { exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: '移除附件', exact: true })).toHaveCount(0);
+  await expect.poll(() => Boolean(finishFirst)).toBe(true);
+  await expect(page.getByLabel('问题输入')).toBeDisabled();
+  await expect(page.getByLabel('会话文件列表')).toHaveCount(0);
+  await expect(page.getByLabel('对话记录')).toContainText('附件：Nbal_out.xlsx');
+  finishFirst();
+  await expect(page.locator('article')).toContainText('最大值结果');
+  const minimumSuggestion = page.getByRole('button', { name: '那最小值呢？', exact: true });
+  await expect(minimumSuggestion).toHaveCount(0);
   await send(page, '那最小值呢？');
+  await expect(page.locator('article').last()).toContainText('请先上传文件');
+  await expect(page.getByLabel('问题输入')).toBeEnabled();
+  await expect(minimumSuggestion).toHaveCount(0);
   await expect.poll(() => requests.length).toBe(2);
-  expect(requests[1].file_ids).toEqual(['browser-file']);
+  expect(requests[0].file_ids).toEqual(['browser-file']);
+  expect(requests[1].file_ids).toEqual([]);
   expect(requests[1].history).toHaveLength(2);
-  await page.getByRole('button', { name: /收起文件：Nbal_out.xlsx/ }).click();
+  await page.getByLabel('选择会话文件').setInputFiles(workbook);
+  await expect(page.getByText('已上传', { exact: true })).toBeVisible();
   await send(page, '那最小值呢？');
+  await expect(page.locator('article').last()).toContainText('最小值结果');
+  await expect(page.locator('article')).toHaveCount(3);
+  await expect(page.getByLabel('会话文件列表')).toHaveCount(0);
+  await expect(page.getByLabel('问题输入')).toBeEnabled();
+  await expect(minimumSuggestion).toHaveCount(0);
   await expect.poll(() => requests.length).toBe(3);
   expect(requests[2].file_ids).toEqual(['browser-file']);
   expect(requests[2].history).toHaveLength(4);
@@ -185,7 +221,7 @@ test('sent files stay available when collapsed and new conversation clears conte
   expect(requests[3].session_id).not.toBe(requests[2].session_id);
 });
 
-test('all session files are sent automatically and duplicate bytes are skipped before upload', async ({ page }) => {
+test('only pending files are sent and duplicate bytes are scoped to the current message', async ({ page }) => {
   const requests: Array<{ file_ids: string[]; history?: unknown[] }> = [];
   let uploads = 0;
   const { createHash } = await import('node:crypto');
@@ -212,19 +248,20 @@ test('all session files are sent automatically and duplicate bytes are skipped b
   await send(page, 'PREC 最大值及日序');
   await expect(page.getByText('已分析相关文件')).toBeVisible();
   expect(requests[0].file_ids).toEqual(['id-1', 'id-2']);
-  await page.getByRole('button', { name: /收起文件/ }).first().click();
+  await expect(page.getByLabel('会话文件列表')).toHaveCount(0);
   await input.setInputFiles(file('again.xlsx', 'a'));
-  await expect(page.getByText(/已跳过重复文件：again.xlsx/)).toBeVisible();
-  expect(uploads).toBe(2);
+  await expect(page.getByLabel('会话文件列表').getByText('已上传', { exact: true })).toHaveCount(1);
+  await expect(page.getByText(/已跳过重复文件/)).toHaveCount(0);
+  expect(uploads).toBe(3);
   await input.setInputFiles(file('wrong.exe', 'x'));
   await expect(page.locator('footer').getByRole('alert')).toContainText('.xls');
   await send(page, '那最小值呢？');
   await expect.poll(() => requests.length).toBe(2);
-  expect(requests[1].file_ids).toEqual(['id-1', 'id-2']);
+  expect(requests[1].file_ids).toEqual(['id-3']);
   expect(requests[1].history).toHaveLength(2);
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-  await expect(page.getByRole('button', { name: /收起文件/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /收起文件/ })).toHaveCount(0);
   await expect(page.getByText(/暂存 30 分钟/)).toHaveCount(0);
   await page.screenshot({ path: '/tmp/nitrogen-session-files-mobile.png' });
   await page.getByRole('button', { name: '新对话' }).click();
@@ -255,7 +292,7 @@ test('ten mixed session files stay available across uploads and an eleventh is r
   expect(uploaded).toBe(10);
 });
 
-test('server-valid files survive the original deadline and still deduplicate after adding another file', async ({ page }) => {
+test('retained files survive their original deadline without joining later messages', async ({ page }) => {
   const { createHash } = await import('node:crypto');
   let uploads = 0;
   const requests: { file_ids: string[] }[] = [];
@@ -275,17 +312,18 @@ test('server-valid files survive the original deadline and still deduplicate aft
   await page.evaluate(() => { const start = Date.now(); Date.now = () => start + 29 * 60000; });
   await send(page, '硝态氮最大值');
   await expect(page.getByText('附件可用', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: /收起文件：first.xlsx/ }).click();
+  await expect(page.getByLabel('会话文件列表')).toHaveCount(0);
   await page.evaluate(() => { const start = Date.now(); Date.now = () => start + 2 * 60000; });
   await page.getByLabel('选择会话文件').setInputFiles(file('second.xlsx', 'second'));
   await expect(page.getByLabel('会话文件列表').getByText('已上传', { exact: true })).toBeVisible();
   await send(page, '那最小值呢？');
   await expect.poll(() => requests.length).toBe(2);
-  expect(requests[1].file_ids).toEqual(['expiry-1', 'expiry-2']);
+  expect(requests[1].file_ids).toEqual(['expiry-2']);
   await expect(page.getByText('附件可用', { exact: true })).toHaveCount(2);
   await page.getByLabel('选择会话文件').setInputFiles(file('renamed.xlsx', 'first'));
-  await expect(page.getByText(/已跳过重复文件：renamed.xlsx/)).toBeVisible();
-  expect(uploads).toBe(2);
+  await expect(page.getByLabel('会话文件列表')).toContainText('renamed.xlsx');
+  await expect(page.getByText(/已跳过重复文件/)).toHaveCount(0);
+  expect(uploads).toBe(3);
 });
 
 test('server-expired files can be reuploaded while status failures preserve the original files', async ({ page }) => {
@@ -327,7 +365,7 @@ test('papers are deduplicated and every citation opens the matching paper', asyn
   await expect(page.locator('li[id$="-citation-1"]')).toBeFocused();
   await expect(page.locator('li[id$="-citation-2"]')).toHaveCount(0);
   await expect(page.locator('article')).not.toContainText('synthetic');
-  await expect(page.getByRole('blockquote')).toContainText('Synthetic browser');
+  await expect(page.getByRole('blockquote')).toHaveCount(0);
   await page.getByText('文献依据 · 1 篇').click();
   await expect(page.locator('li[id$="-citation-1"]')).not.toBeVisible();
 });

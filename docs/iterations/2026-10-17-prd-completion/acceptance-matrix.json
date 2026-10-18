@@ -1,0 +1,791 @@
+{
+  "version": "1017-v0.3-engineering-delivery",
+  "recorded_at": "2026-10-17T12:42:25.991153+00:00",
+  "verification": "verification.json",
+  "modules": [
+    {
+      "module": "M01",
+      "prd": "docs/iterations/2026-10-17-prd-review/revised-prd/01_问题理解与上下文_PRD.md",
+      "status": "engineering_delivered_pending_business_acceptance",
+      "manual_effect_evaluation_required": false,
+      "acceptance_items": [
+        {
+          "id": "U01",
+          "requirement": "独立问题保留作物、否定及时间范围，改写不新增事实",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "U02",
+          "requirement": "上轮两个案例后比较追问，锚点准确绑定这两个案例",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "U03",
+          "requirement": "上轮三个对象的歧义追问触发澄清",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "U04",
+          "requirement": "用户更正作物，新条件覆盖旧作物，不残留旧检索限制",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "U05",
+          "requirement": "纯概念解释不强制要求完整种植条件",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "U06",
+          "requirement": "混合问题生成关联子任务，路由可使用同一理解结果",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "U07",
+          "requirement": "当前无标签或映射失败时仍可生成有效 Query",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "U08",
+          "requirement": "文件追问继承正确指标，过期附件被识别并提示补充",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "U09",
+          "requirement": "后台显示条件来源和实际 Query，且历史版本不被新配置覆盖",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "U10",
+          "requirement": "首个回执丢失后用原 request_id 找回同一运行，理解结果不重复生成",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "U11",
+          "requirement": "原问题重跑新建 run_id 且不覆盖历史理解，编辑问题和继续追问使用新 turn_id",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "U12",
+          "requirement": "子任务、条件与材料锚点有稳定关联；候选顺序变化不改变比较对象",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        }
+      ]
+    },
+    {
+      "module": "M02",
+      "prd": "docs/iterations/2026-10-17-prd-review/revised-prd/02_星标问题管理与优先匹配_PRD.md",
+      "status": "engineering_delivered_pending_business_acceptance",
+      "manual_effect_evaluation_required": false,
+      "acceptance_items": [
+        {
+          "id": "S01",
+          "requirement": "同义问题且答案适用时复用，条件相近但冲突时不套用",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "S02",
+          "requirement": "命中空答案仍进入后续能力，空值不被当作终止答案",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "S03",
+          "requirement": "复合问题只复用已覆盖部分，剩余任务确实被处理",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "S04",
+          "requirement": "匹配服务失败进入原链路，后台能区分失败与未命中",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "S05",
+          "requirement": "后台可定位候选、采用内容、原因和后续调用",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "S06",
+          "requirement": "原管理功能回归通过，修改后新运行使用最新内容，历史不改变",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        }
+      ]
+    },
+    {
+      "module": "M03",
+      "prd": "docs/iterations/2026-10-17-prd-review/revised-prd/03_文献管理与RAG衔接_PRD.md",
+      "status": "engineering_delivered_pending_business_acceptance",
+      "manual_effect_evaluation_required": false,
+      "acceptance_items": [
+        {
+          "id": "L01",
+          "requirement": "已保存但未索引与当前已就绪可区分，状态来源可查",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "L02",
+          "requirement": "新记录、更新记录和历史映射可完成同步；失败可重试且幂等",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "L03",
+          "requirement": "旧同步任务不会把较新内容误标为已就绪",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "L04",
+          "requirement": "统一 Query 和标签条件进入真实检索，未打标资料仍有可验证召回路径",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "L05",
+          "requirement": "停用、删除记录不进入新证据，过期索引处理符合最终政策",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "L06",
+          "requirement": "引用定位到实际原件及版本，不把摘要命中当全文",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "L07",
+          "requirement": "既有导入、解析、打标和批处理回归通过，无重复记录或被动覆盖",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "L08",
+          "requirement": "无标签但正文明确满足硬条件的文献可进入候选并核对采用，实际过滤阶段可查",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "L09",
+          "requirement": "标签与正文冲突时保留核对证据，未解决前不冒充严格匹配",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "L10",
+          "requirement": "正文与标签均无法确认时标未知，不猜测满足；显式标签筛选与语义条件有区别",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        }
+      ]
+    },
+    {
+      "module": "M04",
+      "prd": "docs/iterations/2026-10-17-prd-review/revised-prd/04_案例与措施管理及检索_PRD.md",
+      "status": "engineering_delivered_pending_business_acceptance",
+      "manual_effect_evaluation_required": false,
+      "acceptance_items": [
+        {
+          "id": "C01",
+          "requirement": "31 条去重后独立开放案例下，自动候选可找到相关资料，不再因全库条数直接拒绝；相关案例位于不同排序位置均验证",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "C02",
+          "requirement": "材料预算不足可定位，不被报告成无案例；关键表格关系保留",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "C03",
+          "requirement": "统一上下文指定的比较对象不被新候选替换，追问仍绑定正确记录",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "C04",
+          "requirement": "标签缺失不排除相关案例，明确条件不被静默放宽",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "C05",
+          "requirement": "候选形成后关闭或删除的案例不进入新回答",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "C06",
+          "requirement": "后台可查候选、采用片段、状态和真实调用，对客不依赖内部 ID",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "C07",
+          "requirement": "原有参考后解释、草稿采用、批量操作和数值口径回归通过",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "C08",
+          "requirement": "少于 30 条但材料 JSON 超过 24000 字符时仍能搜索候选，预算内选材或准确说明取材受限",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "C09",
+          "requirement": "显式选择较小案例范围仍可用；单条关键材料超预算不串换对象或破坏表格",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "C10",
+          "requirement": "无标签正文满足、标签正文冲突及条件未知三类资料分别处理并记录依据",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        }
+      ]
+    },
+    {
+      "module": "M05",
+      "prd": "docs/iterations/2026-10-17-prd-review/revised-prd/05_共享标签与语义映射_PRD.md",
+      "status": "engineering_delivered_pending_business_acceptance",
+      "manual_effect_evaluation_required": false,
+      "acceptance_items": [
+        {
+          "id": "T01",
+          "requirement": "明确同义或名称匹配可定位到稳定标签和完整路径",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "T02",
+          "requirement": "近义多候选可被识别，未匹配不自动创建标签",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "T03",
+          "requirement": "当前与上下文的条件来源可查，推断标签不会造成唯一入口硬过滤",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "T04",
+          "requirement": "两地区比较不会生成错误的单记录且条件",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "T05",
+          "requirement": "无标签和服务失败时仍有可验证的原 Query 检索路径",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "T06",
+          "requirement": "后台显示实际采用条件，历史映射不被新配置覆盖",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "T07",
+          "requirement": "原父子选择、或且规则和全局未打标功能回归保持",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "T08",
+          "requirement": "用户要求玉米案例、正文写玉米但无作物标签时，不在正文召回前排除",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "T09",
+          "requirement": "标签与正文冲突时保留核对记录；条件未知资料不冒充严格匹配",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "T10",
+          "requirement": "用户显式要求标签成员筛选时按标签执行，与一般语义条件分别留痕",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        }
+      ]
+    },
+    {
+      "module": "M06",
+      "prd": "docs/iterations/2026-10-17-prd-review/revised-prd/06_路由与Skill编排_PRD.md",
+      "status": "engineering_delivered_pending_business_acceptance",
+      "manual_effect_evaluation_required": false,
+      "acceptance_items": [
+        {
+          "id": "R01",
+          "requirement": "M01 的统一理解与 M02 的完整／部分／空答案结果进入真实分支",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "R02",
+          "requirement": "实际步骤开始、完成、无结果、失败和重试实时生成事件",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "R03",
+          "requirement": "事件、子任务、证据和缺失配置标识可关联到现有 Trace",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "R04",
+          "requirement": "前后台映射同一运行，恢复显示不触发任务重新执行",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "R05",
+          "requirement": "新增分支和解释配置按固定运行快照执行，可查当时实际值",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "R06",
+          "requirement": "受理回执丢失可凭原 request_id 找回，同标识异输入冲突，网络重发不会新建运行",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "R07",
+          "requirement": "完整对客结果与结束状态一起保存；结果保存失败不自动重做工具，恢复可说明受阻",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "R08",
+          "requirement": "主动重跑关联原轮次及运行；编辑问题是新轮次，运行中不并发重跑同一轮",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "R09",
+          "requirement": "服务重启、事件或结果保留期过期如实展示；无法证明的动作不自动重放",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "R10",
+          "requirement": "跨归属查询／订阅／取消被拒绝，公众恢复结果不含开发者 Trace 或审查明细",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "R11",
+          "requirement": "kind、双字段状态和 S01—S06 手算结果符合共享契约，必要澄清不虚报业务完成",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        }
+      ]
+    },
+    {
+      "module": "M07",
+      "prd": "docs/iterations/2026-10-17-prd-review/revised-prd/07_通俗解释与外部能力_PRD.md",
+      "status": "engineering_delivered_pending_business_acceptance",
+      "manual_effect_evaluation_required": true,
+      "acceptance_items": [
+        {
+          "id": "X01",
+          "requirement": "零基础表达能解释必要术语，专业用户要求可增加深度",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "X02",
+          "requirement": "数字、单位、单次／合计和条件在解释前后保持一致",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "X03",
+          "requirement": "空缺数据不补造，材料不能支持的结论被明确标出",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "X04",
+          "requirement": "多案例比较对象和来源清楚，不拼接不同模式",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "X05",
+          "requirement": "追问可换表达并继承正确对象，不重复无关长文",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "X06",
+          "requirement": "候选与基线用相同问题和资料比较，有专业和理解性两类记录",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "X07",
+          "requirement": "后台可追溯实际方法版本，未查询外部服务时无虚假查询步骤",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "X08",
+          "requirement": "外部包未被误认已接入 MCP，题录未被当作已读全文",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        }
+      ]
+    },
+    {
+      "module": "M08",
+      "prd": "docs/iterations/2026-10-17-prd-review/revised-prd/08_Skill可视化与有限配置_PRD.md",
+      "status": "engineering_delivered_pending_business_acceptance",
+      "manual_effect_evaluation_required": false,
+      "acceptance_items": [
+        {
+          "id": "V01",
+          "requirement": "7 个现有 Skill 均可找到，名称和实际注册一致",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "V02",
+          "requirement": "每项用途、示例、输入输出及边界清楚，不夸大 WHCNS 或联网能力",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "V03",
+          "requirement": "技术详情可折叠，默认业务语言可读",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "V04",
+          "requirement": "只开放确定字段，其他能力无误导性编辑入口",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "V05",
+          "requirement": "保存后刷新仍保留，新运行使用新值，运行中请求不被更改",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "V06",
+          "requirement": "恢复默认生效且有基本修改记录，失败保留输入",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "V07",
+          "requirement": "必需变量、计算规则和访问约束无法通过编辑绕过",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "V08",
+          "requirement": "历史调用可识别当时配置，未知版本如实显示",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        }
+      ]
+    },
+    {
+      "module": "M09",
+      "prd": "docs/iterations/2026-10-17-prd-review/revised-prd/09_前台执行进度展示_PRD.md",
+      "status": "engineering_delivered_pending_business_acceptance",
+      "manual_effect_evaluation_required": false,
+      "acceptance_items": [
+        {
+          "id": "F01",
+          "requirement": "工具开始后即可看到执行中，完成后状态改变，不等待整轮结束才补步骤",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "F02",
+          "requirement": "实际未调用的 Skill 不显示执行成功",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "F03",
+          "requirement": "星标部分覆盖、检索无结果、工具失败有不同文案和后续表现",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "F04",
+          "requirement": "重试归并展示，后台仍可查各次尝试",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "F05",
+          "requirement": "断线后补齐事件不重做任务，不出现重复步骤和重复回答",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "F06",
+          "requirement": "局部失败保留成功计算或材料结果，前后台终态一致",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "F07",
+          "requirement": "过程折叠后可重新查看，名称和来源可读，公众不依赖内部 ID",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "F08",
+          "requirement": "未接入模型文字流时不展示模拟逐字输出为真实模型流",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "F09",
+          "requirement": "有取消入口时确实停止可取消执行；状态未知时不虚报完成",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "F10",
+          "requirement": "首个受理回执丢失仍能凭原提交标识找回，首回执恢复不重复执行",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "F11",
+          "requirement": "最终结果完成但前端未收到时可恢复完整答案与引用；保存受阻时如实提示",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "F12",
+          "requirement": "网络重发、主动重跑、编辑问题及继续追问分别保持正确的提交／运行／轮次关系",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "F13",
+          "requirement": "跨访客或跨账号恢复被拒绝；恢复窗口到期不能自动创建新任务",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "F14",
+          "requirement": "必要澄清显示需要补充信息；S01—S06 的进度和后台状态一致",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        }
+      ]
+    },
+    {
+      "module": "M10",
+      "prd": "docs/iterations/2026-10-17-prd-review/revised-prd/10_后台会话审查_PRD.md",
+      "status": "engineering_delivered_pending_business_acceptance",
+      "manual_effect_evaluation_required": false,
+      "acceptance_items": [
+        {
+          "id": "A01",
+          "requirement": "会话可按轮次定位，关联上下文、材料与实际步骤",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "A02",
+          "requirement": "计划和实际工具调用可区分，失败、跳过、重试不混淆",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "A03",
+          "requirement": "能查看真实 Query、标签条件和采用证据，未采集项如实说明",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "A04",
+          "requirement": "路由、执行、检索、回答可独立标记，成功调用不自动等于正确",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "A05",
+          "requirement": "可标遗漏／多余能力和合理替代路径，记录判断依据",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "A06",
+          "requirement": "保存与修改可追溯，同轮当前有效结论仅统计一次",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "A07",
+          "requirement": "抽样来源可区分，冲突和无法判断不被算作已确定正确",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "A08",
+          "requirement": "回放形成新运行且有版本条件，原会话不被覆盖",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "A09",
+          "requirement": "正式 Run 可直接审查，无须伪建评测 execution；审查权限与旧自评权限分别执行",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "A10",
+          "requirement": "相关性与充分性独立保存，“有效＋不充分”能分别进入对应指标",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "A11",
+          "requirement": "旧 n.a.、旧证据评分和多 Run 总评不被补造成新的独立判断",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "A12",
+          "requirement": "重复提交不重复计数，并发修订被检出，当前版本切换保留完整历史",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "A13",
+          "requirement": "草稿、纯 AI 辅助、冲突待复核不进有效人工覆盖分子，未采集维度不进入对应正确率分母",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        }
+      ]
+    },
+    {
+      "module": "M11",
+      "prd": "docs/iterations/2026-10-17-prd-review/revised-prd/11_效果大盘与迭代验证_PRD.md",
+      "status": "engineering_delivered_pending_business_acceptance",
+      "manual_effect_evaluation_required": false,
+      "acceptance_items": [
+        {
+          "id": "D01",
+          "requirement": "每项指标可查看公式、有效分母、排除项和样本量",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "D02",
+          "requirement": "重试不增加提问数，成功重跑不掩盖主运行失败",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "D03",
+          "requirement": "路由正确、工具成功和回答合格分别统计",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "D04",
+          "requirement": "未审查、无法判断、待复核和不适用不误计正确率",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "D05",
+          "requirement": "部分正确单独展示，零分母显示暂无数据",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "D06",
+          "requirement": "随机和异常样本分开，指定 Skill 不混入自动路由指标",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "D07",
+          "requirement": "图表点击进入完全同口径的审查样本",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "D08",
+          "requirement": "问题可关联归因和回归用例，修改前后条件及版本可查",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "D09",
+          "requirement": "检索相关与证据充分分别判断，资料缺失不自动算路由错误",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "D10",
+          "requirement": "历史补审后更新结果可解释，未知历史字段不按当前配置补造",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "D11",
+          "requirement": "S01—S06 得到 2/3 工具步骤成功率、2/4 尝试失败率；父容器及澄清不虚增工具分母",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "D12",
+          "requirement": "同一首受理主运行在成功重跑后保持不变，网络重发不增加运行或提问计数",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "D13",
+          "requirement": "旧 n.a.、旧证据总评、AI 辅助、冲突及未采集字段不生成新人工正确率",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        },
+        {
+          "id": "D14",
+          "requirement": "相关性有效而充分性不充分可独立计数；修改审查只切换当前版本，不重复计数",
+          "engineering_status": "implemented",
+          "business_acceptance": "pending_real_samples"
+        }
+      ]
+    }
+  ]
+}

@@ -337,13 +337,6 @@
       ]
     }
   ],
-  "assets": [
-    {
-      "filename": "Nbal_out.xls",
-      "sha256": "6bf778020c6ae752da6778bc5429d1b09bc59ea1f725462dfe20207cbef88276",
-      "description": "WHCNS 氮平衡输出示例，352 条记录；仅演示结果读取，不证明输入输出运行配对。"
-    }
-  ],
   "sources": [
     {
       "name": "evidence-2026-10-03/selected-run-traces.json",

@@ -78,7 +78,7 @@ def test_expiry_password_change_and_restart_revoke_session(account_client):
 def test_password_login_preserves_permission_boundaries(account_client):
     tester = login(account_client).json()["token"]
     reviewer = login(account_client, "expert").json()["token"]
-    for path in ("/review-queue", "/assets", "/reviewers", "/runs", "/regressions"):
+    for path in ("/review-queue", "/reviewers", "/runs", "/regressions"):
         assert account_client.get(f"/api/eval{path}", headers={"Authorization": f"Bearer {tester}"}).status_code == 403
     for path in ("/reviewers", "/runs", "/regressions"):
         assert account_client.get(f"/api/eval{path}", headers={"Authorization": f"Bearer {reviewer}"}).status_code == 403

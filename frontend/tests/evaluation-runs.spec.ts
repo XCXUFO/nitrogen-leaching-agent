@@ -41,13 +41,14 @@ test('conversation records filter, paginate and reveal both turns with their tra
   await expect(page.getByText('共查到 0 条会话记录')).toBeVisible();
   await page.getByRole('button', { name: '重置' }).click();
   await expect(page.getByText('共查到 50 条会话记录')).toBeVisible();
-  await page.getByRole('button', { name: '查看', exact: true }).click();
+  await page.getByRole('link', { name: '查看', exact: true }).click();
   await expect(page).toHaveURL(/\/evaluation\/runs\/front-session-one$/);
   await expect(page.getByText('氮素淋失有哪些影响因素？', { exact: true })).toBeVisible();
   await expect(page.getByText('那灌溉呢？', { exact: true })).toBeVisible();
   await expect(page.getByLabel('路由与调用脉络')).toHaveCount(2);
   const second = page.getByRole('listitem').filter({ hasText: '那灌溉呢？' });
   await second.getByText('展开本轮 MQ 明细 · Run run-two').click();
+  await expect(second.getByRole('link', { name: '查看当前能力说明：knowledge_search' })).toHaveAttribute('href', '/evaluation/skills/knowledge_search');
   await second.getByText('路由决策').click();
   await expect(second.getByText('knowledge_intent').first()).toBeVisible();
 });

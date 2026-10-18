@@ -5,6 +5,7 @@ import asyncio
 import hashlib
 import re
 import time
+import inspect
 from collections.abc import Awaitable, Callable
 from datetime import datetime, timezone
 from uuid import uuid4
@@ -14,15 +15,20 @@ from loguru import logger
 from openai import APIConnectionError, APIError, APITimeoutError, AuthenticationError, RateLimitError
 
 from src.agent.case_ids import MAX_CASE_IDS, case_ids_in
+from src.agent.explanation_method import active_communication
 from src.agent.chat_service import ChatService, RAGQueryError, normalize_citations
 from src.agent.contracts import AnswerSection, AttachmentState, Evidence, Route, RunTrace, RunWarning, SkillName, StateSnapshot, TaskState, ToolCall
 from src.agent.composition import METRIC_TERMS, MechanismEvidenceError, split_composed
 from src.agent.file_chat import FIELD_ALIASES, parse_file_request, reply, requested_fields
+from src.agent.query_intent import has_statistic_request
 from src.model_tools.whcns_results import SCHEMAS
 from src.agent.prompt import DialogueTurn
-from src.agent.routing import FOLLOWUP, GUIDANCE, STATISTIC, crop_scope, decide
+from src.agent.routing import FOLLOWUP, GUIDANCE, crop_scope, decide
 from src.agent.skills import KnowledgeUnavailable, SkillRegistry, build_registry
 from src.agent.state import ConversationBusy, StateCapacityError, StateStore
+from src.agent.skill_config import ExpressionPreferences
+from src.agent.understanding import VERSION as UNDERSTANDING_VERSION, understand, map_tags, SWITCH, canonical, is_followup
+from src.agent.starred_match import match_starred
 from src.api.chat_schema import ChatRequest, ChatResponse
 from src.storage.run_store import RunStore
 
@@ -76,9 +82,12 @@ def collect_evidence(response: ChatResponse, run_id: str) -> list[Evidence]:
         evidence.append(Evidence(
             evidence_id=f"{run_id}:literature:{item.index}", source_type="literature", source_id=item.chunk_id,
             claim_or_value=item.snippet,
-            location={"citation_index": item.index, "chunk_id": item.chunk_id},
+            location={"citation_index": item.index, "chunk_id": item.chunk_id,
+                      **({"char_start": item.char_start, "char_end": item.char_end} if item.char_start is not None and item.char_end is not None else {})},
             provenance={"source": item.source, "title": item.title or "", "review_identity":
-                        "AI-assisted source checking" if response.model == "curated-excerpts-v1" else "unreviewed retrieval"},
+                        "AI-assisted source checking" if response.model == "curated-excerpts-v1" else "unreviewed retrieval",
+                        **({"content_version": item.content_version} if item.content_version else {}),
+                        **({"file_sha256": item.file_sha256} if item.file_sha256 else {})},
             status="curated" if response.model == "curated-excerpts-v1" else "retrieved",
         ))
     for item in response.case_references:
@@ -95,36 +104,126 @@ class AgentRuntime:
         self.states = states if states is not None else StateStore()
         self.config_version = config_version
         self.config_manifest = config_manifest or {}
+        self._observers: dict = {}
+        self._plans: set[str] = set()
+        self._active_subtasks: dict[str, list[str]] = {}
+
+    def expression_snapshot(self):
+        try:
+            snapshot = self.runs.skill_config.current()
+        except Exception:
+            logger.exception("Expression configuration unavailable; using builtin defaults")
+            snapshot = {"revision": 0, "version": "case-expression-v1:0", "values": ExpressionPreferences().model_dump(),
+                    "fallback": True, "fallback_reason": "configuration_unavailable"}
+        return {**snapshot, "communication": self.runs.prompts.active()}
+
+    def _emit(self, trace, event):
+        event = {"time": datetime.now(timezone.utc).isoformat(), **event}
+        if event.get("type") in {"step_started", "step_finished"}:
+            event = {"subtask_ids": self._active_subtasks.get(trace.run_id, [item["subtask_id"] for item in trace.understanding.get("subtasks", [])]), **event}
+        observer = self._observers.get(trace.run_id)
+        if observer:
+            observer({"event_id": str(uuid4()), "time": datetime.now(timezone.utc).isoformat(), **event})
+        if event.get("type") in {"step_started", "step_finished"}:
+            trace.execution_steps.append(dict(event))
+
+    def _service(self, trace, name, label, operation):
+        step_id = str(uuid4())
+        self._emit(trace, {"type": "step_started", "kind": "service", "step_id": step_id, "attempt_no": 1,
+                           "name": label, "service": name, "status": "running"})
+        try:
+            value = operation()
+        except Exception:
+            self._emit(trace, {"type": "step_finished", "kind": "service", "step_id": step_id, "attempt_no": 1,
+                               "name": label, "service": name, "status": "failed", "error_code": name + "_failed"})
+            raise
+        outcome = {"partial": "partial_coverage", "full": "full_coverage", "no_match": "no_result", "empty_answer": "empty_answer", "unavailable": "unavailable"}.get(value.get("status"), "has_result")
+        self._emit(trace, {"type": "step_finished", "kind": "service", "step_id": step_id, "attempt_no": 1,
+                           "name": label, "service": name, "status": "succeeded", "outcome": outcome})
+        return value
 
     async def _call(self, registry: SkillRegistry, name: SkillName, payload: dict, trace: RunTrace):
         started = time.perf_counter()
+        step_id = str(uuid4())
+        if trace.run_id in self._observers and trace.run_id not in self._plans:
+            self._emit(trace, {"type": "plan_created", "status": "planned", "skills": trace.decision.skills, "summary": "已确定本轮处理计划。"})
+            self._plans.add(trace.run_id)
+        try:
+            self._emit(trace, {"type": "step_started", "kind": "skill", "step_id": step_id, "attempt_no": 1,
+                               "skill": name, "name": registry.label(name), "status": "running", "summary": "正在使用相关能力。"})
+        except Exception:
+            # Admission succeeded but this action's start could not be recorded.
+            # Explain the blocked step without inventing a completed tool call.
+            self._emit(trace, {"type": "step_finished", "kind": "skill", "step_id": step_id, "attempt_no": 1,
+                               "skill": name, "name": registry.label(name), "status": "failed", "outcome": "not_executed",
+                               "error_code": "progress_unavailable", "summary": "执行前未能记录状态，本步骤未调用。"})
+            raise
         status, failure = "ok", None
+        outcome = "has_result"
         try:
             result = await registry.invoke(name, payload)
             if isinstance(result, ChatResponse) and result.route == "clarification":
                 status = "clarification"
+                outcome = "clarification"
+            elif isinstance(result, ChatResponse) and (result.case_match == "missing" or (name == "knowledge_search" and result.retrieved_count == 0)):
+                outcome = "no_result"
             return result
         except BaseException as exc:
             status = "cancelled" if isinstance(exc, asyncio.CancelledError) else "error"
             failure = error_code(exc)
+            outcome = "unfulfilled"
             raise
         finally:
             trace.tool_calls.append(ToolCall(skill=name, status=status, error_code=failure,
-                                             latency_ms=int((time.perf_counter() - started) * 1000)))
+                                             latency_ms=int((time.perf_counter() - started) * 1000), step_id=step_id))
+            try:
+                self._emit(trace, {"type": "step_finished", "kind": "skill", "step_id": step_id, "attempt_no": 1,
+                                   "skill": name, "name": registry.label(name),
+                                   "status": {"ok": "succeeded", "clarification": "succeeded", "error": "failed", "cancelled": "cancelled"}[status],
+                                   "outcome": outcome, "error_code": failure, "summary": "本步骤已结束。"})
+            except Exception:
+                logger.exception("Step event delayed; preserving computed output | run_id={}", trace.run_id)
+
+    async def _tool_operation(self, trace, name, operation, *, retrieval=False, kind="tool", step_id=None, attempt_no=1):
+        step_id = step_id or str(uuid4())
+        parent = next((event["step_id"] for event in reversed(trace.execution_steps) if event.get("kind") == "skill" and event["type"] == "step_started"), None)
+        base = {"kind": kind, "step_id": step_id, "parent_step_id": parent, "attempt_no": attempt_no,
+                "name": name, "operation": "retrieval" if retrieval else "calculation"}
+        self._emit(trace, {**base, "type": "step_started", "status": "running"})
+        try:
+            value = operation()
+            result = await value if inspect.isawaitable(value) else value
+        except BaseException as exc:
+            self._emit(trace, {**base, "type": "step_finished", "status": "cancelled" if isinstance(exc, asyncio.CancelledError) else "failed", "error_code": error_code(exc)})
+            raise
+        empty = (isinstance(result, list) and not result) or (retrieval and isinstance(result, tuple) and isinstance(result[0], list) and not result[0])
+        self._emit(trace, {**base, "type": "step_finished", "status": "succeeded", "outcome": "no_result" if empty else "clarification" if isinstance(result, ChatResponse) and result.outcome == "clarification" else "has_result"})
+        return result
 
     async def execute(self, body: ChatRequest, *, service: ChatService | None,
                       get_report: Callable[[str], Awaitable[dict]],
                       get_documents: Callable[[list[str]], list[dict]] | None = None,
-                      case_store=None, llm=None) -> ChatResponse:
+                      case_store=None, llm=None, run_id: str | None = None, observer=None, run_context: dict | None = None,
+                      expression_config: dict | None = None, taxonomy_provider=None, starred_provider=None) -> ChatResponse:
         started = time.perf_counter()
         conversation_id = body.session_id or str(uuid4())
-        run_id = str(uuid4())
+        run_id = run_id or str(uuid4())
+        expression_config = expression_config or self.expression_snapshot()
+        communication = expression_config.get("communication") or self.runs.prompts.active()
         trace = RunTrace(run_id=run_id, conversation_ref=digest(conversation_id), input=body.query,
                          history_count=len(body.history),
                          started_at=datetime.now(timezone.utc).isoformat(), state_before=StateSnapshot(),
-                         config_version=self.config_version, config_manifest=self.config_manifest)
+                         config_version=self.config_version, config_manifest=self.config_manifest,
+                         skill_config={"case_explanation": expression_config,
+                                       "communication": communication},
+                         request_snapshot={**body.model_dump(exclude={"file_id", "file_ids", "operator_id", "session_id"}),
+                                           "has_attachments": bool(body.file_id or body.file_ids)},
+                         **(run_context or {}))
+        if observer:
+            self._observers[run_id] = observer
         response = None
         execution_error = None
+        communication_token = active_communication.set(communication)
         try:
             with self.states.lease(conversation_id, body.file_id, session_files=body.file_ids is not None) as state:
                 if body.file_ids is not None:
@@ -135,7 +234,9 @@ class AgentRuntime:
                 trace.state_before = snapshot(state)
                 try:
                     documents = get_documents(state.session_file_ids) if get_documents and state.session_files_enabled else []
-                    response = await self._execute(body, state, trace, build_registry(service, get_report, case_store=case_store, llm=llm), documents)
+                    response = await self._orchestrate(body, state, trace, service=service, get_report=get_report,
+                                                       case_store=case_store, llm=llm, documents=documents,
+                                                       expression_config=expression_config, taxonomy_provider=taxonomy_provider, starred_provider=starred_provider)
                 except BaseException:
                     # A failed calculation may not leave an earlier metric ready for inference.
                     if trace.decision and trace.decision.route in {Route.FILE_ANALYSIS, Route.COMPOSED}:
@@ -143,7 +244,10 @@ class AgentRuntime:
                     raise
                 finally:
                     trace.state_after = snapshot(state)
-            response.answer, response.citations, citation_mapping = normalize_citations(response.answer, response.citations)
+            if "trial_prompt" in expression_config:
+                citation_mapping = {}
+            else:
+                response.answer, response.citations, citation_mapping = normalize_citations(response.answer, response.citations)
             for section in response.sections:
                 section.content = re.sub(r"\[(\d+)\](?!\()", lambda match: f"[{citation_mapping[int(match[1])]}]" if int(match[1]) in citation_mapping else "", section.content)
                 section.citation_indices = [citation_mapping[index] for index in section.citation_indices if index in citation_mapping]
@@ -151,6 +255,15 @@ class AgentRuntime:
             response.conversation_id = conversation_id
             response.agent_route = trace.decision.route
             response.evidence = collect_evidence(response, run_id)
+            for item in trace.starred_match.get("adopted", []):
+                response.evidence.append(Evidence(evidence_id=f"{run_id}:starred:{item['question_id']}", source_type="starred",
+                    source_id=item["question_id"], claim_or_value=item["answer"], status="maintained", subtask_ids=[item["subtask_id"]],
+                    provenance={"fingerprint": item["fingerprint"], "source": "已有专业问答"}))
+            for item in response.evidence:
+                if not item.subtask_ids: item.subtask_ids = self._active_subtasks.get(run_id, [task["subtask_id"] for task in trace.understanding.get("subtasks", [])])
+                if item.source_type == "case":
+                    record = next((candidate for selection in trace.retrieval for candidate in selection.get("candidates", []) if candidate.get("id") == item.source_id and candidate.get("selected")), None)
+                    if record: item.provenance.update({"fingerprint": record["fingerprint"], "revision": str(record["revision"]), "location": record["location"]})
             for section in response.sections:
                 section.evidence_ids = [item.evidence_id for item in response.evidence
                                         if (item.source_type == "literature" and item.location.get("citation_index") in section.citation_indices)
@@ -167,6 +280,10 @@ class AgentRuntime:
             setattr(exc, "agent_run_id", run_id)
             raise
         finally:
+            active_communication.reset(communication_token)
+            self._observers.pop(run_id, None)
+            self._plans.discard(run_id)
+            self._active_subtasks.pop(run_id, None)
             trace.latency_ms = int((time.perf_counter() - started) * 1000)
             try:
                 self.runs.append(trace, session_id=conversation_id, operator_id=body.operator_id)
@@ -181,9 +298,85 @@ class AgentRuntime:
                 if response is not None:
                     response.trace_saved = False
 
+    async def _orchestrate(self, body, state, trace, *, service, get_report, case_store, llm, documents,
+                           expression_config, taxonomy_provider, starred_provider):
+        taxonomy = None
+        try:
+            taxonomy = taxonomy_provider() if taxonomy_provider else None
+        except Exception:
+            logger.warning("Taxonomy unavailable; preserving text query | run_id={}", trace.run_id)
+        try:
+            trace.understanding = self._service(trace, "understanding", "理解本轮问题与相关上下文", lambda: understand(body, state, trace, taxonomy))
+        except Exception:
+            # Do not guess context after failed interpretation.
+            trace.understanding = {"status": "degraded", "version": UNDERSTANDING_VERSION, "raw_query": body.query,
+                "resolved_query": body.query, "queries": [body.query], "conditions": [], "concepts": [], "anchors": [], "unresolved": [],
+                "subtasks": [{"subtask_id": f"{trace.run_id}:task:1", "query": body.query, "intent": "knowledge", "depends_on": []}]}
+        trace.tag_mapping = self._service(trace, "tag_mapping", "核对问题概念与共享标签", lambda: map_tags(trace.understanding, taxonomy))
+        def record_retrieval(selection):
+            trace.retrieval.append({"source_type": "case", "subtask_ids": self._active_subtasks.get(trace.run_id, []), **selection})
+        async def tool_runner(name, operation, **options):
+            return await self._tool_operation(trace, name, operation, **options)
+        registry = build_registry(service, get_report, case_store=case_store, llm=llm, expression_config=expression_config,
+                                  understanding=trace.understanding, tag_mapping=trace.tag_mapping, retrieval_observer=record_retrieval, tool_runner=tool_runner)
+        trace.decision = decide(body.query, has_file=bool(state.session_file_ids) if state.session_files_enabled else bool(body.file_id))
+        if "trial_prompt" in expression_config:
+            trace.decision.route = Route.KNOWLEDGE
+            trace.decision.skills = ["case_explanation"]
+            trace.decision.reason_code = "prompt_comparison"
+            return await self._call(registry, "case_explanation", {"query": body.query}, trace)
+        clarification = next((item["message"] for item in trace.understanding.get("unresolved", []) if item["requires_clarification"]), None)
+        if clarification:
+            trace.decision.route, trace.decision.skills, trace.decision.reason_code = Route.CLARIFY, ["clarification"], "uncertain_context"
+            return await self._call(registry, "clarification", {"message": clarification}, trace)
+        if SWITCH.search(body.query):
+            state.crop = None
+            state.current_case_ids = []
+            state.case_clarification_pending = False
+        trace.starred_match = {"status": "not_applicable"}
+        if not body.case_skill and trace.decision.route == Route.KNOWLEDGE and starred_provider:
+            try:
+                trace.starred_match = self._service(trace, "starred_match", "查找已有专业问答并核对覆盖范围",
+                                                    lambda: match_starred(trace.understanding, starred_provider()))
+            except Exception:
+                trace.starred_match = {"status": "failed", "error_code": "starred_match_failed", "adopted": [], "remaining_subtask_ids": [task["subtask_id"] for task in trace.understanding["subtasks"]]}
+        adopted = trace.starred_match.get("adopted", [])
+        if adopted and not trace.starred_match["remaining_subtask_ids"]:
+            trace.decision.skills, trace.decision.reason_code = [], "starred_full_coverage"
+            response = reply("参考已有专业问答：\n\n" + "\n\n".join(item["answer"] for item in adopted))
+            response.route, response.outcome, response.model = "knowledge", "complete", "maintained-qa-v1"
+            state.last_tool = None
+        else:
+            continuation = body
+            if adopted:
+                self._active_subtasks[trace.run_id] = trace.starred_match["remaining_subtask_ids"]
+                remaining = [task["query"] for task in trace.understanding["subtasks"] if task["subtask_id"] in trace.starred_match["remaining_subtask_ids"]]
+                continuation = body.model_copy(update={"query": "；".join(remaining)})
+            try:
+                response = await self._execute(continuation, state, trace, registry, documents)
+            except Exception as exc:
+                if not adopted: raise
+                response = reply("未覆盖部分本次未能完成，请补充条件或稍后重新执行。")
+                response.outcome = "partial"
+                response.warnings = [RunWarning(code=error_code(exc), message="后续处理未完成，已有问答的可用内容已保留。")]
+            if adopted:
+                response.answer = "参考已有专业问答：\n\n" + "\n\n".join(item["answer"] for item in adopted) + "\n\n其余问题：\n\n" + response.answer
+                if response.outcome == "clarification": response.outcome = "partial"
+        state.understanding_context = trace.understanding
+        state.material_anchors = [{"source_turn_id": trace.turn_id, "source_run_id": trace.run_id, "source_type": "case", "source_id": item.id,
+                                   "title": item.title, "version": next((record.get("fingerprint") for selection in trace.retrieval for record in selection.get("candidates", []) if record.get("id") == item.id), None)} for item in response.case_references]
+        state.material_anchors += [{"source_turn_id": trace.turn_id, "source_run_id": trace.run_id, "source_type": "literature", "source_id": item.chunk_id,
+                                    "version": hashlib.sha256(item.snippet.encode()).hexdigest()} for item in response.citations]
+        state.material_anchors += [{"source_turn_id": trace.turn_id, "source_run_id": trace.run_id, "source_type": "file", "source_id": item.sha256,
+                                   "version": item.sha256, "filename": item.filename, "field": item.field, "cell": item.cell} for item in response.file_evidence]
+        return response
+
     async def _execute(self, body: ChatRequest, state: TaskState, trace: RunTrace,
                        registry: SkillRegistry, documents: list[dict]) -> ChatResponse:
-        crop_changed, crop = crop_scope(body.query)
+        crop_changed, crop = crop_scope(canonical(body.query))
+        current_crops = [item["value"] for item in trace.understanding.get("conditions", []) if item.get("category") == "crop" and item.get("source") == "current_user" and not item.get("negated")]
+        if len(set(current_crops)) == 1:
+            crop_changed, crop = True, current_crops[0]
         if crop_changed:
             state.crop = crop
         session_files = state.session_files_enabled
@@ -221,7 +414,7 @@ class AgentRuntime:
             if case_followup:
                 # Keep only identifiers and user text in session state, never old case facts.
                 # The handler re-reads every selected ID from the authoritative store.
-                ids = state.current_case_ids
+                ids = trace.understanding.get("resolved_case_ids") or state.current_case_ids
                 context_text = state.case_context_text
             elif skill == "case_reference" and not new_text and re.search(r"类似|这种情况|别人", body.query):
                 context_text = next((turn.content for turn in reversed(body.history) if turn.role == "user"), "")
@@ -233,7 +426,7 @@ class AgentRuntime:
                 if len(next_context) > 24000:
                     raise HTTPException(413, detail={"code": "case_capacity", "message": "累计补充内容超过容量，请在新对话中精简说明。"})
             lookup_cases = body.case_skill is None and bool(re.search(r"案例|库中|库内", body.query)) and not new_text
-            result = await self._call(registry, skill, {"query": body.query, "case_ids": ids,
+            result = await self._call(registry, skill, {"query": trace.understanding.get("resolved_query", body.query) if body.query == trace.input else body.query, "case_ids": ids,
                                       "lookup_cases": lookup_cases, "context_text": context_text}, trace)
             executed = [skill]
             if len(trace.decision.skills) > 1 and result.case_references and result.outcome == "complete":
@@ -258,7 +451,7 @@ class AgentRuntime:
         document_only = bool(documents) and len(documents) == len(state.session_file_ids)
         if documents and route in {Route.FILE_ANALYSIS, Route.COMPOSED} and (
             document_only or re.search(r"\.(?:txt|md|pdf|docx?)\b", body.query, re.I)
-            or (route == Route.FILE_ANALYSIS and not STATISTIC.search(body.query)
+            or (route == Route.FILE_ANALYSIS and not has_statistic_request(body.query)
                 and not re.search(r"\.(?:xls|xlsx)\b|nbal_out|wtabal_out|waterbal_out", body.query, re.I))
         ):
             trace.decision.route = route = Route.KNOWLEDGE
@@ -328,7 +521,7 @@ class AgentRuntime:
         if route == Route.COMPOSED:
             return await self._compose(body, state, trace, registry, documents)
         history = [DialogueTurn(role=m.role, content=m.content) for m in body.history]
-        query = body.query
+        query = trace.understanding.get("resolved_query", body.query) if body.query == trace.input else body.query
         if state.crop:
             # Explicit scope changes supersede prior context. Later follow-ups retain
             # necessary dialogue and repeat the constraint even after history truncation.
@@ -342,11 +535,33 @@ class AgentRuntime:
             query = (f"当前作物约束：{state.crop}。只讨论该作物；不得将其他作物的研究结论直接迁移，"
                      f"证据不足时请明确说明。\n本轮问题：{body.query}")
         state.last_tool = "knowledge_search"
-        factor_question = bool(re.search(r"(?:氮素|硝态氮|硝酸盐).*?(?:淋失|淋洗).*?因素|哪些因素.*?(?:淋失|淋洗)", body.query))
+        factor_pattern = r"(?:氮素|硝态氮|硝酸盐).*?(?:淋失|淋洗).*?因素|哪些因素.*?(?:淋失|淋洗)"
+        factor_question = bool(re.search(factor_pattern, body.query))
+        previous_questions = []
+        if is_followup(body.query):
+            # Retain the ongoing user topic and source constraints, stopping at
+            # its standalone question so earlier topics cannot leak back in.
+            for turn in reversed(history):
+                if turn.role != "user":
+                    continue
+                previous_questions.append(turn.content)
+                if not is_followup(turn.content):
+                    break
+        previous_scope = "\n".join(reversed(previous_questions))
+        source_scope = previous_scope + "\n" + body.query
+        if (previous_scope and re.search(r"因素|因子|影响|作用|贡献|重要|关键|主导|为什么|为何|原因|机制|机理", body.query)
+                and re.search(factor_pattern, previous_scope)):
+            factor_question = True
+            # Mechanism retrieval also needs the subject; it does not consume
+            # dialogue history as factual evidence.
+            query = f"前文用户问题与约束：\n{previous_scope}\n本轮问题：{query}"
+        source_bound = bool(re.search(r"文献|论文|研究中|研究表明|参考资料|知识库|原文|正文|引用|出处|证据|doi|https?://|\[\d+\]", source_scope, re.I))
+        general_factors = factor_question and not documents and not source_bound
         try:
             result = await self._call(registry, "knowledge_search",
                                       {"query": query, "k": body.k, "history": history,
-                                       "mode": "mechanisms" if factor_question and not documents else "answer", "crop": state.crop,
+                                       "mode": "mechanisms" if factor_question and not documents and source_bound else "answer", "crop": state.crop,
+                                       "allow_general_knowledge": general_factors,
                                        "purpose": "maize_factors" if factor_question and state.crop == "玉米" else "general",
                                        "session_documents": documents}, trace)
         except MechanismEvidenceError as exc:
@@ -357,7 +572,7 @@ class AgentRuntime:
             elif exc.code == "mechanism_output_invalid":
                 message = "已找到候选正文，但本次机制回答的格式校验未通过，暂未生成可核对的结论。请重试；这不代表知识库缺少相关文献。"
             else:
-                message = "已找到候选正文，但本次生成的机制结论与引用或适用范围未通过核对。请重试或进一步限定研究场景。"
+                message = "已找到候选正文，但自动重试后生成的机制结论与引用或适用范围仍未通过核对，暂未生成可核对的回答。可稍后重试；这不代表你的问题有误或知识库缺少相关文献。"
             result = await self._call(registry, "clarification", {"message": message}, trace)
             result.warnings = [RunWarning(code=exc.code, message=message)]
         return result

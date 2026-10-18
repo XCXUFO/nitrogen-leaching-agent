@@ -1,0 +1,12 @@
+{
+  "ready": true,
+  "frontend_status": 200,
+  "static_assets_verified": 20,
+  "initial_prompt_versions": [
+    "原版解释 v1",
+    "增强解释 v2"
+  ],
+  "active_prompt": "增强解释 v2",
+  "build_id": "THk7nMKgK5c4cKRTOtggF",
+  "backend_build_version": "delivery-20261017-0600872a44d5"
+}

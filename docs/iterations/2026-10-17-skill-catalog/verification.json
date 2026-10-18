@@ -1,0 +1,118 @@
+{
+  "iteration": "M08 read-only Skill catalog",
+  "checked_at": "2026-10-17T08:43:12.122604+00:00",
+  "routes": [
+    "/evaluation/skills",
+    "/evaluation/skills/{name}",
+    "/api/eval/skills",
+    "/api/eval/skills/{name}"
+  ],
+  "backend_tests": [
+    {
+      "files": [
+        "backend/tests/test_skill_catalog.py"
+      ],
+      "passed": 15,
+      "seconds": 3.61
+    },
+    {
+      "files": [
+        "backend/tests/test_evaluation.py",
+        "backend/tests/test_agent_runtime.py",
+        "backend/tests/test_health.py"
+      ],
+      "passed": 75,
+      "seconds": 13.36
+    }
+  ],
+  "browser_tests": {
+    "files": [
+      "frontend/tests/skill-catalog.spec.ts",
+      "frontend/tests/evaluation-navigation.spec.ts",
+      "frontend/tests/evaluation-runs.spec.ts"
+    ],
+    "passed": 9,
+    "seconds": 37.2,
+    "api_mode": "mocked browser APIs; backend independently verified using TestClient and in-memory databases"
+  },
+  "typescript": "passed",
+  "changed_frontend_eslint": "passed",
+  "production_build": {
+    "status": "passed",
+    "dist_dir": ".next-skills"
+  },
+  "live_llm_requests": 0,
+  "business_database_modified": false,
+  "production_deployed": false,
+  "deferred": [
+    "Prompt editing and persistence",
+    "Per-run configuration snapshots for mutable fields",
+    "Full M01/M06/M09 runtime changes"
+  ],
+  "files": [
+    {
+      "path": ".gitignore",
+      "sha256": "aca76a5b9d7e9c08be134e5f0a1fa65afb6da268fae03234dd43c0314178eba5"
+    },
+    {
+      "path": "frontend/.gitignore",
+      "sha256": "a9b93ea4918819cd2b40eb42fe181193a5048f8fe37e56b7bd2a9a1688676838"
+    },
+    {
+      "path": "backend/src/agent/skill_catalog.py",
+      "sha256": "3df60431429860bf1a5c707a197e8ebc91a03b9d727e6ae75ab77eda5daac694"
+    },
+    {
+      "path": "backend/src/api/evaluation.py",
+      "sha256": "73ea68049fe504a62842c1c7c67e0f0a51cdbf5ddb462c6512839ab39a96e244"
+    },
+    {
+      "path": "backend/tests/test_skill_catalog.py",
+      "sha256": "9e2fbc0b197366a03f4fd8c426892cbd4b18d5c51d169f88280f90645b9c1feb"
+    },
+    {
+      "path": "frontend/src/lib/skill-catalog.ts",
+      "sha256": "3c32fdd80969633808d6605c2be48098b12984ce06519d4b2b4907015df6c22c"
+    },
+    {
+      "path": "frontend/src/lib/evaluation-navigation.ts",
+      "sha256": "1dc54fd2a9bd152dc714962b73fefc5a90e6315faaef83a66a655938823bb66d"
+    },
+    {
+      "path": "frontend/src/components/skill-workspace.tsx",
+      "sha256": "1fa0eeb55762906d229856349d012baf66a919937d0c8da73a366bb94d85a2ee"
+    },
+    {
+      "path": "frontend/src/components/evaluation-shell.tsx",
+      "sha256": "52964992e3503c711aa3b6c21951371a3062aa095313f23824b780b584dbe890"
+    },
+    {
+      "path": "frontend/src/components/evaluation-runs.tsx",
+      "sha256": "beae3c9bdebbcb492cb76fb611a5602f446d189693d301ddb821ba4e95a052e8"
+    },
+    {
+      "path": "frontend/src/app/evaluation/[...path]/page.tsx",
+      "sha256": "0a185fbc574afbf993b184990fce30d57b19b5cc1a047b13a022d7c628341676"
+    },
+    {
+      "path": "frontend/tests/skill-catalog.spec.ts",
+      "sha256": "1d2e4c1a1619391a9e89a706394bb6837b547c1d9370ac798a1bbdd97990d203"
+    },
+    {
+      "path": "frontend/tests/evaluation-runs.spec.ts",
+      "sha256": "ae01efe322eed35cb21d181dcc6fa4772803f1d2a5f7968ad6b7319a87011168"
+    },
+    {
+      "path": "frontend/README.md",
+      "sha256": "3bb28345e3917d82e41a7d697e55120220473477cf0d520cde6b1781946b2ca8"
+    },
+    {
+      "path": "frontend/next.config.ts",
+      "sha256": "af7d779dee478a5669c8adc42f659c1c846703d18585d6ebc95d3272a24a8346"
+    },
+    {
+      "path": "frontend/tsconfig.json",
+      "sha256": "6b86d4bfa75b9a60f8ab4aa3a3817272051dc2b89f9cdb4a758cd67cb7725295"
+    }
+  ]
+}

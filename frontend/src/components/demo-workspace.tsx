@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { AccountNavigation } from "./account-navigation";
 import { useEffect, useState } from "react";
-import { ArrowLeft, ArrowRight, FlaskConical, LockKeyhole, Search } from "lucide-react";
+import { ArrowLeft, ArrowRight, FlaskConical, LockKeyhole, Search, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { apiBaseUrl } from "@/lib/api";
 import { ShowcaseLiterature } from "@/components/showcase-literature";
 import { MarkdownAnswer } from "@/components/chat/markdown-answer";
+import { evaluationModules } from "@/lib/evaluation-navigation";
+import { ShowcaseCases, ShowcaseQuestions } from "./showcase-workbench";
 
 type Run = { run_id: string; started_at: string; input: string; answer: string; latency_ms: number; route: string;
   citations: { index: number; title: string; excerpt: string }[];
@@ -14,26 +16,27 @@ type Run = { run_id: string; started_at: string; input: string; answer: string; 
 type Case = { id: string; title: string; category: string; summary: string; expected: string[]; status: string;
   review: string; runs: Run[]; source: string; stages?: string[]; comparison?: { label: string; overall: string; execution_id: string }[] };
 type Catalog = { version: string; published_on: string; notice: string; cases: Case[];
-  assets: { filename: string; sha256: string; description: string }[]; sources: { name: string; sha256: string }[] };
-const modules = [["overview", "工作台总览"], ["literature", "文献管理"], ["literature-tags", "标签管理"], ["tasks", "评测任务"], ["cases", "用例库"], ["executions", "执行记录"],
-  ["issues", "问题管理"], ["regressions", "回归对比"], ["reviews", "审核状态"], ["assets", "资料与证据"], ["runs", "运行记录"]];
+  sources: { name: string; sha256: string }[] };
+const modules = evaluationModules.map((item) => [item.key, item.title]);
 
 export function DemoWorkspace({ section, detail }: { section: string; detail: string }) {
   const isLiterature = section === "literature" || section === "literature-tags";
+  const isExperience = isLiterature || section === "case-library" || section === "starred-questions";
+  const [collapsed, setCollapsed] = useState(false);
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
   useEffect(() => {
-    if (isLiterature) return;
+    if (isExperience) return;
     const controller = new AbortController();
     fetch(`${apiBaseUrl}/api/demo/catalog`, { signal: controller.signal }).then(async (r) => {
       if (!r.ok) throw new Error("暂时无法读取展示案例。");
       setCatalog(await r.json()); setError("");
     }).catch((e) => { if (e.name !== "AbortError") setError("暂时无法读取展示案例，请稍后重试。"); });
     return () => controller.abort();
-  }, [attempt, isLiterature]);
+  }, [attempt, isExperience]);
   const title = modules.find(([key]) => key === section)?.[1] ?? "工作台总览";
   const selected = catalog?.cases.find((c) => c.id === detail);
   const filtered = (catalog?.cases ?? []).filter((c) =>
@@ -47,21 +50,22 @@ export function DemoWorkspace({ section, detail }: { section: string; detail: st
       <span className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-emerald-800">查看过程与依据 <ArrowRight size={15} /></span>
     </Link>)}</div>;
   }
-  return <div className="min-h-dvh bg-slate-50 lg:pl-60">
-    <aside className="fixed inset-y-0 left-0 hidden w-60 flex-col border-r bg-white lg:flex">
-      <Link href="/showcase" className="flex h-20 items-center gap-3 border-b px-6 font-semibold text-emerald-900"><FlaskConical size={23} />评测工作台</Link>
-      <nav aria-label="展示后台导航" className="flex-1 space-y-1 overflow-y-auto p-3">{modules.map(([key, label]) => <Link key={key} href={`/showcase/${key}`} aria-current={section === key ? "page" : undefined}
-        className={`block rounded-lg px-4 py-3 text-sm ${section === key ? "bg-emerald-50 font-semibold text-emerald-900" : "text-slate-600 hover:bg-slate-100"}`}>{label}</Link>)}</nav>
-      <p className="border-t p-5 text-xs leading-6 text-slate-500">公开案例与流程示例<br />访客聊天不会出现在这里。</p>
+  return <div className={`min-h-dvh bg-slate-50 ${collapsed ? "lg:pl-[76px]" : "lg:pl-[232px]"}`}>
+    <aside className={`fixed inset-y-0 left-0 hidden flex-col border-r bg-white lg:flex ${collapsed ? "w-[76px]" : "w-[232px]"}`}>
+      <Link href="/showcase" aria-label="展示工作台" className="flex h-16 shrink-0 items-center gap-3 border-b px-6 font-semibold text-emerald-900"><FlaskConical size={23} className="shrink-0" /><span className={collapsed ? "sr-only" : ""}>展示工作台</span></Link>
+      <nav aria-label="展示后台导航" className="flex-1 space-y-3 overflow-y-auto p-3">{["工作台", "评测管理", "质量管理", "资料与证据"].map((group) => <div key={group}><p className={`mb-1 px-3 text-[11px] text-slate-400 ${collapsed ? "sr-only" : ""}`}>{group}</p>{evaluationModules.filter((item) => item.group === group).map((item) => <Link key={item.key} href={`/showcase/${item.key}`} aria-current={section === item.key ? "page" : undefined} title={item.title}
+        className={`flex min-h-8 items-center rounded-lg px-3 py-1 text-sm ${section === item.key ? "bg-emerald-50 font-semibold text-emerald-900" : "text-slate-600 hover:bg-slate-100"}`}><span aria-hidden="true" className={collapsed ? "text-xs" : "hidden"}>{item.title.slice(0, 2)}</span><span className={collapsed ? "sr-only" : ""}>{item.title}</span></Link>)}</div>)}</nav>
+      <button className="m-3 flex justify-center rounded-lg border p-2 text-slate-500" aria-label={collapsed ? "展开侧边栏" : "收起侧边栏"} onClick={() => setCollapsed(!collapsed)}>{collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}</button>
     </aside>
     <header className="border-b bg-white px-5 py-4 sm:px-8"><div className="flex flex-wrap items-center justify-between gap-3">
       <Link href="/" className="inline-flex items-center gap-2 text-sm text-slate-600"><ArrowLeft size={16} />体验助手</Link>
-      <div className="flex flex-wrap items-center gap-4"><span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs text-emerald-900"><LockKeyhole size={13} />{isLiterature ? "展示模式 · 流程体验" : "展示模式 · 仅供浏览"}</span><AccountNavigation /></div>
+      <div className="flex flex-wrap items-center gap-4"><span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs text-emerald-900"><LockKeyhole size={13} />{isExperience ? "展示模式 · 流程体验" : "展示模式 · 仅供浏览"}</span><AccountNavigation /></div>
     </div><nav aria-label="移动端展示导航" className="mt-4 flex gap-2 overflow-x-auto pb-1 lg:hidden">{modules.map(([key, label]) => <Link className={`shrink-0 rounded-lg px-3 py-2 text-sm ${section === key ? "bg-emerald-50 text-emerald-900" : "bg-slate-50 text-slate-600"}`} key={key} href={`/showcase/${key}`}>{label}</Link>)}</nav></header>
     <main className="mx-auto max-w-6xl space-y-6 p-5 sm:p-8">
-      <div><p className="text-xs font-medium text-emerald-800">农业模型助手 / 质量与证据</p><h1 className="mt-2 text-2xl font-semibold tracking-tight">{isLiterature ? detail ? detail === "new" ? "新增文献示例" : "文献详情" : title : detail ? selected?.title ?? "案例详情" : title}</h1>
-        <p className="mt-2 text-sm leading-6 text-slate-500">{isLiterature ? "体验论文收集、信息登记与分类整理的过程。" : "查看一个回答如何被测试、追踪与复核。"}</p></div>
-      {isLiterature ? <ShowcaseLiterature section={section} detail={detail} /> : error ? <div role="alert" className="rounded-xl border bg-white p-6">{error}<button onClick={() => setAttempt(attempt + 1)} className="ml-4 text-emerald-800 underline">重新加载</button><Link href="/" className="ml-4 underline">返回助手</Link></div> : !catalog ? <p role="status">正在读取公开案例…</p> : <>
+      <div><p className="text-xs font-medium text-emerald-800">农业模型助手 / 资料、能力与验证</p><h1 className="mt-2 text-2xl font-semibold tracking-tight">{isExperience ? detail ? detail === "new" ? "新增资料示例" : "资料详情" : title : detail ? selected?.title ?? "案例详情" : title}</h1>
+        <p className="mt-2 text-sm leading-6 text-slate-500">{isExperience ? "体验资料整理、AI 辅助与问题维护的过程。" : "查看一个回答如何被测试、追踪与复核。"}</p></div>
+      {section === "overview" && <ShowcaseUpdates />}
+      {isLiterature ? <ShowcaseLiterature section={section} detail={detail} /> : section === "case-library" ? <ShowcaseCases detail={detail} /> : section === "starred-questions" ? <ShowcaseQuestions /> : error ? <div role="alert" className="rounded-xl border bg-white p-6">{error}<button onClick={() => setAttempt(attempt + 1)} className="ml-4 text-emerald-800 underline">重新加载</button><Link href="/" className="ml-4 underline">返回助手</Link></div> : !catalog ? <p role="status">正在读取公开案例…</p> : <>
         <p className="rounded-xl border border-emerald-100 bg-emerald-50/60 px-4 py-3 text-xs leading-6 text-emerald-950">{catalog.notice}</p>
         {detail ? selected ? <>
           <Link href={`/showcase/${section}`} className="inline-flex items-center gap-2 text-sm text-emerald-800"><ArrowLeft size={15} />返回{title}</Link>
@@ -74,9 +78,8 @@ export function DemoWorkspace({ section, detail }: { section: string; detail: st
             <details className="mt-4 border-t pt-3 text-xs text-slate-500"><summary className="cursor-pointer">查看运行追踪</summary><div className="mt-3 space-y-2 break-all"><p>Run：{run.run_id}</p><p>路由：{run.route}</p><p>工具：{run.tools.map((t) => `${t.skill} (${t.status})`).join(" → ") || "无工具调用"}</p></div></details>
           </article>)}</section>
           <details className="text-xs text-slate-500"><summary className="cursor-pointer">公开快照来源</summary><p className="mt-2 break-all">{selected.source}</p><p className="mt-2 break-all">SHA-256：{catalog.sources.find((s) => s.name === selected.source)?.sha256}</p></details>
-        </> : <p>未找到公开案例。<Link href="/showcase" className="ml-2 underline">返回总览</Link></p> : section === "assets" ? <div className="space-y-4">{catalog.assets.map((a) => <article key={a.sha256} className="rounded-2xl border bg-white p-6"><h2 className="font-semibold">{a.filename}</h2><p className="mt-3 text-sm leading-7 text-slate-600">{a.description}</p><p className="mt-3 break-all text-xs text-slate-500">SHA-256：{a.sha256}</p><Link href="/" className="mt-5 inline-flex items-center gap-2 text-sm text-emerald-800">返回助手，使用示例文件 <ArrowRight size={15} /></Link></article>)}</div> : <>
+        </> : <p>未找到公开案例。<Link href="/showcase" className="ml-2 underline">返回总览</Link></p> : <>
           {section === "overview" && <>
-            <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-emerald-200 bg-white p-6"><div><p className="text-xs font-medium text-emerald-700">新增 · 文献库流程体验</p><h2 className="mt-2 text-lg font-semibold">从一份 PDF 到可维护的文献记录</h2><p className="mt-2 text-sm text-slate-500">先进入全局库，再逐篇补充信息、分类打标，完成登记。</p></div><Link href="/showcase/literature" className="inline-flex items-center gap-2 rounded-lg bg-emerald-800 px-4 py-2.5 text-sm font-medium text-white">体验文献管理 <ArrowRight size={16} /></Link></section>
             <section className="rounded-2xl bg-emerald-950 p-6 text-white sm:p-8"><h2 className="text-xl font-semibold">回答之外，还要能解释如何验证。</h2><p className="mt-3 max-w-2xl text-sm leading-7 text-emerald-100">这里展示文件计算、多轮对话与文献问答的历史运行，以及评测问题闭环。你可以沿着问题、回答、依据和复测逐步查看。</p><Link href="/showcase/cases/follow-up" className="mt-5 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-emerald-950">从一个完整对话案例开始 <ArrowRight size={16} /></Link></section>
             <div className="grid grid-cols-3 gap-3">{[[String(catalog.cases.filter((c) => c.id !== "workflow").length), "历史能力案例"], ["1", "合成流程演示"], ["待完成", "独立专业审核"]].map(([value, label]) => <div key={label} className="rounded-xl border bg-white p-4"><p className="text-xl font-semibold text-emerald-900">{value}</p><p className="mt-2 text-xs text-slate-500">{label}</p></div>)}</div>
           </>}
@@ -91,4 +94,17 @@ export function DemoWorkspace({ section, detail }: { section: string; detail: st
       </>}
     </main>
   </div>;
+}
+
+function ShowcaseUpdates() {
+  return <section className="space-y-4" aria-label="近期功能更新">
+    <div><p className="text-xs font-medium text-emerald-700">同步至 2026-10-17</p><h2 className="mt-2 text-lg font-semibold">从资料整理到有依据的回答</h2><p className="mt-2 text-sm leading-6 text-slate-600">文献、案例共用分类标签；批量处理后逐项审核；专业问题与人工答案集中维护。</p></div>
+    <div className="grid gap-3 sm:grid-cols-2">{[
+      ["literature", "文献批量导入与 AI 辅助", "体验预置批次、字段与摘要结论建议、批量打标及审核登记。", "体验文献管理"],
+      ["case-library", "案例与措施", "整理原文、审核解释初稿、控制开放状态，并体验参考、解释与比较追问。", "体验案例与措施"],
+      ["starred-questions", "共享星标问题", "录入专业问题及人工答案。正式工作台共享保存；此处使用独立示例。", "体验星标问题"],
+      ["literature-tags", "文献与案例共享标签", "按多级地区、主题与研究对象分类，从关联数量追溯资料。", "体验共享标签"],
+    ].map(([key, heading, description, action]) => <article key={key} className="rounded-xl border bg-white p-5"><h3 className="font-semibold">{heading}</h3><p className="mt-2 text-sm leading-6 text-slate-500">{description}</p><Link href={`/showcase/${key}`} className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-emerald-800">{action}<ArrowRight size={15} /></Link></article>)}</div>
+    <details className="rounded-xl border bg-white p-4 text-sm"><summary className="cursor-pointer font-medium">助手能力与资料流转边界</summary><ul className="mt-3 list-disc space-y-2 pl-5 leading-6 text-slate-600"><li>文献问答可附引用；WHCNS 氮、水平衡结果表支持单字段整表极值与单元格依据。可回到助手实际提问。</li><li>案例支持参考、解释、组合比较及多轮追问；关闭案例后，后续问答不再引用。</li><li>文献登记不会自动重建 RAG 索引；星标问题不会自动进入检索或评测。</li><li>AI 建议需要核对原文。当前不提供模型仿真、自动校准、联网文献搜索或扫描件 OCR。</li></ul></details>
+  </section>;
 }

@@ -42,7 +42,19 @@
     ".next-demo/types/**/*.ts",
     ".next-demo/dev/types/**/*.ts",
     ".next-chat-p00/types/**/*.ts",
-    ".next-chat-p00/dev/types/**/*.ts"
+    ".next-chat-p00/dev/types/**/*.ts",
+    ".next-skills/types/**/*.ts",
+    ".next-skills/dev/types/**/*.ts",
+    ".next-runs/types/**/*.ts",
+    ".next-runs/dev/types/**/*.ts",
+    ".next-prd/types/**/*.ts",
+    ".next-prd/dev/types/**/*.ts",
+    ".next-prompts/types/**/*.ts",
+    ".next-prompts/dev/types/**/*.ts",
+    ".next-prompts-md/types/**/*.ts",
+    ".next-prompts-md/dev/types/**/*.ts",
+    ".next-reviews/types/**/*.ts",
+    ".next-reviews/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

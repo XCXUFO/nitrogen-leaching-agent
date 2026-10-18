@@ -1,0 +1,19 @@
+{
+  "agent_trace_db": {
+    "agent_runs": 87,
+    "eval_cases": 34,
+    "eval_executions": 10,
+    "eval_reviews": 4,
+    "eval_tasks": 1,
+    "explanation_trials": 1
+  },
+  "case_library_db": {
+    "reference_cases": 6
+  },
+  "literature_db": {
+    "papers": 224,
+    "dimensions": 2,
+    "tags": 4,
+    "paper_tags": 112
+  }
+}

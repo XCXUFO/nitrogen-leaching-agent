@@ -226,7 +226,7 @@ def test_curated_quotes_are_present_in_unchanged_source_pdfs():
 def test_k01_original_first_question_returns_article_evidence(client):
     knowledge, retriever, llm = service()
     client.app.state.chat_service = knowledge
-    body = ask(client, "玉米农田氮素淋失主要受哪些因素影响？").json()
+    body = ask(client, "文献中玉米农田氮素淋失主要受哪些因素影响？").json()
     assert body['agent_route'] == 'KNOWLEDGE' and body['outcome'] == 'complete'
     assert body['model'] == 'curated-excerpts-v1'
     assert len(body['citations']) == 2 and all(c['title'] and c['snippet'] for c in body['citations'])
@@ -264,6 +264,96 @@ async def test_malformed_mechanism_output_retries_once_and_preserves_quote_check
     assert result.usage.total_tokens == 30
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize(('first', 'code', 'purpose'), [
+    (payload(citation_index=9), 'mechanism_citation_invalid', 'general'),
+    (payload(supporting_quote='Invented evidence that is not in the source.'), 'mechanism_quote_unverified', 'general'),
+    (payload(text='无法确认本次峰值原因。'), 'mechanism_scope_invalid', 'general'),
+    (payload(text='模型误差不是实际淋失因素。'), 'mechanism_scope_invalid', 'general'),
+    (payload(text='降水量大的年份更容易出现单日峰值。'), 'mechanism_scale_invalid', 'peak'),
+])
+async def test_evidence_failure_repairs_once_using_same_sources(monkeypatch, first, code, purpose):
+    knowledge, retriever, llm = service()
+    calls = []
+    original = llm.chat
+
+    async def answer(messages, **kwargs):
+        calls.append((messages, kwargs))
+        llm._content = first if len(calls) == 1 else payload()
+        return await original(messages, **kwargs)
+
+    monkeypatch.setattr(llm, 'chat', answer)
+    result = await knowledge.explain_mechanisms('氮素淋失主要受哪些因素影响？', purpose=purpose)
+    assert len(calls) == 2 and len(retriever.calls) == 1
+    initial, repaired = calls[0][0], calls[1][0]
+    assert repaired[:2] == initial
+    assert repaired[2].role == 'assistant' and repaired[2].content == first
+    assert code in repaired[-1].content and calls[1][1]['temperature'] == 0
+    assert result.claims[0].supporting_quote == result.citations[0].snippet == QUOTE
+    assert result.usage.total_tokens == 30
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(('second', 'code'), [
+    ('not JSON', 'mechanism_output_invalid'),
+    (payload(citation_index=2), 'mechanism_citation_invalid'),
+    (payload(supporting_quote='Invented evidence not in the source.'), 'mechanism_quote_unverified'),
+    (payload(text='本次峰值由排水造成。'), 'mechanism_scope_invalid'),
+    ('{"claims":[]}', 'mechanism_evidence_missing'),
+])
+async def test_repair_revalidates_every_check_and_never_attempts_third_call(monkeypatch, second, code):
+    knowledge, retriever, llm = service()
+    calls = []
+    original = llm.chat
+
+    async def answer(messages, **kwargs):
+        calls.append(messages)
+        llm._content = 'bad JSON' if len(calls) == 1 else second
+        return await original(messages, **kwargs)
+
+    monkeypatch.setattr(llm, 'chat', answer)
+    with pytest.raises(MechanismEvidenceError, match=code):
+        await knowledge.explain_mechanisms('氮素淋失影响因素')
+    assert len(calls) == 2 and len(retriever.calls) == 1
+
+
+@pytest.mark.asyncio
+async def test_empty_generated_evidence_does_not_retry(monkeypatch):
+    knowledge, _, llm = service(text='{"claims":[]}')
+    calls = []
+    original = llm.chat
+
+    async def answer(messages, **kwargs):
+        calls.append(messages)
+        return await original(messages, **kwargs)
+
+    monkeypatch.setattr(llm, 'chat', answer)
+    with pytest.raises(MechanismEvidenceError, match='mechanism_evidence_missing'):
+        await knowledge.explain_mechanisms('氮素淋失影响因素')
+    assert len(calls) == 1
+
+
+def test_source_bound_factor_question_recovers_scope_failure(client, monkeypatch):
+    knowledge, retriever, llm = service()
+    client.app.state.chat_service = knowledge
+    calls = []
+    original = llm.chat
+
+    async def answer(messages, **kwargs):
+        calls.append(messages)
+        llm._content = payload(text='无法确认本次峰值原因。') if len(calls) == 1 else payload()
+        return await original(messages, **kwargs)
+
+    monkeypatch.setattr(llm, 'chat', answer)
+    body = ask(client, '文献中氮素淋失主要受哪些因素影响？').json()
+    assert body['agent_route'] == 'KNOWLEDGE' and body['outcome'] == 'complete'
+    assert body['citations'][0]['snippet'] == QUOTE and body['warnings'] == []
+    assert len(calls) == 2 and len(retriever.calls) == 1
+    trace = client.app.state.agent_runtime.runs.get(body['run_id'])
+    assert trace.state_after.crop is None
+    assert trace.evidence and trace.outcome == 'complete'
+
+
 @pytest.mark.parametrize(('text', 'code', 'expected'), [
     ('invalid JSON', 'mechanism_output_invalid', '格式校验'),
     (payload(supporting_quote='not in the original source'), 'mechanism_quote_unverified', '未通过核对'),
@@ -271,7 +361,7 @@ async def test_malformed_mechanism_output_retries_once_and_preserves_quote_check
 ])
 def test_generation_errors_do_not_claim_library_has_no_evidence(client, text, code, expected):
     client.app.state.chat_service = service(text=text)[0]
-    body = ask(client, '氮素淋失主要受哪些因素影响？').json()
+    body = ask(client, '文献中氮素淋失主要受哪些因素影响？').json()
     assert expected in body['answer']
     assert body['warnings'][0]['code'] == code and body['citations'] == []
     assert '当前没有足以支持' not in body['answer']

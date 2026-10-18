@@ -41,19 +41,22 @@ class TaskState(Contract):
     current_case_ids: list[str] = Field(default_factory=list, max_length=30)
     case_context_text: str = Field(default="", max_length=24000)
     case_clarification_pending: bool = False
+    understanding_context: dict = Field(default_factory=dict)
+    material_anchors: list[dict] = Field(default_factory=list)
     expires_at: float = 0
 
 
 class Evidence(Contract):
     evidence_id: str
-    source_type: Literal["file", "literature", "case"]
+    source_type: Literal["file", "literature", "case", "starred"]
     source_id: str
     claim_or_value: str | float
     unit: str | None = None
     location: dict[str, str | int] = Field(default_factory=dict)
     provenance: dict[str, str] = Field(default_factory=dict)
+    subtask_ids: list[str] = Field(default_factory=list)
     # A retrieved passage is not an assertion that it supports the whole answer.
-    status: Literal["computed", "retrieved", "curated"]
+    status: Literal["computed", "retrieved", "curated", "maintained"]
 
 
 class ToolCall(Contract):
@@ -61,6 +64,9 @@ class ToolCall(Contract):
     status: Literal["ok", "clarification", "error", "cancelled"]
     latency_ms: int = Field(ge=0)
     error_code: str | None = None
+    step_id: str | None = None
+    kind: Literal["skill"] = "skill"
+    attempt_no: int = 1
 
 
 class AttachmentState(Contract):
@@ -96,6 +102,12 @@ class RunTrace(Contract):
     schema_version: str = "1"
     harness_version: str = HARNESS_VERSION
     run_id: str
+    turn_id: str | None = None
+    request_id: str | None = None
+    primary_run_id: str | None = None
+    rerun_of_run_id: str | None = None
+    source: Literal["legacy", "formal", "test", "evaluation"] = "legacy"
+    mode: Literal["auto", "specified"] | None = None
     conversation_ref: str
     started_at: str
     input: str
@@ -109,6 +121,15 @@ class RunTrace(Contract):
     model: str | None = None
     config_version: str
     config_manifest: dict = Field(default_factory=dict)
+    skill_config: dict = Field(default_factory=dict)
+    understanding: dict = Field(default_factory=dict)
+    tag_mapping: dict = Field(default_factory=dict)
+    starred_match: dict = Field(default_factory=dict)
+    retrieval: list[dict] = Field(default_factory=list)
+    execution_steps: list[dict] = Field(default_factory=list)
+    request_snapshot: dict = Field(default_factory=dict)
+    replay_of_run_id: str | None = None
+    replay_comparability: str | None = None
     latency_ms: int = Field(default=0, ge=0)
     status: Literal["running", "ok", "error", "cancelled"] = "running"
     error_code: str | None = None

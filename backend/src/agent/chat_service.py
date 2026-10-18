@@ -3,10 +3,12 @@ from __future__ import annotations
 import asyncio
 import re
 from dataclasses import dataclass, field
+from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
 from src.agent.prompt import DialogueTurn, build_messages, build_retrieval_query
+from src.agent.explanation_method import communication_instructions
 from src.agent.curated_evidence import excerpts
 from src.agent.composition import MECHANISM_SYSTEM, PEAK_MECHANISM_SYSTEM, MechanismClaim, MechanismEvidenceError, is_event_mechanism_source, is_mechanism_source, supports_crop, validate_claims
 from src.rag.reference_filter import is_reference_chunk
@@ -14,8 +16,17 @@ from src.agent.session_context import select_session_chunks
 from src.rag.source_labels import article_label
 from src.llm.base import ChatMessage, ChatUsage, LLMClient
 from src.rag.retriever import RetrievalResult, Retriever
+from src.agent.understanding import assess_conditions, is_followup
 
 _SNIPPET_LEN = 400
+_MECHANISM_REPAIR_HINTS = {
+    "mechanism_output_invalid": "JSON 格式或字段不符合要求。",
+    "mechanism_citation_invalid": "citation_index 超出已提供的参考片段编号；只能使用本轮参考片段的编号。",
+    "mechanism_quote_unverified": "supporting_quote 无法在对应片段中找到；必须逐字复制一段连续原文，不得改写、拼接或省略。",
+    "mechanism_scope_invalid": "text 含有文件归因、引用编号或模型误差表述；只描述文献研究场景内的环境与管理因素。"
+                               "即使是否定句，也不要提及本次、这次、上传、本表、该表、该峰值、模型误差或参数不确定性。",
+    "mechanism_scale_invalid": "结论不符合事件尺度要求；只保留片段支持的灌水或降雨后迁移线索，删除年度关系与阻控措施。",
+}
 
 
 class RAGQueryError(RuntimeError):
@@ -33,6 +44,10 @@ class Citation(BaseModel):
     year: str | None = None
     document_id: str | None = None
     document_available: bool = False
+    content_version: str | None = None
+    file_sha256: str | None = None
+    char_start: int | None = None
+    char_end: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -45,6 +60,22 @@ class ChatServiceResult:
     claims: list[MechanismClaim] = field(default_factory=list)
 
 
+def _retrieval_query(query, history, understanding):
+    related = history or []
+    if understanding and understanding.get("status") == "collected":
+        relation = understanding.get("context_relation")
+        if relation in {"independent", "topic_switch"}:
+            related = []
+        elif relation == "followup":
+            # Keep the ongoing chain from its last standalone question. A
+            # follow-up after a topic switch must not bring the old topic back.
+            for index in range(len(related) - 1, -1, -1):
+                if related[index].role == "user" and not is_followup(related[index].content):
+                    related = related[index:]
+                    break
+    return build_retrieval_query(query, related)
+
+
 class ChatService:
     def __init__(
         self,
@@ -54,12 +85,25 @@ class ChatService:
         top_k: int,
         max_context_chars: int,
         temperature: float,
+        literature_index=None,
     ) -> None:
         self._retriever = retriever
         self._llm = llm
         self._top_k = top_k
         self._max_context_chars = max_context_chars
         self._temperature = temperature
+        self._literature_index = literature_index
+
+    def _retrieval_options(self):
+        if self._literature_index is not None and isinstance(self._retriever, Retriever):
+            return {"eligibility_filter": self._literature_index.eligible_hit}
+        return {}
+
+    def _assess_hit(self, hit, understanding, tag_mapping, *, crop=None):
+        if self._literature_index:
+            return self._literature_index.assess_hit(hit, understanding=understanding, mapping=tag_mapping, crop=crop)
+        checks, eligible = assess_conditions(hit.document, [], understanding or {}, tag_mapping or {})
+        return checks, eligible and supports_crop(crop, hit.document, str(hit.metadata.get("source", "")))
 
     async def answer(
         self,
@@ -68,31 +112,68 @@ class ChatService:
         *,
         history: list[DialogueTurn] | None = None,
         session_documents: list[dict] | None = None,
+        allow_general_knowledge: bool = False,
+        understanding: dict | None = None, tag_mapping: dict | None = None, retrieval_observer=None, tool_runner=None,
     ) -> ChatServiceResult:
         effective_k = k if k is not None else self._top_k
-        retrieval_query = build_retrieval_query(query, history or [])
+        # Collected conditions do not mean that a pronoun's subject has been
+        # resolved. Keep dialogue context for follow-ups, and retain bilingual
+        # query expansion even for independent questions.
+        retrieval_query = _retrieval_query(query, history, understanding)
         session_hits = select_session_chunks(query, session_documents or [])
+        records, managed = [], []
+        if self._literature_index and allow_general_knowledge:
+            async def search_text():
+                return await asyncio.to_thread(self._literature_index.search, retrieval_query,
+                    understanding=understanding, mapping=tag_mapping, limit=effective_k)
+            managed, records = await tool_runner("检索已同步文献正文", search_text, retrieval=True) if tool_runner else await search_text()
+        # Broad factor explanations can use verified, relevant body text
+        # directly. Keep vector retrieval for missing text matches and all
+        # source-specific questions that need the existing ranking pipeline.
+        has_body = any(is_mechanism_source(item.document) and self._assess_hit(item, understanding, tag_mapping)[1]
+                       for item in managed)
         try:
-            retrieved = await asyncio.to_thread(
-                self._retriever.retrieve,
-                retrieval_query,
-                effective_k,
-            )
+            async def retrieve():
+                return await asyncio.to_thread(self._retriever.retrieve, retrieval_query, effective_k, **self._retrieval_options())
+            if has_body:
+                retrieved = []
+            else:
+                retrieved = await tool_runner("检索本地文献片段", retrieve, retrieval=True) if tool_runner else await retrieve()
         except Exception as exc:
-            if not session_hits:
+            if not session_hits and self._literature_index is None:
                 raise RAGQueryError("retriever query failed") from exc
             retrieved = []
 
-        usable = session_hits + [item for item in retrieved if not is_reference_chunk(item.document)]
+        if self._literature_index:
+            retrieved = [self._literature_index.bind_hit(item) for item in retrieved]
+            if not allow_general_knowledge:
+                managed, records = await asyncio.to_thread(self._literature_index.search, retrieval_query, understanding=understanding, mapping=tag_mapping, limit=effective_k)
+            retrieved = managed + [item for item in retrieved if self._literature_index.eligible_hit(item) and item.chunk_id not in {hit.chunk_id for hit in managed}]
+        checked = []
+        for item in retrieved:
+            checks, eligible = self._assess_hit(item, understanding, tag_mapping)
+            records.append({"chunk_id": item.chunk_id, "source": item.metadata.get("source"), "checks": checks, "selected": eligible,
+                            "version": item.metadata.get("content_key"), "location": {key: item.metadata[key] for key in ("char_start", "char_end") if key in item.metadata},
+                            "snippet": item.document if eligible else None})
+            if eligible: checked.append(item)
+        usable = session_hits + [item for item in checked
+                                 if (is_mechanism_source(item.document) if allow_general_knowledge
+                                     else not is_reference_chunk(item.document))]
+        if retrieval_observer: retrieval_observer({"source_type": "literature", "query": retrieval_query, "candidates": records, "status": "selected" if usable else "no_match"})
         messages = build_messages(
             query,
             usable,
             max_context_chars=max(self._max_context_chars, 12_000) if session_hits else self._max_context_chars,
             history=history,
+            allow_general_knowledge=allow_general_knowledge,
         )
         chat = await self._llm.chat(messages, temperature=self._temperature)
+        if self._literature_index and any(not self._literature_index.eligible_hit(item) for item in usable if not str(item.metadata.get("source", "")).startswith("session://")):
+            raise RAGQueryError("evidence_changed_during_generation")
         supplied = {int(index) for index in re.findall(r"^\[(\d+)\] \(来源:", messages[0].content, re.M)}
         answer, citations, _ = normalize_citations(chat.content, [item for item in _make_citations(usable) if item.index in supplied])
+        if allow_general_knowledge and not supplied and not answer.startswith("以下回答未引用本知识库资料"):
+            answer = "以下回答未引用本知识库资料，属于通用知识说明。\n\n" + answer
         return ChatServiceResult(
             answer=answer,
             citations=citations,
@@ -102,18 +183,33 @@ class ChatService:
         )
 
     async def explain_mechanisms(self, query: str, *, crop: str | None = None, k: int | None = None,
-                                 purpose: str = "general") -> ChatServiceResult:
+                                 purpose: str = "general", tool_runner=None, understanding=None, tag_mapping=None, retrieval_observer=None) -> ChatServiceResult:
         """Use bounded source excerpts or grounded generation; file values never go to the LLM."""
         if crop == "玉米" and purpose in {"peak", "maize_factors"}:
-            return _curated_maize_evidence(purpose)
+            def select_saved():
+                result = _curated_maize_evidence(purpose)
+                if self._literature_index and any(not self._literature_index.eligible_hit(RetrievalResult(item.chunk_id, item.snippet, item.score, {"source": item.source})) for item in result.citations):
+                    raise MechanismEvidenceError("mechanism_evidence_missing")
+                return result
+            return await tool_runner("选取已保存的文献片段", select_saved, retrieval=True) if tool_runner else select_saved()
         try:
-            recalled = await asyncio.to_thread(self._retriever.retrieve,
-                                              build_retrieval_query(query, []), max(k or self._top_k, 12) if purpose == "peak" else k or self._top_k)
+            async def retrieve():
+                return await asyncio.to_thread(self._retriever.retrieve, build_retrieval_query(query, []), max(k or self._top_k, 12) if purpose == "peak" else k or self._top_k,
+                                               **self._retrieval_options())
+            recalled = await tool_runner("检索文献机理片段", retrieve, retrieval=True) if tool_runner else await retrieve()
         except Exception as exc:
             raise RAGQueryError("retriever query failed") from exc
+        records = []
+        if self._literature_index:
+            recalled = [self._literature_index.bind_hit(item) for item in recalled]
+            managed, records = await asyncio.to_thread(self._literature_index.search, query, understanding=understanding, mapping=tag_mapping)
+            recalled = managed + [item for item in recalled if self._literature_index.eligible_hit(item)]
         eligible = [item for item in recalled
                     if (is_event_mechanism_source(item.document) if purpose == "peak" else is_mechanism_source(item.document))
-                    and supports_crop(crop, item.document, str(item.metadata.get("source", "")))]
+                    and self._assess_hit(item, understanding, tag_mapping, crop=crop)[1]]
+        if retrieval_observer: retrieval_observer({"source_type": "literature", "query": query, "status": "selected" if eligible else "no_match",
+            "candidates": records + [{"chunk_id": item.chunk_id, "source": item.metadata.get("source"), "selected": item in eligible,
+                                        "snippet": item.document if item in eligible else None} for item in recalled]})
         used, blocks, budget = [], [], self._max_context_chars
         for item in eligible:
             block = f"[{len(used) + 1}]\n{item.document}\n"
@@ -125,26 +221,42 @@ class ChatService:
         if not used:
             raise MechanismEvidenceError("mechanism_evidence_missing")
         messages = [
-            ChatMessage(role="system", content=PEAK_MECHANISM_SYSTEM if purpose == "peak" else MECHANISM_SYSTEM),
+            ChatMessage(role="system", content=(PEAK_MECHANISM_SYSTEM if purpose == "peak" else MECHANISM_SYSTEM) + "\n\n" + communication_instructions()),
             ChatMessage(role="user", content=f"作物：{crop or '未指定'}\n问题：{query}\n参考片段：\n" + "\n".join(blocks)),
         ]
-        chat = await self._llm.chat(messages, temperature=self._temperature)
-        usage = chat.usage
+        chat = None
+        operation_id = str(uuid4())
+        async def generate():
+            nonlocal chat
+            chat = await self._llm.chat(messages, temperature=self._temperature)
+            return validate_claims(chat.content, [item.document for item in used], purpose=purpose)
         try:
-            claims = validate_claims(chat.content, [item.document for item in used], purpose=purpose)
+            claims = await tool_runner("生成并核对文献机理说明", generate, kind="service", step_id=operation_id) if tool_runner else await generate()
+            usage = chat.usage
         except MechanismEvidenceError as exc:
-            if exc.code != "mechanism_output_invalid":
+            usage = chat.usage
+            hint = _MECHANISM_REPAIR_HINTS.get(exc.code)
+            if hint is None:
                 raise
-            # One bounded retry for malformed structured output. Never relax
-            # quote, citation, crop, or scope validation to manufacture evidence.
-            chat = await self._llm.chat([*messages, ChatMessage(role="user", content=
-                '上次回答未通过 JSON 格式校验。请仅返回 {"claims":[{"text":"中文结论",'
+            # One repair attempt against the same evidence, with every check
+            # reapplied. Missing evidence never triggers another generation.
+            repair_messages = [*messages,
+                ChatMessage(role="assistant", content=chat.content),
+                ChatMessage(role="user", content=
+                f'上次回答未通过校验（{exc.code}）：{hint}\n'
+                '请根据原参考片段重新生成，删除无依据的条目。仅返回 {"claims":[{"text":"中文结论",'
                 '"citation_index":1,"supporting_quote":"对应片段的连续原文"}]}，最多4条；'
-                '无依据则返回 {"claims":[]}。不要输出解释、思考过程或代码围栏。')], temperature=0)
+                '无依据则返回 {"claims":[]}。不要输出解释、思考过程或代码围栏。')]
+            async def repair():
+                nonlocal chat
+                chat = await self._llm.chat(repair_messages, temperature=0)
+                return validate_claims(chat.content, [item.document for item in used], purpose=purpose)
+            claims = await tool_runner("生成并核对文献机理说明", repair, kind="service", step_id=operation_id, attempt_no=2) if tool_runner else await repair()
             usage = ChatUsage(prompt_tokens=usage.prompt_tokens + chat.usage.prompt_tokens,
                               completion_tokens=usage.completion_tokens + chat.usage.completion_tokens,
                               total_tokens=usage.total_tokens + chat.usage.total_tokens)
-            claims = validate_claims(chat.content, [item.document for item in used], purpose=purpose)
+        if self._literature_index and any(not self._literature_index.eligible_hit(item) for item in used):
+            raise MechanismEvidenceError("mechanism_evidence_missing")
         by_index: dict[int, list[str]] = {}
         for claim in claims:
             by_index.setdefault(claim.citation_index, []).append(claim.supporting_quote)
@@ -188,7 +300,12 @@ def _make_citations(retrieved: list[RetrievalResult]) -> list[Citation]:
             source=str(result.metadata.get("source", "unknown")),
             score=result.score,
             snippet=result.document[:_SNIPPET_LEN],
-            title=article_label(str(result.metadata.get("source", "unknown")))[0],
+            title=str(result.metadata["title"]) if result.metadata.get("title") else article_label(str(result.metadata.get("source", "unknown")))[0],
+            document_id=str(result.metadata["paper_id"]) if result.metadata.get("paper_id") else None,
+            content_version=str(result.metadata["content_key"]) if result.metadata.get("content_key") else None,
+            file_sha256=str(result.metadata["file_sha256"]) if result.metadata.get("file_sha256") else None,
+            char_start=int(result.metadata["char_start"]) if result.metadata.get("char_start") is not None else None,
+            char_end=int(result.metadata["char_end"]) if result.metadata.get("char_end") is not None else None,
             author_hint=article_label(str(result.metadata.get("source", "unknown")))[1],
         )
         for index, result in enumerate(retrieved, start=1)

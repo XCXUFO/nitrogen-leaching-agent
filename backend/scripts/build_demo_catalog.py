@@ -64,12 +64,10 @@ def main():
                    "保存回归基线并重放", "新执行提交合成 pass 评分", "核验运行版本并关联复测，保留原评分"],
         "comparison": [{"label": "原执行", "overall": "fail（合成）", "execution_id": workflow["executions"][0]["execution_id"]},
                        {"label": "重放执行", "overall": "pass（合成）", "execution_id": workflow["executions"][1]["execution_id"]}]})
-    fixture = ROOT / "data/demo/Nbal_out.xls"
     OUTPUT.mkdir(exist_ok=True)
     catalog = {"version": "public-demo-v1", "published_on": "2026-10-05",
         "notice": "只读公开快照；不包含实时访客聊天。历史工程运行与合成流程评分分别标注，专业审核尚未完成。",
-        "cases": cases, "assets": [{"filename": fixture.name, "sha256": hashlib.sha256(fixture.read_bytes()).hexdigest(),
-            "description": "WHCNS 氮平衡输出示例，352 条记录；仅演示结果读取，不证明输入输出运行配对。"}],
+        "cases": cases,
         "sources": [{"name": name, "sha256": hashlib.sha256((ARCHIVE / name).read_bytes()).hexdigest()}
                     for name in (source, workflow_source)]}
     (OUTPUT / "catalog.json").write_text(json.dumps(catalog, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

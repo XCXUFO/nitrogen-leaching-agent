@@ -18,6 +18,7 @@ const newChat = (page: Page) => page.getByRole('button', { name: '新对话', ex
 const attachment = (name: string) => ({ name, mimeType: 'text/plain', buffer: Buffer.from(name) });
 
 test.beforeEach(async ({ page }) => {
+  await page.route('**/api/chat/session', route => route.fulfill({ status: 404, json: {} }));
   await page.route('**/api/files/status', route => route.fulfill({ json: {
     files: route.request().postDataJSON().file_ids.map((file_id: string) => ({ file_id, status: 'available' })),
   } }));
@@ -40,27 +41,34 @@ test('restores messages and drafts with isolated history, files and session IDs'
   await page.getByLabel('选择会话文件').setInputFiles(attachment('A.txt'));
   await expect(page.getByText('已上传', { exact: true })).toBeVisible();
   await send(page, '问题 A');
-  await page.getByRole('button', { name: /收起文件：A.txt/ }).click();
+  await expect(page.getByLabel('会话文件列表')).toHaveCount(0);
+  await expect(page.getByLabel('对话记录')).toContainText('附件：A.txt');
   await page.getByLabel('问题输入').fill('A 的草稿');
   await newChat(page);
   await expect(page.getByLabel('问题输入')).toHaveValue('');
   await expect(page.getByLabel('会话文件列表')).toHaveCount(0);
   await send(page, '问题 B');
   await page.getByLabel('问题输入').fill('B 的草稿');
+  const desktopList = page.getByRole('complementary', { name: '历史对话' }).getByRole('navigation', { name: '对话列表' });
+  await expect(desktopList.getByRole('button')).toHaveText(['问题 B', '问题 A']);
   await history(page, '问题 A').click();
+  await expect(desktopList.getByRole('button')).toHaveText(['问题 B', '问题 A']);
   await expect(history(page, '问题 A')).toHaveAttribute('aria-current', 'true');
   await expect(page.getByLabel('问题输入')).toHaveValue('A 的草稿');
   await expect(page.getByLabel('对话记录')).toContainText('回答：问题 A');
   await expect(page.getByLabel('对话记录')).not.toContainText('问题 B');
-  await expect(page.getByRole('button', { name: /展开已收起的会话文件/ })).toBeVisible();
+  await expect(page.getByLabel('会话文件列表')).toHaveCount(0);
   await send(page, 'A 的追问');
+  await expect(desktopList.getByRole('button')).toHaveText(['问题 B', '问题 A']);
   expect(requests[1].file_ids).toEqual([]);
   expect(requests[1].history).toBeUndefined();
   expect(requests[1].session_id).not.toBe(requests[0].session_id);
   expect(requests[2].session_id).toBe(requests[0].session_id);
-  expect(requests[2].file_ids).toEqual(['A.txt']);
+  expect(requests[0].file_ids).toEqual(['A.txt']);
+  expect(requests[2].file_ids).toEqual([]);
   expect(requests[2].history).toEqual([{ role: 'user', content: '问题 A' }, { role: 'assistant', content: '回答：问题 A' }]);
   await history(page, '问题 B').click();
+  await expect(desktopList.getByRole('button')).toHaveText(['问题 B', '问题 A']);
   await expect(page.getByLabel('问题输入')).toHaveValue('B 的草稿');
   expect(releases).toEqual([]);
   await page.setViewportSize({ width: 320, height: 700 });
@@ -72,7 +80,7 @@ test('restores messages and drafts with isolated history, files and session IDs'
   await expect(page.getByRole('button', { name: '发送', exact: true })).toBeInViewport();
 });
 
-test('caps retained conversations at ten, reuses blanks and releases only the least recent files', async ({ page }) => {
+test('caps retained conversations at ten, reuses blanks and releases only the oldest files', async ({ page }) => {
   const releases: { file_ids: string[]; session_id: string }[] = [];
   await page.route('**/api/files/release', route => { releases.push(route.request().postDataJSON()); return route.fulfill({ json: {} }); });
   await page.route('**/api/chat', route => route.fulfill({ json: reply('测试回答') }));
@@ -90,19 +98,23 @@ test('caps retained conversations at ten, reuses blanks and releases only the le
   expect(releases).toEqual([]);
   await expect(page.getByText(/已达到.*个对话/)).toHaveCount(0);
   await expect(page.getByText(/10\s*个|\/10(?!\d)|上限/)).toHaveCount(0);
-  await history(page, '对话 1').click(); // Opening an older chat makes it recent again.
-  await newChat(page);
-  await expect(page.getByRole('navigation', { name: '对话列表' }).getByRole('button')).toHaveCount(10);
-  await expect(history(page, '对话 1')).toBeVisible();
-  await expect(history(page, '对话 2')).toHaveCount(0);
-  await expect(page.getByText('已达到 10 个对话，最早使用的对话已移除。')).toBeVisible();
-  await expect.poll(() => releases.length).toBe(1);
-  expect(releases[0].file_ids).toEqual(['2.txt']);
-  await newChat(page);
-  await expect(page.getByRole('navigation', { name: '对话列表' }).getByRole('button')).toHaveCount(10);
   await history(page, '对话 1').click();
+  await newChat(page);
+  await expect(page.getByRole('navigation', { name: '对话列表' }).getByRole('button')).toHaveCount(10);
+  await expect(history(page, '对话 2')).toBeVisible();
+  await expect(history(page, '对话 1')).toHaveCount(0);
+  await expect(page.getByText('已达到 10 个对话，最早创建且没有待确认运行的对话已移除。')).toBeVisible();
+  await expect.poll(() => releases.length).toBe(1);
+  expect(releases[0].file_ids).toEqual(['1.txt']);
+  await newChat(page);
+  await expect(page.getByRole('navigation', { name: '对话列表' }).getByRole('button')).toHaveCount(10);
+  await history(page, '对话 2').click();
   await expect(page.getByRole('navigation', { name: '对话列表' }).getByRole('button')).toHaveCount(9);
   await expect(page.getByLabel('对话记录')).toContainText('测试回答');
+  await page.getByRole('button', { name: '新对话', exact: true }).evaluate(button => {
+    (button as HTMLButtonElement).click(); (button as HTMLButtonElement).click();
+  });
+  await expect(page.getByRole('navigation', { name: '对话列表' }).getByRole('button')).toHaveCount(10);
 });
 
 test('desktop history sits on the left and can collapse without losing the active draft', async ({ page }, testInfo) => {
@@ -173,13 +185,16 @@ test('mobile drawer closes on selection, new chat, Escape and backdrop, with foc
   await page.screenshot({ path: testInfo.outputPath('mobile-chat.png') });
 });
 
-test('restores a failed request for retry and blocks switching while an answer is pending', async ({ page }) => {
+test('a pending retry allows history operations and completes in its original conversation', async ({ page }) => {
   const requests: Request[] = [];
   let finish!: () => void;
   await page.route('**/api/chat', async route => {
     requests.push(route.request().postDataJSON());
     if (requests.length === 1) return route.fulfill({ status: 502, json: { detail: { code: 'llm_unreachable', message: 'offline' } } });
-    if (requests.length === 3) await new Promise<void>(resolve => { finish = resolve; });
+    if (requests.length === 3) {
+      await new Promise<void>(resolve => { finish = resolve; });
+      return route.fulfill({ json: reply('原问题恢复成功') });
+    }
     return route.fulfill({ json: reply('成功') });
   });
   await page.goto('/'); await send(page, '失败的问题');
@@ -188,10 +203,20 @@ test('restores a failed request for retry and blocks switching while an answer i
   await history(page, '失败的问题').click();
   await page.getByRole('button', { name: '重试', exact: true }).click();
   await expect.poll(() => Boolean(finish)).toBe(true);
-  await expect(history(page, '另一个问题')).toBeDisabled();
-  await expect(page.getByRole('button', { name: '新对话', exact: true })).toBeDisabled();
+  await expect(history(page, '另一个问题')).toBeEnabled();
+  await expect(page.getByRole('button', { name: '新对话', exact: true })).toBeEnabled();
+  await history(page, '另一个问题').click();
+  await expect(page.getByLabel('问题输入')).toBeEnabled();
+  await send(page, '历史会话里的追问');
+  await expect(page.locator('article')).toHaveCount(2);
+  await newChat(page);
+  await send(page, '第三个会话的问题');
   finish();
-  await expect(page.getByLabel('对话记录').getByText('成功', { exact: true })).toBeVisible();
+  await expect(history(page, '失败的问题')).not.toHaveAttribute('aria-busy', 'true');
+  await expect(page.getByLabel('对话记录')).not.toContainText('原问题恢复成功');
+  await expect(page.locator('article')).toHaveCount(1);
+  await history(page, '失败的问题').click();
+  await expect(page.getByLabel('对话记录')).toContainText('原问题恢复成功');
   await expect(page.getByLabel('对话记录').getByText('失败的问题', { exact: true })).toHaveCount(1);
   expect(requests[2]).toEqual(requests[0]);
 });
@@ -239,7 +264,7 @@ test('renews archived attachments and applies delayed expiration to its owning c
   await expect(page.getByText('部分会话文件已失效，请重新上传。')).toHaveCount(0);
 });
 
-test('blocks switching during upload and releases attachments from all retained conversations on pagehide', async ({ page }) => {
+test('uploads continue after switching and release attachments from their owning conversations on pagehide', async ({ page }) => {
   const releases: { file_ids: string[] }[] = [];
   let finish!: () => void;
   // Force the fetch fallback so cleanup requests remain observable in this test.
@@ -256,9 +281,14 @@ test('blocks switching during upload and releases attachments from all retained 
   await newChat(page);
   await page.getByLabel('选择会话文件').setInputFiles(attachment('B.txt'));
   await expect.poll(() => Boolean(finish)).toBe(true);
-  await expect(history(page, 'A.txt')).toBeDisabled();
-  await expect(page.getByRole('button', { name: '新对话', exact: true })).toBeDisabled();
+  await expect(history(page, 'A.txt')).toBeEnabled();
+  await expect(page.getByRole('button', { name: '新对话', exact: true })).toBeEnabled();
+  await history(page, 'A.txt').click();
+  await expect(page.getByLabel('会话文件列表')).toContainText('A.txt');
   finish();
+  await expect(history(page, 'B.txt')).not.toHaveAttribute('aria-busy', 'true');
+  await expect(page.getByLabel('会话文件列表')).not.toContainText('B.txt');
+  await history(page, 'B.txt').click();
   await expect(page.getByText('已上传', { exact: true })).toBeVisible();
   expect(releases).toEqual([]);
   await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
