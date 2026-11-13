@@ -9,7 +9,7 @@ def test_issue_flow_history_filters_and_concurrent_edits(client):
     assert saved['status'] == 'open' and saved['revision'] == 1
     assert len(saved['history']) == 1
     body = {'expected_revision': 1, 'status': 'closed', 'assignee': 'dev', 'note': 'want to close'}
-    assert client.patch(url, headers=headers(), json=body).status_code == 403
+    assert client.patch(url, headers=headers('alice'), json=body).status_code == 403
     wrong = client.patch(url, headers=headers('dev'), json=body)
     assert wrong.status_code == 422 and wrong.json()['detail']['code'] == 'issue_transition_invalid'
     body['status'] = 'in_progress'

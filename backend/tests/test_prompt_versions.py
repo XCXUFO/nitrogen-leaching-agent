@@ -57,6 +57,12 @@ async def test_save_and_activate_are_authenticated_and_need_no_model():
         before = (await client.get("/api/eval/active-prompt")).json()
         versions = (await client.get("/api/eval/prompt-versions")).json()
         assert len(versions) == 2
+        for role in ("tester", "reviewer"):
+            app.dependency_overrides[current_user] = lambda role=role: Principal(tester_id=role, role=role)
+            denied = await client.post("/api/eval/prompt-versions", json={"label": "forbidden", "text": "不得保存。"})
+            assert denied.status_code == 403
+            assert (await client.get("/api/eval/prompt-versions")).json() == versions
+        app.dependency_overrides[current_user] = lambda: Principal(tester_id="dev", role="developer")
         assert (await client.post("/api/eval/prompt-versions", json={"label": "  ", "text": "规则"})).status_code == 422
         response = await client.post("/api/eval/prompt-versions", json={"label": "v3", "text": "专业表达。"})
         assert response.status_code == 201

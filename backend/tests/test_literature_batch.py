@@ -12,7 +12,7 @@ from tests.test_literature_extract import pdf_bytes
 def client(tmp_path):
     app = create_app(tmp_path)
     with TestClient(app) as client:
-        client.headers['Authorization'] = f"Bearer {TOKENS['tester']}"
+        client.headers['Authorization'] = f"Bearer {TOKENS['developer']}"
         yield client
     app.state.literature.close()
 
@@ -34,7 +34,9 @@ def test_limits_and_ownership_before_consuming_uploads(client):
     for ids in ([], [identifier] * 101, [identifier, identifier]):
         assert client.post('/api/literature/imports', json={'upload_ids': ids}).status_code == 422
     assert client.post('/api/literature/imports', json={'upload_ids': [identifier]},
-                       headers={'Authorization': f"Bearer {TOKENS['reviewer']}"}).status_code == 404
+                       headers={'Authorization': f"Bearer {TOKENS['reviewer']}"}).status_code == 403
+    assert client.post('/api/literature/imports', json={'upload_ids': [identifier]},
+                       headers={'Authorization': f"Bearer {TOKENS['other-developer']}"}).status_code == 404
     assert client.post('/api/literature/imports', json={'upload_ids': [identifier]},
                        headers={'Authorization': ''}).status_code == 401
     result = batch(client, upload_ids=[identifier], ai_extract=False, ai_tag=False)
@@ -43,7 +45,9 @@ def test_limits_and_ownership_before_consuming_uploads(client):
     assert paper['registration'] == 'draft'
     assert client.get('/api/literature/imports', headers={'Authorization': f"Bearer {TOKENS['reviewer']}"}).json()['items'] == []
     assert client.post(f"/api/literature/imports/{result['id']}/retry",
-                       headers={'Authorization': f"Bearer {TOKENS['reviewer']}"}).status_code == 404
+                       headers={'Authorization': f"Bearer {TOKENS['reviewer']}"}).status_code == 403
+    assert client.post(f"/api/literature/imports/{result['id']}/retry",
+                       headers={'Authorization': f"Bearer {TOKENS['other-developer']}"}).status_code == 404
 
 
 def test_default_ai_applies_fields_and_tags(client):

@@ -48,28 +48,21 @@ def resolve_model_path(value: str) -> Path:
 
 
 def build_manifest(settings: Settings) -> dict:
-    agent_paths = sorted((BASE_DIR / "src/agent").glob("*.py")) + sorted(
-        (BASE_DIR / "src/model_tools").glob("*.py")) + [
-        BASE_DIR / "src/api/chat.py", BASE_DIR / "src/api/chat_schema.py",
-        BASE_DIR / "src/api/files.py", BASE_DIR / "src/config.py",
-        BASE_DIR / "src/api/case_library.py", BASE_DIR / "src/storage/case_library.py",
-        BASE_DIR / "src/storage/case_content.py",
-        BASE_DIR / "src/main.py", BASE_DIR / "src/llm/deepseek.py",
-        BASE_DIR / "src/operations/public_access.py",
-        BASE_DIR / "src/operations/visitor_identity.py", BASE_DIR / "src/storage/chat_runs.py",
-        BASE_DIR / "src/storage/run_store.py",
-        BASE_DIR / "src/storage/prompt_versions.py",
-        BASE_DIR / "src/api/online_metrics.py", BASE_DIR / "src/api/explanation_trials.py", BASE_DIR / "src/api/literature.py",
-        BASE_DIR / "src/evaluation/online_metrics.py", BASE_DIR / "src/evaluation/explanation_trials.py",
-    ]
+    # Configuration confirmation and restore compare this identity. Include all
+    # runtime modules so new storage, authorization or taxonomy helpers cannot
+    # silently retain the identity of a previously accepted build.
+    agent_paths = sorted((BASE_DIR / "src").rglob("*.py"))
     prompt_paths = [BASE_DIR / "src/agent/prompt.py", BASE_DIR / "src/agent/composition.py",
                     BASE_DIR / "src/agent/curated_evidence.py", BASE_DIR / "src/agent/explanation_method.py",
                     BASE_DIR / "src/agent/case_skills.py", BASE_DIR / "src/agent/skill_config.py",
-                    BASE_DIR / "src/storage/prompt_versions.py"]
+                    BASE_DIR / "src/storage/prompt_versions.py", BASE_DIR / "src/storage/task_prompts.py", BASE_DIR / "src/agent/task_prompts.py"]
     retriever_paths = sorted((BASE_DIR / "src/rag").glob("*.py"))
     config = {key: value for key, value in settings.model_dump().items()
               if key.startswith(("rag_", "chat_")) or key in {"embedding_model", "deepseek_model",
-                  "deepseek_timeout_s", "deepseek_max_retries", "public_demo_enabled", "public_max_output_tokens"}}
+                  "deepseek_timeout_s", "deepseek_max_retries", "public_demo_enabled", "public_max_output_tokens",
+                  "unified_routing_enabled", "retrieval_strategy", "retrieval_fusion"}}
+    config.update({key: value for key, value in settings.model_dump().items() if key.startswith('web_') and key != 'web_search_url'})
+    config['web_provider_endpoint_sha256'] = hashlib.sha256(settings.web_search_url.encode()).hexdigest() if settings.web_search_url else None
     manifest = {
         "agent_build_version": settings.agent_build_version,
         "agent_code_sha256": code_digest(agent_paths),
@@ -87,5 +80,7 @@ def build_manifest(settings: Settings) -> dict:
                           {"status": "not_active", "path": settings.rag_reranker_model},
         "llm_model": {"declared_name": settings.deepseek_model, "provider_content_verified": False},
     }
+    alias_file = BASE_DIR / 'data/retrieval/aliases.json'
+    manifest['tag_aliases'] = {'sha256': hashlib.sha256(alias_file.read_bytes()).hexdigest(), 'status':'available'} if alias_file.is_file() else {'sha256':None,'status':'unavailable'}
     manifest["manifest_sha256"] = hashlib.sha256(json.dumps(manifest, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
     return manifest

@@ -14,8 +14,8 @@ async function mockCommon(page: Page, custom: (route: Route, path: string) => Pr
     const path = new URL(route.request().url()).pathname;
     if (await custom(route, path)) return;
     let json: unknown;
-    if (path === '/api/eval/me') json = { tester_id: 'tester', role: 'tester' };
-    else if (path === '/api/eval/login') json = { token: 'test-token', user: { tester_id: 'tester', role: 'tester' } };
+    if (path === '/api/eval/me') json = { tester_id: 'tester', role: 'developer' };
+    else if (path === '/api/eval/login') json = { token: 'test-token', user: { tester_id: 'tester', role: 'developer' } };
     else if (path === '/api/literature/taxonomy') json = {
       dimensions: [{ id: 'crop', name: '作物', enabled: 1, selection: 'single' }],
       tags: ['first', 'second'].map((id) => ({ id, dimension_id: 'crop', parent_id: null, name: id, path: id, enabled: 1 })),

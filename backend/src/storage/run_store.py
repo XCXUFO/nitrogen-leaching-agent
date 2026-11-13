@@ -4,22 +4,25 @@ from __future__ import annotations
 import json
 import sqlite3
 from pathlib import Path
-from threading import Lock
+from threading import RLock
 
 from src.agent.contracts import RunTrace
 from src.storage.chat_runs import ChatRuns
 from src.storage.account_history import AccountHistory
+from src.storage.run_attachments import RunAttachments
 from src.storage.prompt_versions import PromptVersions
+from src.storage.task_prompts import TaskPrompts
 from src.agent.skill_config import SkillConfigurations
 from src.evaluation.online_metrics import OnlineMetrics
 from src.evaluation.session_reviews import SessionReviews
+from src.evaluation.conversation_cases import ConversationCases
 
 
 class RunStore:
     def __init__(self, path: str | Path = ":memory:"):
         if str(path) != ":memory:":
             Path(path).parent.mkdir(parents=True, exist_ok=True)
-        self._lock = Lock()
+        self._lock = RLock()
         self._connection = sqlite3.connect(str(path), check_same_thread=False, timeout=5)
         self._connection.execute("PRAGMA journal_mode=WAL")
         self._connection.execute("""CREATE TABLE IF NOT EXISTS agent_runs (
@@ -46,11 +49,19 @@ class RunStore:
         self._connection.commit()
         self.live = ChatRuns(self._connection, self._lock)
         self.history = AccountHistory(self._connection, self._lock)
+        self.attachments = RunAttachments(self._connection, self._lock)
         self.live.history = self.history
         self.skill_config = SkillConfigurations(self._connection, self._lock)
         self.prompts = PromptVersions(self._connection, self._lock)
+        self.task_prompts = TaskPrompts(self._connection, self._lock)
         self.online_metrics = OnlineMetrics(self._connection, self._lock)
         self.reviews = SessionReviews(self._connection, self._lock)
+        self.conversation_cases = ConversationCases(self)
+
+    def active_prompt_snapshot(self):
+        # Keep a request from reading across a complete group activation.
+        with self._lock:
+            return {'communication': self.prompts.active(), 'task_prompts': self.task_prompts.active()}
 
     @staticmethod
     def _topic(question: str) -> str:
@@ -129,12 +140,27 @@ class RunStore:
                 return None
             session_id = row[0]
             summary = self._connection.execute("SELECT * FROM chat_sessions WHERE session_id=?", (session_id,)).fetchone()
-            turns = self._connection.execute("SELECT payload FROM agent_runs WHERE session_id=? ORDER BY started_at, rowid", (session_id,)).fetchall()
+            rows = self._connection.execute("""SELECT r.payload, h.request_json FROM agent_runs r
+                LEFT JOIN account_chat_turns h ON h.run_id=r.run_id
+                WHERE r.session_id=? ORDER BY r.started_at, r.rowid""", (session_id,)).fetchall()
+            turns = []
+            for raw, historical_request in rows:
+                turn = json.loads(raw)
+                snapshot = turn.setdefault("request_snapshot", {})
+                if not snapshot.get("attachments") and historical_request:
+                    # Recover legacy filenames without exposing temporary file capabilities.
+                    snapshot["attachments"] = [
+                        {key: item[key] for key in ("filename", "sha256", "format") if key in item}
+                        for item in json.loads(historical_request).get("attachments", [])
+                        if isinstance(item, dict) and item.get("filename")]
+                    if snapshot["attachments"]:
+                        snapshot["has_attachments"] = True
+                turns.append(turn)
             review = self.reviews.detail_locked(session_id)
         keys = ("session_id", "topic", "created_at", "operator_id", "status", "latency_ms", "turn_count")
         open_count = sum(item["status"] == "open" for item in review["issues"])
         review_status = "needs_changes" if open_count else "pending" if review["reviewed_turn_count"] < len(turns) else "passed"
-        return {**dict(zip(keys, summary)), "turns": [json.loads(turn[0]) for turn in turns],
+        return {**dict(zip(keys, summary)), "turns": turns,
                 "review": review, "review_status": review_status, "review_revision": review["revision"],
                 "reviewed_turn_count": review["reviewed_turn_count"], "open_issue_count": open_count}
 

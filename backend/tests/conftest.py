@@ -7,11 +7,15 @@ import os
 # 但当调用方在用真实 DeepSeek 跑 smoke 时，必须保留真实 key 与真实
 # 代理设置，否则 live 测试拿不到 key、连不上 api。
 #
-_LIVE_DEEPSEEK = os.environ.get("RUN_LIVE_LLM") or os.environ.get("RUN_LIVE_RAG_CHAT")
+_LIVE_WEB = os.environ.get("RUN_LIVE_WEB_SEARCH")
+_LIVE_DEEPSEEK = os.environ.get("RUN_LIVE_LLM") or os.environ.get("RUN_LIVE_RAG_CHAT") or _LIVE_WEB
 _LIVE_NETWORK = _LIVE_DEEPSEEK or os.environ.get("RUN_LIVE_EMBED")
 
 # 必须在任何 src.* 模块被 import 之前执行：Settings() 在 src.config
 # 模块导入期实例化，fixture 来不及。
+if not _LIVE_WEB:
+    os.environ["WEB_SEARCH_ENABLED"] = "false"
+
 if not _LIVE_DEEPSEEK:
     os.environ["DEEPSEEK_API_KEY"] = "test-key-not-real"
     os.environ["AGENT_TRACE_DB"] = ":memory:"  # Mock runs must never pollute real evaluation records.

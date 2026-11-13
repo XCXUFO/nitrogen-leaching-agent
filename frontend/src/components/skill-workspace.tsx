@@ -9,7 +9,7 @@ import { availabilityLabels, generationLabels, type SkillAvailability, type Skil
 import { useEvaluationSession } from "./evaluation-shell";
 import { SkillExpressionEditor } from "./skill-expression-editor";
 
-const button = "inline-flex min-h-9 items-center justify-center gap-2 rounded-lg border bg-white px-3 py-1.5 text-sm hover:bg-slate-50 disabled:opacity-50";
+const button = "wb-button";
 
 function Availability({ value, dependency = false }: { value: SkillAvailability; dependency?: boolean }) {
   const Icon = value === "available" ? CheckCircle2 : value === "unavailable" ? TriangleAlert : CircleHelp;
@@ -19,7 +19,7 @@ function Availability({ value, dependency = false }: { value: SkillAvailability;
 }
 
 function DescriptionList({ title, items }: { title: string; items: string[] }) {
-  return <section className="min-w-0 rounded-xl border bg-white p-4">
+  return <section className="min-w-0 wb-panel">
     <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
     {items.length ? <ul className="mt-2 space-y-1.5 pl-4 text-sm leading-6 text-slate-600 list-disc">{items.map((item) => <li key={item}>{item}</li>)}</ul> : <p className="mt-2 text-sm text-slate-500">说明待补充。</p>}
   </section>;
@@ -49,15 +49,15 @@ export function SkillWorkspace({ detail = "" }: { detail?: string }) {
   const visible = items.filter((item) => `${item.title} ${item.name}`.toLocaleLowerCase().includes(term));
 
   return <div className="min-w-0 space-y-3" aria-label={detail ? "Skill 能力详情" : "Skill 能力列表"}>
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-white p-3">
-      <p className="text-sm leading-6 text-slate-600">{detail ? "查看能力的适用场景、实际依赖与输入输出。" : "查看已注册能力的用途和边界，支持按中文名称或标识查找。"}</p>
+    <div className="flex justify-end">
       <button type="button" onClick={refresh} disabled={loading} className={button}><RefreshCw size={14} aria-hidden="true" />{loading ? "读取中…" : "刷新状态"}</button>
     </div>
     {error && <div role="alert" className="rounded-xl border border-amber-200 bg-white p-4 text-sm text-amber-900"><p>{error}</p><button type="button" onClick={refresh} className={`${button} mt-3`}>重试</button></div>}
-    {loading ? <p role="status" className="rounded-xl border bg-white p-4 text-sm text-slate-500">正在读取能力…</p> : !error && (detail ? skill && <>
-      <section className="space-y-3 rounded-xl border bg-white p-4">
+    {loading ? <p role="status" className="wb-panel text-sm text-slate-500">正在读取能力…</p> : !error && (detail ? skill && <>
+      <section className="space-y-3 wb-panel">
         <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-semibold text-slate-900">{skill.title}</h2><Availability value={skill.availability} /></div>
         <p className="text-sm leading-6 text-slate-600">{skill.description}</p>
+        {skill.alias_of && <p className="text-sm">此标识保留用于旧入口和历史记录。<Link className="text-emerald-800 underline" href={evaluationHref("skills", skill.alias_of)}>查看统一案例能力</Link></p>}
         <div className="flex flex-wrap gap-2 text-xs text-slate-500"><span>已注册</span><span aria-hidden="true">·</span><span>{generationLabels[skill.generation]}</span><span aria-hidden="true">·</span><span>{skill.configuration === "limited" ? "可调整默认表达" : "配置只读"}</span></div>
       </section>
       <div className="grid min-w-0 gap-3 md:grid-cols-2">
@@ -65,8 +65,8 @@ export function SkillWorkspace({ detail = "" }: { detail?: string }) {
         <DescriptionList title="输入要求" items={skill.inputs} /><DescriptionList title="返回内容" items={skill.outputs} />
       </div>
       <DescriptionList title="使用边界" items={skill.limitations} />
-      {skill.configuration === "limited" && <SkillExpressionEditor token={token} />}
-      <section className="space-y-3 rounded-xl border bg-white p-4" aria-label="依赖状态">
+      {skill.configuration === "limited" && <SkillExpressionEditor token={token} skill={skill.name} />}
+      <section className="space-y-3 wb-panel" aria-label="依赖状态">
         <h3 className="text-sm font-semibold">依赖与可用性</h3><p className="text-sm leading-6 text-slate-600">{skill.availability_note}</p>
         <ul className="divide-y">{skill.dependencies.map((dependency) => <li key={dependency.name} className="py-3 first:pt-0 last:pb-0">
           <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-sm font-medium">{dependency.name}<span className="ml-2 text-xs font-normal text-slate-500">{dependency.required ? "必要依赖" : "按输入使用"}</span></p><Availability value={dependency.status} dependency /></div>
@@ -74,7 +74,7 @@ export function SkillWorkspace({ detail = "" }: { detail?: string }) {
         </li>)}</ul>
         <p className="text-xs leading-5 text-slate-500">读取页面仅检查本地就绪信息，不发送付费模型请求。刷新会重新读取当前状态，实际任务仍需校验输入和材料。</p>
       </section>
-      <details className="min-w-0 rounded-xl border bg-white p-4">
+      <details className="min-w-0 wb-panel">
         <summary className="cursor-pointer text-sm font-medium">技术信息与输入输出</summary>
         <dl className="mt-4 space-y-3 text-sm">
           {[["注册标识", skill.name], ["注册描述", skill.registry_description], ["Harness 版本", skill.harness_version],
@@ -96,7 +96,7 @@ export function SkillWorkspace({ detail = "" }: { detail?: string }) {
         <div className="flex flex-wrap items-start justify-between gap-2"><h2 className="font-semibold"><Link href={evaluationHref("skills", item.name)} className="text-slate-900 hover:text-emerald-800 hover:underline">{item.title}</Link></h2><Availability value={item.availability} /></div>
         <p className="mt-2 text-sm leading-6 text-slate-600">{item.description}</p>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3"><p className="text-xs text-slate-500">已注册 · {generationLabels[item.generation]} · {item.configuration === "limited" ? "可调整默认表达" : "配置只读"}</p><Link aria-label={`查看${item.title}详情`} href={evaluationHref("skills", item.name)} className="inline-flex items-center gap-1 text-sm font-medium text-emerald-800 hover:underline">查看详情<ArrowRight size={14} aria-hidden="true" /></Link></div>
-      </li>)}</ul> : <div className="rounded-xl border bg-white p-6 text-center text-sm text-slate-500"><p>{items.length ? "没有找到匹配的能力。" : "当前没有已注册能力。"}</p>{term && <button type="button" onClick={() => setSearch("")} className={`${button} mt-3`}>清除搜索</button>}</div>}
+      </li>)}</ul> : <div className="wb-panel text-center text-sm text-slate-500"><p>{items.length ? "没有找到匹配的能力。" : "当前没有已注册能力。"}</p>{term && <button type="button" onClick={() => setSearch("")} className={`${button} mt-3`}>清除搜索</button>}</div>}
     </>)}
   </div>;
 }

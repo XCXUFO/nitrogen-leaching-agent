@@ -78,7 +78,8 @@ def test_build_messages_with_retrieved_uses_context_prompt() -> None:
 def test_build_messages_no_retrieved_uses_no_context_prompt() -> None:
     messages = build_messages("氮素淋失受什么影响？", [], max_context_chars=500)
 
-    assert "未检索到相关参考资料" in messages[0].content
+    assert "可靠的通用知识" in messages[0].content
+    assert "不编造具体研究结论、数值或引用" in messages[0].content
     assert messages[1].content == "氮素淋失受什么影响？"
 
 

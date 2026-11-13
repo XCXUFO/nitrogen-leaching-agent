@@ -137,14 +137,14 @@ async def test_chat_runtime_and_closed_case_followup(store):
         second = await runtime.execute(ChatRequest(query="解释刚才这个案例", session_id="cases",
                                                     history=[{"role": "assistant", "content": first.answer}]),
                                        service=None, get_report=report, case_store=store, llm=FakeLLM(error=True))
-        assert "不可调用" in second.answer and not second.case_references
+        assert "暂时无法读取该案例" in second.answer and not second.case_references
     finally:
         runtime.runs.close()
 
 
 @pytest.mark.parametrize("query,skill", [("有没有类似案例？", "case_reference"), ("有没有可以参考的措施？", "case_reference"), ("别人遇到这种情况是怎么做的？", "case_reference"), ("解释以下专业文本：分次施肥", "case_explanation")])
 def test_intents(query, skill):
-    assert decide(query, has_file=False).skills == [skill]
+    assert decide(query, has_file=False).skills == ["case_assistant"]
 
 
 @pytest.mark.asyncio
@@ -183,7 +183,7 @@ async def test_http_validation_draft_and_permissions(store):
 def test_case_id_adjacent_to_chinese_and_case_insensitive(query):
     from src.agent.case_ids import case_ids_in
     assert case_ids_in(query) == ["C-ABCDEF1234567890"]
-    assert decide(query, has_file=False).skills == ["case_explanation"]
+    assert decide(query, has_file=False).skills == ["case_assistant"]
     assert case_ids_in("C-ABCDEF12345678900") == []
 
 
@@ -227,16 +227,20 @@ async def test_followups_keep_ids_without_client_history_and_honor_new_subject(s
         # The state holds the IDs even if the client history has been truncated.
         store.change(second["id"], 1, {"deleted": True, "enabled": False}, "editor")
         result, payload = await ask("再详细解释它的措施")
-        assert "不可调用" in result.answer and payload is None
+        assert "暂时无法读取该案例" in result.answer and payload is None
         # “其他” must not be read as “它”, turning reference into explanation.
         result, payload = await ask("有没有其他可以参考的案例？", [first["id"]])
-        assert payload["task"] == "寻找相关案例及措施，按需解释"
+        assert payload["mode"] == "search"
     finally:
         runtime.runs.close()
 
 
 @pytest.mark.asyncio
-async def test_pasted_text_followup_keeps_original_and_new_text_starts_fresh():
+@pytest.mark.parametrize('replacement', [
+    '解释这段文字：这个指标表示水分含量。',
+    '解释这个新材料：原文要求更正这个指标。',
+])
+async def test_pasted_text_followup_keeps_original_and_new_text_starts_fresh(replacement):
     runtime = AgentRuntime()
     async def report(_):
         raise AssertionError("unrelated file access")
@@ -250,8 +254,9 @@ async def test_pasted_text_followup_keeps_original_and_new_text_starts_fresh():
         payload = await ask("再详细解释一下它")
         assert payload["previous_user_text"] == original
         assert payload["available_cases"] == []
-        payload = await ask("解释这段文字：这个指标表示水分含量。")
+        payload = await ask(replacement)
         assert payload["previous_user_text"] == ""
+        assert runtime.states.entries['text'].case_context_text == replacement
     finally:
         runtime.runs.close()
 
@@ -294,7 +299,7 @@ async def test_real_http_chat_wiring_reads_only_open_cases(store):
             store.change(item["id"], 1, {"enabled": False}, "editor")
             app.state.llm = FakeLLM(error=True)
             second = await client.post("/api/chat", json={"query": "解释", "case_ids": [item["id"]]})
-            assert second.status_code == 200 and "不可调用" in second.json()["answer"]
+            assert second.status_code == 200 and "暂时无法读取该案例" in second.json()["answer"]
     finally:
         app.state.agent_runtime.runs.close()
 
@@ -317,7 +322,7 @@ async def test_clarification_reply_continues_reference_skill(store):
         await runtime.execute(ChatRequest(query="玉米", session_id="clarifying"), service=None,
                               get_report=report, case_store=store, llm=llm)
         payload = json.loads(llm.messages[-1].content)
-        assert payload["task"] == "寻找相关案例及措施，按需解释"
+        assert payload["mode"] == "search"
         assert payload["previous_user_text"] == "有没有类似案例？"
         llm = FakeLLM([item["id"]])
         await runtime.execute(ChatRequest(query="滴灌", session_id="clarifying"), service=None,
@@ -354,11 +359,11 @@ async def test_many_ids_in_question_return_explicit_http_capacity_error(store):
     ("比较这两个案例", ["case_explanation"]),
 ])
 def test_v11_routing(query, skills):
-    assert decide(query, has_file=False).skills == skills
+    assert decide(query, has_file=False).skills == ["case_assistant"]
 
 
 @pytest.mark.asyncio
-async def test_v11_composed_execution_and_comparison_followup(store):
+async def test_search_and_compare_use_one_call_and_latest_displayed_scope(store):
     a = store.create(CaseInput(title="甲地玉米", body="甲地分次施肥", enabled=True), "tester")
     b = store.create(CaseInput(title="乙地玉米", body="乙地滴灌施肥", enabled=True), "tester")
     class TrackingLLM(FakeLLM):
@@ -373,17 +378,19 @@ async def test_v11_composed_execution_and_comparison_followup(store):
     try:
         result = await runtime.execute(ChatRequest(query="找两个案例并比较措施差异", session_id="v11"),
             service=None, get_report=report, case_store=store, llm=llm)
-        assert result.case_route == ["case_reference", "case_explanation"]
-        assert len(llm.calls) == 2 and result.usage.total_tokens == 4
+        assert result.case_route == ["case_assistant"] and result.case_mode == "compare"
+        assert len(llm.calls) == 1 and result.usage.total_tokens == 2
         assert "C-" not in result.answer and "甲地玉米" in result.answer
         llm.ids = [a["id"]]
         llm.answer = "甲地玉米分次施肥。"
         await runtime.execute(ChatRequest(query="详细解释第一个", session_id="v11"),
             service=None, get_report=report, case_store=store, llm=llm)
         llm.ids = [a["id"], b["id"]]
-        await runtime.execute(ChatRequest(query="这两者的区别呢", session_id="v11"),
+        calls_before = len(llm.calls)
+        ambiguous = await runtime.execute(ChatRequest(query="这两者的区别呢", session_id="v11"),
             service=None, get_report=report, case_store=store, llm=llm)
-        assert {case["id"] for case in llm.calls[-1]["available_cases"]} == {a["id"], b["id"]}
+        # The latest answer displayed only the first case; do not resurrect the older pair.
+        assert ambiguous.outcome == "clarification" and len(llm.calls) == calls_before
         assert "本轮参考案例顺序" in llm.calls[-1]["previous_user_text"]
     finally:
         runtime.runs.close()
@@ -448,12 +455,12 @@ async def test_referential_case_question_preserves_subject_and_closed_status(sto
         for query in ('这个案例适合什么土壤？', '该案例用了什么肥料？'):
             result = await ask(query)
             payload = json.loads(llm.messages[-1].content)
-            assert result.case_route == ['case_explanation']
+            assert result.case_route == ['case_assistant'] and result.case_mode == 'explain'
             assert [c['id'] for c in payload['available_cases']] == [a['id']]
             assert '找一个玉米案例' in payload['previous_user_text']
         store.change(a['id'], 1, {'enabled': False}, 'tester')
         assert (await ask('这个案例适合什么土壤？')).case_match == 'unavailable'
         llm.ids = [b['id']]
-        assert (await ask('有没有其他可以参考的案例？')).case_route == ['case_reference']
+        assert (await ask('有没有其他可以参考的案例？')).case_route == ['case_assistant']
     finally:
         runtime.runs.close()

@@ -1,4 +1,8 @@
 const MESSAGES: Record<string, string> = {
+  feedback_identity_required: '请恢复登录或刷新页面后提交反馈。',
+  feedback_run_missing: '未找到你的这条回答，请刷新会话后重试。',
+  issue_note_required: '请填写具体问题。',
+  review_action_conflict: '这次反馈内容已变化，请修改说明后重新提交。',
   request_conflict: "相同提交标识对应了不同输入，请新建对话后再提问。",
   turn_conflict: "重新执行需要保留原问题及输入，修改问题请作为新问题发送。",
   recovery_expired: "此对话的恢复窗口已结束，请新建对话后再提问。",

@@ -8,6 +8,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from src.llm.base import ChatMessage, LLMClient
+from src.utils.taxonomy import enabled_tag_ids
 
 
 class SuggestedTags(BaseModel):
@@ -16,9 +17,9 @@ class SuggestedTags(BaseModel):
 
 def available_taxonomy(taxonomy: dict) -> dict:
     dimensions = [dimension for dimension in taxonomy["dimensions"] if dimension["enabled"]]
-    dimension_ids = {dimension["id"] for dimension in dimensions}
+    allowed = enabled_tag_ids(taxonomy)
     return {"dimensions": dimensions,
-            "tags": [tag for tag in taxonomy["tags"] if tag["enabled"] and tag["dimension_id"] in dimension_ids]}
+            "tags": [tag for tag in taxonomy["tags"] if tag["id"] in allowed]}
 
 
 def merge_tag_suggestions(taxonomy: dict, selected: list[str], suggested: list[str]) -> list[str]:

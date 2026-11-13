@@ -1,0 +1,180 @@
+{
+  "recorded_at": "2026-11-13T14:19:38.490998+00:00",
+  "base_commit": "a95b797b4ea0da19cac198167d24d434055816d2",
+  "build_version": "delivery-20261113-9a6a1642d860",
+  "source_sha256": "9a6a1642d860bd756691bae3e5aa87797b1732e70981700a51fe2cbfb448c8a4",
+  "source_file_count": 456,
+  "frontend_build_id": "raVxCyqPPzPULHmE-HRY1",
+  "manifest_path": "docs/iterations/2026-09-29-agent-harness/delivery-source-manifest-2026-11-13-release.json",
+  "backend": {
+    "passed": 1364,
+    "skipped": 4,
+    "failed": 0,
+    "seconds": 580.67
+  },
+  "seal_and_prompt_checks": {
+    "passed": 10,
+    "failed": 0
+  },
+  "browser": {
+    "passed": 195,
+    "skipped": 13,
+    "failed": 0,
+    "duration": "8.8m",
+    "backend": "isolated fixture; models disabled"
+  },
+  "lint": "passed",
+  "typescript": "passed",
+  "production_build": "passed",
+  "diff_check": "passed",
+  "credential_pattern_scan": {
+    "checked_text_files": 798,
+    "findings": []
+  },
+  "visual": {
+    "cjk_font": "test-only local SimHei injection; no application asset changes",
+    "viewports": [
+      1440,
+      390
+    ],
+    "pages": [
+      "/showcase/cases/composed",
+      "/evaluation/runs"
+    ],
+    "overflow": false,
+    "page_errors": []
+  },
+  "live_smoke": {
+    "checked_at": "2026-11-13T14:18:17.722565+00:00",
+    "workbook_sha256": "6bf778020c6ae752da6778bc5429d1b09bc59ea1f725462dfe20207cbef88276",
+    "reference_reader": "xlrd direct cells; no application calculation helpers",
+    "checks": [
+      {
+        "path": "/",
+        "status": 200
+      },
+      {
+        "path": "/evaluation",
+        "status": 200
+      },
+      {
+        "path": "/showcase/literature",
+        "status": 200
+      },
+      {
+        "path": "/api/health",
+        "status": 200
+      },
+      {
+        "path": "/api/ready",
+        "status": 200
+      },
+      {
+        "operation": "max",
+        "status": 200,
+        "run_id": "b1603775-2d5b-41d1-827e-3b017f695a8c",
+        "route": "file",
+        "outcome": "complete",
+        "trace_saved": true,
+        "evidence": {
+          "filename": "Nbal_out.xls",
+          "sha256": "6bf778020c6ae752da6778bc5429d1b09bc59ea1f725462dfe20207cbef88276",
+          "sheet": "Nbal_out",
+          "field": "leak_NO3(kg N ha-1)",
+          "unit": "kg N ha-1",
+          "operation": "max",
+          "value": 3.659263849258423,
+          "model_day": 283,
+          "cell": "Nbal_out!C284",
+          "day_cell": "Nbal_out!A284",
+          "occurrences": 1,
+          "data_range": "Nbal_out!C2:C353",
+          "tool_version": "0.2.0",
+          "schema_id": "whcns-received-20260926-nitrogen-v1"
+        }
+      },
+      {
+        "operation": "min",
+        "status": 200,
+        "run_id": "2ea5b082-040b-4b6d-99e2-4f1144722a13",
+        "route": "file",
+        "outcome": "complete",
+        "trace_saved": true,
+        "evidence": {
+          "filename": "Nbal_out.xls",
+          "sha256": "6bf778020c6ae752da6778bc5429d1b09bc59ea1f725462dfe20207cbef88276",
+          "sheet": "Nbal_out",
+          "field": "leak_NO3(kg N ha-1)",
+          "unit": "kg N ha-1",
+          "operation": "min",
+          "value": 0.0,
+          "model_day": 2,
+          "cell": "Nbal_out!C3",
+          "day_cell": "Nbal_out!A3",
+          "occurrences": 191,
+          "data_range": "Nbal_out!C2:C353",
+          "tool_version": "0.2.0",
+          "schema_id": "whcns-received-20260926-nitrogen-v1"
+        }
+      }
+    ]
+  },
+  "database_backup_manifest": "backend/var/backups/preseal-20261113/manifest.json",
+  "known_answer_quality_issues": [
+    "GHB-08 adds unsupported irrigation-efficiency scenarios",
+    "GHB-43 overstates ammonium transport and repeats citations",
+    "GHB-45 contains a urea nitrogen transport error"
+  ],
+  "professional_acceptance": "pending; automated checks are not expert approval",
+  "artifacts": {
+    "backend/var/eval/preseal-20261113-final/backend.log": {
+      "bytes": 2255,
+      "sha256": "a651408435f5ab68a4dad5c1a9e721e6a8d72390b6e0efcc1d0f391880af143b"
+    },
+    "backend/var/eval/preseal-20261113-final/backend.xml": {
+      "bytes": 213320,
+      "sha256": "43616f8b8a7bd95e1566404d1dff85e5641db2e98e2e4f6217a11b2e3d9b813b"
+    },
+    "backend/var/eval/preseal-20261113-final/browser.log": {
+      "bytes": 27586,
+      "sha256": "a05fbfafde1fe7fd2ed01ae2a834b02e40c1c48c52bc258269442edb992f1fcb"
+    },
+    "backend/var/eval/preseal-20261113-final/build.log": {
+      "bytes": 1003,
+      "sha256": "07086403225dfc824d3ef01814e8d40c6203fc46d3ea4d3d1ddfe8dcd3278378"
+    },
+    "backend/var/eval/preseal-20261113-final/lint.log": {
+      "bytes": 81,
+      "sha256": "e91cc2a3be1afd3cfdd9dbf043f7bb09e82d3f3cd1f6f3a2d1d02474847cb04f"
+    },
+    "backend/var/eval/preseal-20261113-final/types.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "backend/var/eval/preseal-20261113-final/seal-checks.log": {
+      "bytes": 99,
+      "sha256": "8ea1813781d65a5fa292acf37d9b01f747a40391ecafdcfa6b253b49f16df22d"
+    },
+    "backend/var/eval/preseal-20261113-final/credential-scan.json": {
+      "bytes": 50,
+      "sha256": "65daca4d7d5bd752db6bf4dc32bd0e32a29902e5967f19e370a487b2aaf2995f"
+    },
+    "backend/var/eval/preseal-20261113-final/visual.json": {
+      "bytes": 238,
+      "sha256": "249ebe273c70ddf0f4bf8152ad592367a8a33582f188d12906e3f11bd8ad28e1"
+    },
+    "backend/var/eval/preseal-20261113-final/live-smoke.json": {
+      "bytes": 2057,
+      "sha256": "7d9cf70eed0ae6a9da246aa902a603af0710f75651f923c21375da84f032bdf7"
+    },
+    "backend/var/eval/preseal-20261113-final/delivery-check.log": {
+      "bytes": 82,
+      "sha256": "cb81f6385bbca9594c09f2fb5ee6051a1992574b27bd9c6a8d145e7c8366bf17"
+    }
+  },
+  "live_run_config_versions": {
+    "b1603775-2d5b-41d1-827e-3b017f695a8c": "delivery-20261113-9a6a1642d860:38efe915a598a544",
+    "2ea5b082-040b-4b6d-99e2-4f1144722a13": "delivery-20261113-9a6a1642d860:38efe915a598a544"
+  },
+  "delivery_check": "passed after production services started and file smoke completed"
+}

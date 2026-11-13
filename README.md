@@ -132,7 +132,8 @@ ambiguous fields, time subsets and seasonal totals require clarification.
 
 Attachments are limited to 10 MiB and expire after 30 minutes. The prototype keeps
 parsed content in process memory (maximum 32 files, single backend worker);
-temporary originals are deleted after parsing. Files attach to one message and
+submitted originals are retained in the run database for authenticated review previews;
+unsubmitted originals are deleted when their temporary file lease is released or expires. Files attach to one message and
 leave the input area immediately after sending. Upload the file again to use it
 in a later question; retrying or regenerating a message reuses its original valid
 attachments. Refresh/restart requires re-upload for new file analysis.
@@ -168,6 +169,7 @@ for visitor isolation, request budgets, deployment settings and evidence scope.
 - [Backend setup](backend/README.md)
 - [Frontend setup](frontend/README.md)
 - [Development guide](docs/development.md)
+- [2026-11-13 封版审查与验证](docs/releases/2026-11-13-preseal-review.md)
 - [1017 PRD 剩余开发交付与验收](docs/iterations/2026-10-17-prd-completion/README.md)
 - [工具能力盘点归档：Skill、MCP 与后续优化候选（2026-10-16）](docs/iterations/2026-10-16-tool-capability-inventory/README.md)
 - [工作台使用说明与文档导航](docs/iterations/2026-09-29-agent-harness/evaluation-guide.md)

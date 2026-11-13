@@ -7,6 +7,9 @@ const trace = (run_id: string, input: string, answer: string) => ({ run_id, inpu
   status: 'ok', outcome: 'complete', latency_ms: 115, error_code: null,
   decision: { route: 'KNOWLEDGE', reason_code: 'knowledge_intent' },
   tool_calls: [{ skill: 'knowledge_search', status: 'ok', latency_ms: 110 }],
+  execution_plan: { version: 'task-routing-v1', mode: 'auto', tasks: [{ subtask_id: 't1', candidate_skills: ['knowledge_search'] }], actual_calls: [{ skill: 'knowledge_search', status: 'ok' }], outcome: 'complete' },
+  retrieval: [{ source_type: 'literature', pipeline: { version: 'local-postings-v1', status: 'ready', candidate_count: 12, rebuilt_materials: 0, elapsed_ms: 6, coverage: 'bounded' } }],
+  starred_match: { status: 'partial', adopted: [{ question_id: 'q', answer: '已有维护答复', covered_aspects: ['尺度原因'] }], remaining_subtask_ids: ['t1'], uncovered_aspects: ['如何构建'] },
   state_before: { crop: null }, state_after: { crop: null }, evidence: [], sections: [], warnings: [] });
 
 test('conversation records filter, paginate and reveal both turns with their traces', async ({ page }) => {
@@ -48,6 +51,9 @@ test('conversation records filter, paginate and reveal both turns with their tra
   await expect(page.getByLabel('路由与调用脉络')).toHaveCount(2);
   const second = page.getByRole('listitem').filter({ hasText: '那灌溉呢？' });
   await second.getByText('展开本轮 MQ 明细 · Run run-two').click();
+  await expect(second.getByText('本轮计划：1 项子任务', { exact: false })).toBeVisible();
+  await expect(second.getByText('星标前置：部分覆盖', { exact: false })).toBeVisible();
+  await expect(second.getByText('检索索引：local-postings-v1', { exact: false })).toBeVisible();
   await expect(second.getByRole('link', { name: '查看当前能力说明：knowledge_search' })).toHaveAttribute('href', '/evaluation/skills/knowledge_search');
   await second.getByText('路由决策').click();
   await expect(second.getByText('knowledge_intent').first()).toBeVisible();

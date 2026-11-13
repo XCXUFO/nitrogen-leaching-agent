@@ -6,6 +6,9 @@ from typing import Literal
 
 from src.llm.base import ChatMessage
 from src.agent.explanation_method import communication_instructions
+from src.agent.task_prompts import task_instructions
+from src.agent.concept_intent import CONCEPT_SYSTEM
+from src.agent.domain_scope import DOMAIN_INSTRUCTIONS
 from src.rag.retriever import RetrievalResult
 
 SYSTEM_PROMPT_WITH_CONTEXT = """\
@@ -27,8 +30,8 @@ SYSTEM_PROMPT_WITH_CONTEXT = """\
 
 SYSTEM_PROMPT_NO_CONTEXT = """\
 你是面向中国农业研究者的氮素淋失风险问答助手。
-当前未检索到相关参考资料。请基于通用知识谨慎回答，
-并在回答开头明确告知用户"以下回答未引用本知识库资料"。
+请基于可靠的通用知识直接回答，不编造具体研究结论、数值或引用。
+仅说明影响当前结论的具体不确定性，不添加资料来源状态声明。
 """
 
 OVERVIEW_INSTRUCTIONS = """\
@@ -38,7 +41,7 @@ OVERVIEW_INSTRUCTIONS = """\
 缺少可比证据时不编造统一排名、权重或贡献率。
 使用自然段或清晰要点，篇幅随问题复杂度和用户要求展开，不要只罗列因素名称。
 可以使用通用农业知识；资料未覆盖全部因素时，仍应解释能够可靠说明的一般原理，
-并用“一般知识补充”明确区分未由参考资料支持的内容，不给这些内容添加文献引用。
+通用原理自然解释，用“通常”等保留适用范围，不给这些内容添加文献引用。
 只有实际提供的正文研究结果或讨论可以作为文献依据，题名、目录和参考文献条目不能作证据。
 引用用 [1][2] 标注，保留研究作物、场景和时间尺度，不将个别研究泛化为所有农田。
 不虚构数值、论文结论、来源或引用，不把一般因素认定为用户田块或某次峰值的实际原因。
@@ -68,6 +71,15 @@ _BILINGUAL_RETRIEVAL_HINTS: tuple[tuple[str, str], ...] = (
     ("硝态氮", "nitrate nitrogen NO3"),
     ("氨挥发", "ammonia volatilization NH3"),
     ("氧化亚氮", "nitrous oxide N2O"),
+    ("N2O", "nitrous oxide N2O"),
+    ("N₂O", "nitrous oxide N2O"),
+    ("菜地", "vegetable field"),
+    ("蔬菜", "vegetable"),
+    ("设施菜地", "greenhouse vegetable field"),
+    ("设施蔬菜", "greenhouse vegetable"),
+    ("排放", "emissions"),
+    ("规律", "patterns dynamics"),
+    ("排放规律", "temporal seasonal peaks"),
     ("温室", "greenhouse"),
     ("番茄", "tomato"),
     ("秸秆", "straw incorporation"),
@@ -335,7 +347,7 @@ def expand_retrieval_query(query: str) -> str:
             hints.extend(expansion.split())
 
     for trigger, expansion in _BILINGUAL_RETRIEVAL_HINTS:
-        if trigger in query:
+        if trigger.casefold() in query.casefold():
             hints.extend(expansion.split())
 
     if not hints:
@@ -361,8 +373,15 @@ def build_messages(
     max_context_chars: int,
     history: Sequence[DialogueTurn] | None = None,
     allow_general_knowledge: bool = False,
+    task_scope: str = "knowledge_search",
 ) -> list[ChatMessage]:
-    if allow_general_knowledge:
+    if task_scope == "concept_explanation":
+        system = CONCEPT_SYSTEM
+        if retrieved:
+            system += "\n【参考资料】\n" + format_context(retrieved, max_context_chars)
+        else:
+            system += "\n直接解释可靠的通用原理，不编造研究结论、数值或引用，不添加来源状态声明。"
+    elif allow_general_knowledge:
         system = OVERVIEW_INSTRUCTIONS
         if retrieved:
             system += "\n【参考资料】\n" + format_context(retrieved, max_context_chars)
@@ -374,7 +393,7 @@ def build_messages(
     else:
         system = SYSTEM_PROMPT_NO_CONTEXT
 
-    messages = [ChatMessage(role="system", content=system + "\n\n" + communication_instructions())]
+    messages = [ChatMessage(role="system", content=DOMAIN_INSTRUCTIONS + "\n" + system + task_instructions(task_scope) + "\n\n" + communication_instructions(query))]
     formatted_history = format_history(history or [], max_chars=1600)
     if formatted_history:
         messages.append(

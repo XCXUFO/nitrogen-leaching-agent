@@ -10,7 +10,7 @@ from tests.test_literature import pdf_bytes
 def client(tmp_path):
     app = create_app(tmp_path)
     with TestClient(app) as client:
-        client.headers["Authorization"] = f"Bearer {TOKENS['tester']}"
+        client.headers["Authorization"] = f"Bearer {TOKENS['developer']}"
         yield client
     app.state.literature.close()
 
@@ -34,6 +34,18 @@ def complete(paper, **fields):
             "year_unknown": True, "language": "英文", "source_note": "Synthetic fixture", "action": "register", **fields}
 
 
+def test_delete_linked_tag_without_case_library(client):
+    dimension = client.post('/api/literature/dimensions', json={'name': '主题'}).json()['id']
+    tag = client.post(f'/api/literature/dimensions/{dimension}/tags', json={'name': '待删除'}).json()['id']
+    paper, raw = create(client, tag_ids=[tag])
+    response = client.delete('/api/literature/tags/' + tag)
+    assert response.status_code == 200, response.text
+    assert response.json() == {'deleted': True, 'detached_paper_count': 1, 'detached_case_count': 0}
+    latest = client.get('/api/literature/papers/' + paper['id']).json()
+    assert latest['tag_ids'] == [] and latest['revision'] == paper['revision'] + 1
+    assert client.get(f"/api/literature/papers/{paper['id']}/file").content == raw
+
+
 def test_http_auth_lifecycle_and_original(client):
     assert client.get("/api/literature/papers", headers={"Authorization": ""}).status_code == 401
     for role, token in TOKENS.items():
@@ -44,7 +56,7 @@ def test_http_auth_lifecycle_and_original(client):
     assert duplicate.status_code == 409 and duplicate.json()["detail"]["paper_id"] == pid
     saved = client.put(f"/api/literature/papers/{pid}", json=complete(paper))
     assert saved.status_code == 200, saved.text
-    assert saved.json()["registered_by"] == "tester"
+    assert saved.json()["registered_by"] == "developer"
     download = client.get(f"/api/literature/papers/{pid}/file?download=true")
     assert download.content == raw and download.headers["content-disposition"].startswith("attachment;")
     assert client.post(f"/api/literature/papers/{pid}/disable", json={"reason": " "}).status_code == 400
@@ -88,7 +100,15 @@ def test_pdf_rejection_and_upload_ownership(client):
     assert client.post("/api/literature/uploads?filename=locked.pdf", content=protected).json()["detail"]["code"] == "protected_pdf"
     token, _ = upload(client)
     wrong_owner = client.post("/api/literature/papers", headers={"Authorization": f"Bearer {TOKENS['reviewer']}"}, json={"upload_id": token})
-    assert wrong_owner.status_code == 404
+    assert wrong_owner.status_code == 403
+    # A different developer also cannot claim another person's staged upload.
+    import hashlib
+    from src.evaluation.contracts import AccessEntry
+    other_token = 'f' * 40
+    client.app.state.eval_access.users.append(AccessEntry(tester_id='other-developer', role='developer',
+        token_sha256=hashlib.sha256(other_token.encode()).hexdigest()))
+    assert client.post('/api/literature/papers', headers={'Authorization': 'Bearer ' + other_token},
+        json={'upload_id': token}).status_code == 404
 
 
 def test_failed_file_replacement_preserves_committed_original(client, monkeypatch):
@@ -188,7 +208,7 @@ def test_concurrent_same_file_save_returns_existing_record(tmp_path):
     raw = pdf_bytes("concurrent")
     uploads = []
     for client in clients:
-        client.headers["Authorization"] = f"Bearer {TOKENS['tester']}"
+        client.headers["Authorization"] = f"Bearer {TOKENS['developer']}"
         uploads.append(client.post("/api/literature/uploads?filename=one.pdf", content=raw).json()["upload_id"])
     barrier = Barrier(2)
     def save(index):

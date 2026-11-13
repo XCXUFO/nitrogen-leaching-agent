@@ -7,7 +7,8 @@ import { SkillWorkspace } from "@/components/skill-workspace";
 import { OnlineEffects } from "@/components/online-effects";
 import { ExplanationTrials } from "@/components/explanation-trials";
 import { RunReviewWorkspace } from "@/components/run-review-workspace";
-import { evaluationHref, evaluationModules } from "@/lib/evaluation-navigation";
+import { conversationCaseHref, evaluationHref, evaluationModules } from "@/lib/evaluation-navigation";
+import { ConversationCaseWorkspace, ConversationCasesWorkspace, ConversationVersionsWorkspace, ConversationIssuesWorkspace } from "@/components/conversation-cases";
 
 export default async function Page({ params, searchParams }: {
   params: Promise<{ path: string[] }>;
@@ -16,11 +17,31 @@ export default async function Page({ params, searchParams }: {
   const raw = (await params).path;
   let path: string[];
   try { path = raw.map((part) => decodeURIComponent(part)); } catch { notFound(); }
-  if (path.length > 2) notFound();
+  const caseDetail = path[0] === 'case-groups' && (
+    (path.length === 3 && path[1] === 'cases') ||
+    (path.length === 4 && !['cases', 'versions'].includes(path[1]) && path[2] === 'cases')
+  );
+  if (path.length > 2 && !caseDetail) notFound();
   if (path[0] === "formal-reviews") redirect(evaluationHref("runs", path[1]));
   const currentModule = evaluationModules.find((item) => item.key === path[0]);
   if (!currentModule) notFound();
   const query = await searchParams;
+  if (currentModule.key === 'case-groups') {
+    if (caseDetail) return <ConversationCaseWorkspace caseId={path[path.length - 1]} />;
+    const initialCase = typeof query.case === 'string' ? query.case : '';
+    const initialBatch = typeof query.batch === 'string' ? query.batch : '';
+    const initialGroup = typeof query.group === 'string' ? query.group : '';
+    if (path[1] === 'versions') return <ConversationVersionsWorkspace key={`versions:${initialGroup}:${initialCase}:${initialBatch}`} initialGroup={initialGroup} initialCase={initialCase} initialBatch={initialBatch} />;
+    if (initialBatch) {
+      const legacyQuery = new URLSearchParams({ batch: initialBatch });
+      if (initialCase) legacyQuery.set('case', initialCase);
+      if (path[1]) legacyQuery.set('group', path[1]);
+      redirect(`${evaluationHref('case-groups', 'versions')}?${legacyQuery}`);
+    }
+    if (initialCase) redirect(conversationCaseHref(initialCase, path[1]));
+    return <ConversationCasesWorkspace key={path[1] ?? 'list'} detail={path[1]} />;
+  }
+  if (currentModule.key === 'issues') return <ConversationIssuesWorkspace key={path[1] ?? 'list'} detail={path[1]} />;
   if (currentModule.key === "runs" || currentModule.key === "overview") {
     const serialized = new URLSearchParams(Object.entries(query).flatMap(([key, value]) => typeof value === "string" ? [[key, value]] : [])).toString();
     return <RunReviewWorkspace key={`${path[1] ?? "list"}:${serialized}`} detail={path[1] ?? ""} query={serialized} />;

@@ -10,7 +10,7 @@ import shutil
 import sqlite3
 import threading
 import time
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from datetime import date, datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 from functools import wraps
@@ -29,6 +29,7 @@ from src.api.literature_tagging import available_taxonomy, merge_tag_suggestions
 from src.config import settings
 from src.evaluation.auth import current_user
 from src.evaluation.contracts import Principal
+from src.utils.taxonomy import association_counts, enabled_tag_ids
 
 router = APIRouter(prefix="/literature")
 FIELD_LABELS = {"title": "论文标题", "authors": "作者", "authors_unknown": "作者未知", "publication_type": "发表形式", "venue": "发表载体", "venue_unknown": "载体未知", "year": "发表年份", "year_unknown": "年份未知", "language": "语言", "language_note": "语言说明", "doi": "DOI", "source_url": "来源链接", "source_note": "出处说明", "abstract": "摘要", "conclusion": "结论", "version_note": "版本说明", "related_paper_ids": "关联文献", "internal_note": "内部备注", "tag_ids": "分类标签", "filename": "文件名", "sha256": "文件指纹", "usage": "使用状态", "name": "名称", "description": "说明", "selection": "选择方式", "required": "登记必填", "enabled": "启用状态", "sort_order": "展示顺序", "parent_id": "父标签"}
@@ -132,7 +133,8 @@ def synchronized(method):
 
 
 class LiteratureStore:
-    def __init__(self, db_path: str, files_dir: str):
+    def __init__(self, db_path: str, files_dir: str, *, search_strategy='indexed'):
+        self.search_strategy = search_strategy
         self.root = Path(files_dir)
         self.root.mkdir(parents=True, exist_ok=True)
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
@@ -151,9 +153,13 @@ class LiteratureStore:
             CREATE UNIQUE INDEX IF NOT EXISTS root_tag_name ON tags(dimension_id, name COLLATE NOCASE) WHERE parent_id IS NULL;
             CREATE UNIQUE INDEX IF NOT EXISTS child_tag_name ON tags(dimension_id, parent_id, name COLLATE NOCASE) WHERE parent_id IS NOT NULL;
             CREATE TABLE IF NOT EXISTS paper_tags (paper_id TEXT NOT NULL REFERENCES papers(id), tag_id TEXT NOT NULL REFERENCES tags(id), PRIMARY KEY(paper_id,tag_id));
+            CREATE INDEX IF NOT EXISTS paper_tags_by_tag ON paper_tags(tag_id);
             CREATE TABLE IF NOT EXISTS events (id TEXT PRIMARY KEY, entity TEXT NOT NULL, entity_id TEXT NOT NULL, action TEXT NOT NULL, actor TEXT NOT NULL, at TEXT NOT NULL, before_json TEXT, after_json TEXT, reason TEXT, summary TEXT NOT NULL DEFAULT '');
             CREATE INDEX IF NOT EXISTS events_entity ON events(entity,entity_id,at);
             CREATE TABLE IF NOT EXISTS literature_imports (id TEXT PRIMARY KEY, owner TEXT NOT NULL, data TEXT NOT NULL, created_at TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS asset_tag_jobs (id TEXT PRIMARY KEY, actor TEXT NOT NULL, mode TEXT NOT NULL, taxonomy TEXT NOT NULL, created_at TEXT NOT NULL, updated_at REAL NOT NULL);
+            CREATE TABLE IF NOT EXISTS asset_tag_items (job_id TEXT NOT NULL REFERENCES asset_tag_jobs(id), kind TEXT NOT NULL, asset_id TEXT NOT NULL, title TEXT NOT NULL, revision INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'queued', message TEXT NOT NULL DEFAULT '', attempt TEXT, before_tags TEXT, after_tags TEXT, PRIMARY KEY(job_id,kind,asset_id));
+            CREATE INDEX IF NOT EXISTS asset_tag_pending ON asset_tag_items(job_id,status);
             """)
             if "summary" not in {r[1] for r in self.db.execute("PRAGMA table_info(events)")}:
                 self.db.execute("ALTER TABLE events ADD COLUMN summary TEXT NOT NULL DEFAULT ''")
@@ -194,6 +200,24 @@ class LiteratureStore:
             finally:
                 staging.unlink(missing_ok=True)
 
+    @contextmanager
+    def write_with_cases(self, cases):
+        """Commit taxonomy and case assignments in the same SQLite transaction.
+
+        Keep the usual taxonomy -> cases lock order. Use the attached database
+        through this connection so a later failure rolls back both libraries.
+        """
+        with self.lock, cases.lock if cases is not None else nullcontext():
+            if cases is not None:
+                path = cases.db.execute("PRAGMA database_list").fetchone()[2]
+                self.db.execute("ATTACH DATABASE ? AS tag_cases", (path,))
+            try:
+                with self.write():
+                    yield
+            finally:
+                if cases is not None:
+                    self.db.execute("DETACH DATABASE tag_cases")
+
     def prune_uploads(self):
         """Keep uncommitted PDF uploads for at most one day."""
         cutoff_time = datetime.now(timezone.utc) - timedelta(days=1)
@@ -219,6 +243,8 @@ class LiteratureStore:
             summary = "修改：" + "、".join(changed[:8]) + ("等" if len(changed) > 8 else "") if changed else "保存记录"
         else:
             summary = {"create_draft": "新增并保存草稿", "register": "完成登记", "disable": "停用", "restore": "恢复", "delete": "逻辑删除", "create": "新增", "edit": "修改", "replace_file": "替换草稿文件"}.get(action, action)
+        if entity == "tag" and action == "delete":
+            summary = "删除标签并解除关联"
         self.db.execute("INSERT INTO events VALUES (?,?,?,?,?,?,?,?,?,?)", (secrets.token_hex(12), entity, entity_id, action, actor, now(), json.dumps(before, ensure_ascii=False) if before is not None else None, json.dumps(after, ensure_ascii=False) if after is not None else None, reason, summary))
 
     @synchronized
@@ -259,6 +285,20 @@ class LiteratureStore:
         return self.paper(row, full=full)
 
     @synchronized
+    def matching_taxonomy(self):
+        return {'dimensions':[dict(r) for r in self.db.execute('SELECT * FROM dimensions ORDER BY id')],
+                'tags':self._tag_paths([dict(r) for r in self.db.execute('SELECT * FROM tags ORDER BY id')])}
+
+    def _tag_paths(self, tags):
+        by_id = {t['id']:t for t in tags}
+        for tag in tags:
+            names, seen, node = [], set(), tag
+            while node and node['id'] not in seen:
+                seen.add(node['id']); names.append(node['name']); node=by_id.get(node['parent_id'])
+            tag['path']=' / '.join(reversed(names))
+        return tags
+
+    @synchronized
     def taxonomy(self):
         dims = [dict(r) for r in self.db.execute("SELECT * FROM dimensions ORDER BY sort_order,name")]
         tags = [dict(r) for r in self.db.execute("SELECT t.*, COUNT(DISTINCT CASE WHEN p.deleted=0 THEN p.id END) AS paper_count FROM tags t LEFT JOIN paper_tags pt ON pt.tag_id=t.id LEFT JOIN papers p ON p.id=pt.paper_id GROUP BY t.id ORDER BY t.sort_order,t.name")]
@@ -272,6 +312,14 @@ class LiteratureStore:
             paths[tag["id"]] = " / ".join(reversed(names))
         for tag in tags: tag["path"] = paths[tag["id"]]
         return {"dimensions": dims, "tags": tags}
+
+    @synchronized
+    def tag_assignments(self):
+        assignments = {}
+        rows = self.db.execute("SELECT pt.paper_id,pt.tag_id FROM paper_tags pt JOIN papers p ON p.id=pt.paper_id WHERE p.deleted=0")
+        for paper_id, tag_id in rows:
+            assignments.setdefault(paper_id, set()).add(tag_id)
+        return list(assignments.values())
 
     def descendants(self, tag_id: str, tags: list[dict]):
         ids = {tag_id}
@@ -289,20 +337,21 @@ def store(request: Request) -> LiteratureStore:
 
 def validate_tag_selection(db: LiteratureStore, tag_ids: list[str], previous=(), *, require_dimensions=False):
     tags = db.taxonomy()
+    allowed = enabled_tag_ids(tags)
     chosen = {}
     for tag_id in tag_ids:
         tag = next((t for t in tags["tags"] if t["id"] == tag_id), None)
         if not tag: fail("invalid_tag", "标签不存在。")
         dim = next(d for d in tags["dimensions"] if d["id"] == tag["dimension_id"])
-        if (not tag["enabled"] or not dim["enabled"]) and tag_id not in previous:
-            fail("invalid_tag", "不能新增已停用标签或维度的关联。")
+        if tag_id not in allowed and tag_id not in previous:
+            fail("invalid_tag", "标签、所属维度或祖先标签已停用，不能新增关联。")
         chosen.setdefault(dim["id"], []).append(tag)
     for dim in tags["dimensions"]:
         selected = chosen.get(dim["id"], [])
         if dim["selection"] == "single" and len(selected) > 1: fail("single_dimension", f"{dim['name']}只能选择一个标签。")
         ids = {t["id"] for t in selected}
         if any((db.descendants(t["id"], tags["tags"]) - {t["id"]}) & ids for t in selected): fail("ancestor_conflict", "同一维度不能同时保存祖先和后代标签。")
-        if require_dimensions and dim["enabled"] and dim["required"] and not any(t["enabled"] for t in selected): fail("required_tag", f"请选择{dim['name']}的有效标签。")
+        if require_dimensions and dim["enabled"] and dim["required"] and not any(t["id"] in allowed for t in selected): fail("required_tag", f"请选择{dim['name']}的有效标签。")
     if len(set(tag_ids)) != len(tag_ids): fail("duplicate_tag", "标签不能重复选择。")
 
 
@@ -349,11 +398,16 @@ def validate_paper(db: LiteratureStore, body: PaperInput, existing_id: str | Non
 
 @router.get("/taxonomy")
 def taxonomy(request: Request, user: Principal = Depends(current_user)):
-    result = store(request).taxonomy()
+    db = store(request)
     cases = getattr(request.app.state, "case_library", None)
-    counts = cases.tag_counts() if cases is not None else {}
-    for tag in result["tags"]:
-        tag["case_count"] = counts.get(tag["id"], 0)
+    with db.lock:
+        result = db.taxonomy()
+        papers = association_counts(result["tags"], db.tag_assignments())
+        counts = association_counts(result["tags"], cases.tag_assignments() if cases is not None else [])
+        for tag in result["tags"]:
+            tag["indirect_paper_count"] = papers[tag["id"]]["indirect"]
+            tag["case_count"] = counts[tag["id"]]["direct"]
+            tag["indirect_case_count"] = counts[tag["id"]]["indirect"]
     return result
 
 
@@ -787,16 +841,40 @@ def update_tag(request: Request, tag_id: str, body: TagInput, user: Principal = 
 @router.delete("/tags/{tag_id}")
 def delete_tag(request: Request, tag_id: str, user: Principal = Depends(current_user)):
     db = store(request)
-    with db.write():
+    cases = getattr(request.app.state, "case_library", None)
+    with db.write_with_cases(cases):
         old = db.db.execute("SELECT * FROM tags WHERE id=?", (tag_id,)).fetchone()
         if not old: fail("tag_not_found", "标签不存在。", 404)
-        if db.db.execute("SELECT 1 FROM tags WHERE parent_id=?", (tag_id,)).fetchone() or db.db.execute("SELECT 1 FROM paper_tags WHERE tag_id=?", (tag_id,)).fetchone(): fail("tag_in_use", "标签有子标签或关联文献，请先停用。", 409)
-        cases = getattr(request.app.state, "case_library", None)
-        if cases is not None and any(tag_id in assigned for assigned in cases.tag_assignments(include_deleted=True)):
-            fail("tag_in_use", "标签有关联案例，请先停用。", 409)
+        if db.db.execute("SELECT 1 FROM tags WHERE parent_id=?", (tag_id,)).fetchone():
+            fail("tag_in_use", "标签仍有子标签，请先移动或删除子标签，再删除此标签。", 409)
+        # Include disabled and soft-deleted records: none should retain a
+        # dangling assignment. Their content and availability remain intact.
+        papers = db.db.execute("SELECT p.* FROM papers p JOIN paper_tags pt ON pt.paper_id=p.id WHERE pt.tag_id=?", (tag_id,)).fetchall()
+        at = now()
+        for paper in papers:
+            before_ids = [r[0] for r in db.db.execute("SELECT tag_id FROM paper_tags WHERE paper_id=?", (paper["id"],))]
+            remaining = [identifier for identifier in before_ids if identifier != tag_id]
+            data = json.loads(paper["data"])
+            data["tag_ids"] = remaining
+            db.db.execute("UPDATE papers SET data=?,revision=revision+1,updated_by=?,updated_at=? WHERE id=?",
+                          (json.dumps(data, ensure_ascii=False), user.tester_id, at, paper["id"]))
+            db.event("paper", paper["id"], "edit", user.tester_id,
+                     before={"tag_ids": before_ids}, after={"tag_ids": remaining},
+                     reason=f"删除标签“{old['name']}”（{tag_id}），自动解除关联。")
+        db.db.execute("DELETE FROM paper_tags WHERE tag_id=?", (tag_id,))
+        case_ids = []
+        if cases is not None:
+            assigned = db.db.execute("SELECT id,tag_ids FROM tag_cases.reference_cases WHERE EXISTS (SELECT 1 FROM json_each(tag_ids) WHERE value=?)", (tag_id,)).fetchall()
+            for case in assigned:
+                remaining = [identifier for identifier in json.loads(case["tag_ids"]) if identifier != tag_id]
+                db.db.execute("UPDATE tag_cases.reference_cases SET tag_ids=?,revision=revision+1,updated_by=?,updated_at=? WHERE id=?",
+                              (json.dumps(remaining), user.tester_id, at, case["id"]))
+                case_ids.append(case["id"])
         db.db.execute("DELETE FROM tags WHERE id=?", (tag_id,))
-        db.event("tag", tag_id, "delete", user.tester_id, before=dict(old))
-    return {"deleted": True}
+        result = {"deleted": True, "detached_paper_count": len(papers), "detached_case_count": len(case_ids)}
+        db.event("tag", tag_id, "delete", user.tester_id, before=dict(old),
+                 after={**result, "detached_case_ids": case_ids})
+    return result
 
 
 @router.get("/events/{entity}/{entity_id}")

@@ -12,8 +12,8 @@ test('case selection, one-click tagging, partial retry and receipt recovery', as
     const url = new URL(route.request().url());
     const path = url.pathname;
     let json: unknown;
-    if (path === '/api/eval/me') json = { tester_id: 'tester', role: 'tester' };
-    else if (path === '/api/eval/login') json = { token: 'test-token', user: { tester_id: 'tester', role: 'tester' } };
+    if (path === '/api/eval/me') json = { tester_id: 'tester', role: 'developer' };
+    else if (path === '/api/eval/login') json = { token: 'test-token', user: { tester_id: 'tester', role: 'developer' } };
     else if (path === '/api/case-library/taxonomy') json = { dimensions: [{ id: 'crop', name: '作物', enabled: true, selection: 'single' }], tags: [{ id: 'maize', dimension_id: 'crop', parent_id: null, name: '玉米', path: '玉米', enabled: true }] };
     else if (path === '/api/case-library') json = { items: records, total: 3, page: 1, page_size: 20 };
     else if (path === '/api/case-library/tag-jobs') {
@@ -77,8 +77,8 @@ for (const status of [405, 500, 422]) {
     await page.route('**/api/**', async (route) => {
       const path = new URL(route.request().url()).pathname;
       let json: unknown;
-      if (path === '/api/eval/me') json = { tester_id: 'tester', role: 'tester' };
-      else if (path === '/api/eval/login') json = { token: 'test-token', user: { tester_id: 'tester', role: 'tester' } };
+      if (path === '/api/eval/me') json = { tester_id: 'tester', role: 'developer' };
+      else if (path === '/api/eval/login') json = { token: 'test-token', user: { tester_id: 'tester', role: 'developer' } };
       else if (path === '/api/case-library/taxonomy') json = { dimensions: [], tags: [] };
       else if (path === '/api/case-library') json = { items: [{ id: 'C-1111111111111111', title: '待打标案例', tag_ids: [], summary: '材料', updated_at: '2026-10-16T00:00:00Z' }], total: 1, page: 1, page_size: 20 };
       else if (path === '/api/case-library/tag-jobs') {
@@ -110,8 +110,8 @@ for (const conflict of [false, true]) {
       const url = new URL(route.request().url());
       const path = url.pathname;
       let json: unknown;
-      if (path === '/api/eval/me') json = { tester_id: 'tester', role: 'tester' };
-      else if (path === '/api/eval/login') json = { token: 'test-token', user: { tester_id: 'tester', role: 'tester' } };
+      if (path === '/api/eval/me') json = { tester_id: 'tester', role: 'developer' };
+      else if (path === '/api/eval/login') json = { token: 'test-token', user: { tester_id: 'tester', role: 'developer' } };
       else if (path === '/api/case-library/taxonomy') json = { dimensions: [], tags: [] };
       else if (path === '/api/case-library') {
         filters.push(url.searchParams);

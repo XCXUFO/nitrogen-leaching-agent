@@ -89,6 +89,28 @@ async def finished(client, run_id):
 
 
 @pytest.mark.asyncio
+async def test_same_visitor_independent_conversations_remain_separate_in_reviews(context):
+    _, client, store = context
+    questions = ["明天吃啥", "你妈是谁", "解释下动能定理", "1", "晚上好"]
+    run_ids = []
+    for index, question in enumerate(questions):
+        response = await client.post("/api/chat", json=body(
+            query=question, session_id=f"independent-{index}"))
+        assert response.status_code == 202, response.text
+        result = await finished(client, response.json()["run_id"])
+        assert result["status"] == "succeeded"
+        run_ids.append(result["run_id"])
+    listing = store.sessions()
+    assert listing["total"] == 5
+    assert len({item["operator_id"] for item in listing["items"]}) == 1
+    assert all(item["turn_count"] == 1 for item in listing["items"])
+    for run_id, question in zip(run_ids, questions):
+        session = store.session(run_id)
+        assert session["topic"] == question
+        assert [turn["run_id"] for turn in session["turns"]] == [run_id]
+
+
+@pytest.mark.asyncio
 async def test_lost_receipt_recovered_by_request_and_concurrent_retries_execute_once(context):
     app, client, store = context
     service = app.state.chat_service

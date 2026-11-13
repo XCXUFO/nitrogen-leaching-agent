@@ -87,6 +87,41 @@ def test_topic_switch_does_not_reuse_case_scope():
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize('question', [
+    '上面这个“玉米滴灌”案例中的关键措施是什么，为什么这样做？',
+    '上面这个“玉米滴灌”案例有哪些适用条件，哪些做法不能直接照搬？',
+    '上面这个“玉米滴灌”案例的效果有哪些证据，哪些结论还不能确定？',
+])
+@pytest.mark.parametrize('restarted', [False, True])
+async def test_suggested_followups_keep_the_displayed_case_scope(tmp_path, question, restarted):
+    store = CaseStore(str(tmp_path / 'followups.sqlite3'))
+    runtime = AgentRuntime()
+    target = store.create(CaseInput(title='玉米滴灌', body='记录一：采用滴灌，未记载效果。', enabled=True), 'test')
+    hidden = store.create(CaseInput(title='玉米灌水', body='记录二：采用其他灌水措施。', enabled=True), 'test')
+    try:
+        await runtime.execute(ChatRequest(query='查看玉米滴灌案例', session_id='cases', case_ids=[target['id']]),
+                              service=None, get_report=None, case_store=store, llm=FakeLLM([target['id']]))
+        if restarted:
+            runtime.runs.close()
+            runtime = AgentRuntime()
+        model = FakeLLM([target['id']], answer='根据这份记录解释措施的适用条件。')
+        # Structured IDs survive history restore/restart. Natural referents also
+        # keep the scope when a user types the suggestion into the same session.
+        result = await runtime.execute(ChatRequest(query=question, session_id='cases',
+                                                   case_ids=[target['id']] if restarted else []),
+                                       service=None, get_report=None, case_store=store, llm=model)
+        payload = json.loads(model.messages[-1].content)
+        assert [item['id'] for item in payload['available_cases']] == [target['id']]
+        assert hidden['id'] not in [item.id for item in result.case_references]
+        trace = runtime.runs.get(result.run_id)
+        assert result.case_references[0].retrieval_ids == [trace.retrieval[0]['retrieval_id']]
+        assert result.evidence[0].retrieval_ids == result.case_references[0].retrieval_ids
+    finally:
+        runtime.runs.close()
+        store.close()
+
+
+@pytest.mark.asyncio
 async def test_six_case_followup_passes_only_resolved_pair_and_reloads_current_content(tmp_path):
     store = CaseStore(str(tmp_path / "cases.sqlite3"))
     runtime = AgentRuntime()
@@ -109,7 +144,7 @@ async def test_six_case_followup_passes_only_resolved_pair_and_reloads_current_c
         model = FakeLLM(selected, answer="两份记录的作物和施肥安排不同。")
         result = await ask(query, model)
         payload = json.loads(model.messages[-1].content)
-        assert result.outcome == "complete" and result.case_route == ["case_explanation"]
+        assert result.outcome == "complete" and result.case_route == ["case_assistant"] and result.case_mode == "compare"
         assert [item["id"] for item in payload["available_cases"]] == selected
         assert payload["available_cases"][0]["body"] == "最新合成记录，补充了施肥条件。"
         assert all(case_id not in payload["question"] for case_id in ids)

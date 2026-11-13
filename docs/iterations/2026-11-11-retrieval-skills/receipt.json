@@ -1,0 +1,14 @@
+{
+  "received_date": "2026-11-11",
+  "verified_manifest_files": 32,
+  "zip_entries": 33,
+  "zip_sha256": "c36171c6bd34a394ac6fc06176cb043670c14dea116388a1c9f1341caeef3adf",
+  "prd_sha256": "40f44e72894cf5fe3edf0a94406b4a1872184c3ae445c68f69fcab2dba4bf345",
+  "manifest_sha256": "fe9653217c75c77279fc06da63aae75a6de38c7429c6aa823ed7147111474b27",
+  "local_base_commit": "a95b797b4ea0da19cac198167d24d434055816d2",
+  "working_tree": "includes prior authorized uncommitted work",
+  "online_code_version": "not_verified",
+  "tag_snapshot": "101 tags / 97 effective / 5 local dimension keys, never imported as online dimension IDs",
+  "business_data_migration": false,
+  "deployed": false
+}

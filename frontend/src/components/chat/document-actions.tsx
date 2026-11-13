@@ -46,6 +46,7 @@ export function DocumentActions({ citation }: { citation: Citation }) {
       if (!controller.signal.aborted) setBusy(false);
     }
   }
+  if (citation.source_type === "web") return /^https?:\/\//i.test(citation.source) ? <a className="underline" href={citation.source} target="_blank" rel="noopener noreferrer">打开网页来源</a> : <p>来源链接不可用</p>;
   if (!citation.document_id || !citation.document_available) return <p className="text-muted-foreground">原文暂不可用</p>;
   return <>
     <div className="flex flex-wrap items-center gap-4">

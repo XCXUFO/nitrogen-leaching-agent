@@ -1,6 +1,7 @@
 export type SkillAvailability = "available" | "unavailable" | "unknown";
 export type SkillSummary = {
   name: string;
+  alias_of?: string | null;
   title: string;
   description: string;
   registered: boolean;

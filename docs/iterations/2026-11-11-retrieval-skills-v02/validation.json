@@ -1,0 +1,210 @@
+{
+  "scope": "local_only",
+  "created_questions": 25,
+  "reference_answers": 9,
+  "empty_answers": 16,
+  "source_map_count": 25,
+  "old_run_payloads_preserved": 136,
+  "backup": "backend/var/handoff/2026-11-11-starred-v02-import/before.sqlite3",
+  "repeat_preview": "all 25 preserve, no conflict",
+  "online_written": false,
+  "source_statistics_note": "PRD prose says 16 with material answers; the ledger flags/count say 14. Import follows the consistent 9 reference + 16 empty split.",
+  "professional_review": "unknown",
+  "files": {
+    "backend/src/agent/starred_match.py": "b6f38608b82432f2b15dc95d5aa4a8bdfb7e36b768b965202400e59d846c06f4",
+    "backend/src/agent/runtime.py": "336397fc68230efcd807823bc26d926e9c5c59dad722dc2e0a7b1ba23f2751de",
+    "backend/src/evaluation/starred_content.py": "5b3bf434ec706b8e49b26b307394f326d686b7176032296e232ec54251350996"
+  },
+  "live_replay": {
+    "scope": "linked material subset with first 25 starred records; no production vectors/reranker/web",
+    "batch": "backend/var/handoff/2026-11-11-starred-v02-live-01",
+    "comparison": "backend/var/handoff/2026-11-11-retrieval-skills-live-02",
+    "completed_targets": 8,
+    "completed_rounds": 10,
+    "rounds": [
+      {
+        "case_id": "FIX-01",
+        "turn": 1,
+        "run_id": "b3ce984b-ec07-4e36-869b-1dd35b70f9d1",
+        "status": "completed",
+        "starred_status": "no_match",
+        "source_sq_ids": [],
+        "actual_skills": [
+          "knowledge_search"
+        ],
+        "outcome": "complete",
+        "history_count": 0,
+        "professional_review": "pending"
+      },
+      {
+        "case_id": "FIX-02",
+        "turn": 1,
+        "run_id": "c7a95b9e-2974-483e-a237-56033fa2ca3b",
+        "status": "completed",
+        "starred_status": "full",
+        "source_sq_ids": [
+          "SQ-026"
+        ],
+        "actual_skills": [],
+        "outcome": "complete",
+        "history_count": 0,
+        "professional_review": "pending"
+      },
+      {
+        "case_id": "FIX-03",
+        "turn": 1,
+        "run_id": "ae401456-bcf3-4b27-b434-a4081a11466f",
+        "status": "completed",
+        "starred_status": "no_match",
+        "source_sq_ids": [],
+        "actual_skills": [
+          "concept_explanation"
+        ],
+        "outcome": "complete",
+        "history_count": 0,
+        "professional_review": "pending"
+      },
+      {
+        "case_id": "FIX-04",
+        "turn": 1,
+        "run_id": "0a799cd8-0872-4c53-b06e-9c98c9e3098f",
+        "status": "completed",
+        "starred_status": "not_applicable",
+        "source_sq_ids": [],
+        "actual_skills": [
+          "capability_guidance"
+        ],
+        "outcome": "complete",
+        "history_count": 0,
+        "professional_review": "pending"
+      },
+      {
+        "case_id": "FIX-05",
+        "turn": 1,
+        "run_id": "313b083d-ef0d-4a9a-91ac-a0c587afbf4e",
+        "status": "completed",
+        "starred_status": "no_match",
+        "source_sq_ids": [],
+        "actual_skills": [
+          "concept_explanation"
+        ],
+        "outcome": "complete",
+        "history_count": 2,
+        "professional_review": "pending"
+      },
+      {
+        "case_id": "KEEP-01",
+        "turn": 1,
+        "run_id": "34a4eead-28d1-4409-9aee-045b817d3418",
+        "status": "completed",
+        "starred_status": "not_applicable",
+        "source_sq_ids": [],
+        "actual_skills": [
+          "case_assistant"
+        ],
+        "outcome": "complete",
+        "history_count": 0,
+        "professional_review": "pending"
+      },
+      {
+        "case_id": "KEEP-02",
+        "turn": 1,
+        "run_id": "f6c0e1c8-3987-4ede-8423-987626c6429a",
+        "status": "completed",
+        "starred_status": "no_match",
+        "source_sq_ids": [],
+        "actual_skills": [
+          "concept_explanation"
+        ],
+        "outcome": "complete",
+        "history_count": 0,
+        "professional_review": "pending"
+      },
+      {
+        "case_id": "KEEP-03",
+        "turn": 1,
+        "run_id": "f6d06cdf-98cc-423f-b222-856759e5af58",
+        "status": "completed",
+        "starred_status": "not_applicable",
+        "source_sq_ids": [],
+        "actual_skills": [
+          "case_assistant"
+        ],
+        "outcome": "complete",
+        "history_count": 0,
+        "professional_review": "pending"
+      },
+      {
+        "case_id": "KEEP-03",
+        "turn": 2,
+        "run_id": "c2f1569f-2dfc-4ed5-87d9-f6713a43c93e",
+        "status": "completed",
+        "starred_status": "not_applicable",
+        "source_sq_ids": [],
+        "actual_skills": [
+          "case_assistant"
+        ],
+        "outcome": "complete",
+        "history_count": 2,
+        "professional_review": "pending"
+      },
+      {
+        "case_id": "KEEP-03",
+        "turn": 3,
+        "run_id": "2fc99088-34cf-4571-91ab-cc24359b2487",
+        "status": "completed",
+        "starred_status": "not_applicable",
+        "source_sq_ids": [],
+        "actual_skills": [
+          "case_assistant"
+        ],
+        "outcome": "complete",
+        "history_count": 4,
+        "professional_review": "pending"
+      }
+    ],
+    "professional_review": "pending",
+    "case_anchor_subset_check": true,
+    "original_reviews_changed": false,
+    "final_targeted_replay": {
+      "batch": "backend/var/handoff/2026-11-11-starred-v02-live-02-whcns",
+      "run_id": "c21f4c35-3fce-459a-8ecf-5183a496a400",
+      "config_version": "42ee38a15fb7d7472c21a09550e51c8b049befaa18ae36cad29a89dec7d00d4e",
+      "source_sq_id": "SQ-026",
+      "starred_status": "full",
+      "actual_skill_calls": 0,
+      "retrieval_events": 0,
+      "tokens": 0
+    },
+    "main_batch_precedes_final_shared_evidence_deduplication": true
+  },
+  "checks": {
+    "backend": {
+      "command": "backend/.venv/bin/python -m pytest backend/tests -q --tb=short",
+      "passed": 906,
+      "skipped": 4,
+      "failed": 0,
+      "duration_s": 165.81,
+      "warnings": "258 existing Chroma/Pydantic deprecations"
+    },
+    "frontend": {
+      "typescript": "passed",
+      "targeted_eslint": "passed",
+      "browser_passed": 3,
+      "browser_failed": 0,
+      "specs": [
+        "starred-scope.spec.ts",
+        "evaluation-runs.spec.ts",
+        "workday-risk-fixes.spec.ts (starred conflict)"
+      ]
+    },
+    "diff_whitespace": "passed"
+  },
+  "original_evaluation_rows_preserved": {
+    "eval_reviews": 4,
+    "eval_events": 26,
+    "eval_cases": 34,
+    "eval_issues": 1,
+    "session_review_events": 0
+  }
+}

@@ -79,7 +79,7 @@ async def release_files(request: Request, body: FileStatusRequest):
     for token in dict.fromkeys(body.file_ids):
         entry = store.entries.get(token)
         if entry and (entry.owner is None or entry.owner == visitor) and (entry.session_id is None or entry.session_id == session):
-            store.entries.pop(token, None)
+            store.remove(token)
             released += 1
     return {"released": released}
 
@@ -97,6 +97,8 @@ class FileEntry:
     session_id: str | None = None
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
     document_bytes: int = 0
+    original_path: Path | None = None
+    original_size: int = 0
 
     def state(self) -> dict:
         return {"filename": self.filename,
@@ -109,10 +111,18 @@ class FileStore:
     def __init__(self):
         self.entries: dict[str, FileEntry] = {}
         self.upload_slots = asyncio.Semaphore(2)
+        self.originals = TemporaryDirectory(prefix="chat-attachment-originals-")
+
+    def remove(self, token: str):
+        entry = self.entries.pop(token, None)
+        if entry and entry.original_path:
+            entry.original_path.unlink(missing_ok=True)
 
     def prune(self):
         now = time.monotonic()
-        self.entries = {k: v for k, v in self.entries.items() if v.expires_at > now}
+        for token, entry in list(self.entries.items()):
+            if entry.expires_at <= now:
+                self.remove(token)
 
     def put(self, raw: bytes, profile: dict, *, owner: str | None = None,
             session_id: str | None = None) -> str:
@@ -126,11 +136,16 @@ class FileStore:
         retained_bytes = len(profile["text"].encode("utf-8")) if document else len(raw)
         if sum(len(entry.raw or b"") + entry.document_bytes for entry in self.entries.values()) + retained_bytes > MAX_STORED_BYTES:
             raise failure(503, "file_store_full", "临时附件容量已满，请稍后重试。")
+        if sum(entry.original_size for entry in self.entries.values()) + len(raw) > MAX_STORED_BYTES:
+            raise failure(503, "file_store_full", "临时附件容量已满，请稍后重试。")
         token = secrets.token_urlsafe(32)
+        original_path = Path(self.originals.name) / token
+        original_path.write_bytes(raw)
         self.entries[token] = FileEntry(time.monotonic() + TTL_SECONDS, profile["file"], None if document else raw,
                                         profile["sha256"], profile["format"], report=profile if document else None,
                                         owner=owner, session_id=session_id,
-                                        document_bytes=retained_bytes if document else 0)
+                                        document_bytes=retained_bytes if document else 0,
+                                        original_path=original_path, original_size=len(raw))
         return token
 
     def get(self, token: str) -> FileEntry:

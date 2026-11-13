@@ -100,6 +100,19 @@ async def test_history_is_owned_by_verified_account_and_keeps_full_answers(conte
         assert turn["response"]["usage"]["total_tokens"] == 7
 
 
+def test_account_history_retains_structured_case_scope_for_retry(tmp_path):
+    store = RunStore(tmp_path / 'case-history.sqlite3')
+    try:
+        store.history.record('account', 'client', 'session',
+                             {'query': '上面这个案例的效果有哪些证据？', 'case_ids': ['C-0000000000000001']},
+                             {'run_id': 'case-run', 'turn_id': 'case-turn', 'request_id': 'case-request',
+                              'status': 'failed'}, [])
+        saved = store.history.list('account')['items'][0]['turns'][0]['request']
+        assert saved['caseIds'] == ['C-0000000000000001']
+    finally:
+        store.close()
+
+
 @pytest.mark.asyncio
 async def test_history_survives_recovery_cleanup_restart_and_allows_new_turns(context):
     app, client, store = context

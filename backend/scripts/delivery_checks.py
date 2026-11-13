@@ -2,9 +2,34 @@
 from __future__ import annotations
 import hashlib
 import json
+import subprocess
 from pathlib import Path
 
 DIST_DIRS = ('.next', '.next-candidate', '.next-workbench', '.next-demo', '.next-prompts', '.next-prompts-md')
+SOURCE_PREFIXES = ('backend/src/', 'backend/scripts/', 'backend/tests/', 'frontend/src/',
+                   'frontend/tests/', 'frontend/public/', 'data/demo/', 'data/eval/',
+                   'data/metadata/', 'data/papers/')
+SOURCE_SINGLES = {'backend/pyproject.toml', 'backend/uv.lock', 'frontend/package.json',
+                  'backend/data/retrieval/aliases.json', 'frontend/pnpm-lock.yaml',
+                  'frontend/playwright.config.ts', 'frontend/next.config.ts',
+                  'frontend/tsconfig.json', 'frontend/eslint.config.mjs',
+                  'frontend/.env.local.example', '.env.example', '.gitignore',
+                  'frontend/.gitignore', '.github/workflows/ci.yml'}
+
+
+def source_inventory(root: Path) -> list[str]:
+    paths = subprocess.check_output(['git', 'ls-files', '-co', '--exclude-standard', '-z'], cwd=root).decode().split('\0')
+    result = []
+    for name in sorted(set(paths)):
+        if not name or not (name.startswith(SOURCE_PREFIXES) or name in SOURCE_SINGLES):
+            continue
+        path = root / name
+        if not path.exists() and not path.is_symlink():
+            continue
+        if path.is_symlink() or not path.is_file():
+            raise ValueError(f'Unexpected source path: {name}')
+        result.append(name)
+    return result
 
 
 def fingerprint(path: Path) -> str:
@@ -29,6 +54,10 @@ def build_binding(root: Path, dist_dir: str, backend_url: str) -> dict:
 
 
 def verify(root: Path, manifest: dict, dist_dir: str | None = None) -> dict:
+    if manifest.get('source_inventory_version') == 1:
+        difference = set(source_inventory(root)) ^ set(manifest['files'])
+        if difference:
+            raise ValueError('Source inventory changed after manifest: ' + ', '.join(sorted(difference)))
     for name, expected in manifest['files'].items():
         path = root / name
         if not path.is_file() or fingerprint(path) != expected:

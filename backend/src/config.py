@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -39,15 +40,27 @@ class Settings(BaseSettings):
     rag_chroma_dir: str | None = None
     rag_collection: str = "papers"
 
+    web_search_provider: Literal["searxng", "deepseek"] = "searxng"
+    web_search_enabled: bool = False
+    web_search_url: str = ""
+    web_search_timeout_s: float = Field(default=30.0, ge=1, le=30)
+    web_search_max_queries: int = Field(default=2, ge=1, le=2)
+    web_search_max_pages: int = Field(default=5, ge=1, le=5)
+    web_page_max_bytes: int = Field(default=1_000_000, ge=1024, le=2_000_000)
+
     chat_top_k: int = 5
     chat_max_context_chars: int = 4000
     chat_temperature: float = 0.3
 
     agent_trace_db: str = str(BASE_DIR / "var/agent/runs.sqlite3")
     agent_build_version: str = "local-unversioned"
+    unified_routing_enabled: bool = True
+    retrieval_strategy: Literal['indexed','scan'] = 'indexed'
+    retrieval_fusion: Literal['rrf','legacy'] = 'rrf'
     chat_run_retention_seconds: int = Field(default=86400, ge=600, le=604800)
     chat_run_max_active: int = Field(default=32, ge=1, le=256)
 
+    eval_handoff_db: str = str(BASE_DIR / "var/handoff/2026-11-09.sqlite3")
     eval_enabled: bool = False
     eval_access_file: str = str(BASE_DIR / "var/eval/access-keys.json")
     case_library_db: str = str(BASE_DIR / "var/case-library/cases.sqlite3")
@@ -75,6 +88,10 @@ class Settings(BaseSettings):
     rag_reranker_top_k_recall: int = 20
     rag_reranker_top_n: int = 5
     rag_reranker_model: str = "data/models/bge-reranker-v2-m3"
+    rag_reranker_max_length: int = Field(default=512, ge=32, le=8192)
+    rag_reranker_batch_size: int = Field(default=2, ge=1, le=32)
+    rag_reranker_cpu_quantization: Literal["none", "int8"] = "none"
+    rag_cpu_threads: int = Field(default=2, ge=1, le=32)
 
     # M1.5-a demo default = M1.4-c 验证过的 A2 配置（recall20 / top_n5 /
     # ref-filter on / overfetch10）：A2 是全矩阵唯一让 q04 evidence-level 翻盘的

@@ -11,6 +11,9 @@ test('public backend supports browsing, filtering, deep links and provenance wit
   await page.reload();
   await expect(page.getByRole('heading', { name: '验证目标与判断标准' })).toBeVisible();
   const nav = page.getByRole('navigation', { name: '展示后台导航', exact: true });
+  for (const name of ['文献管理', '案例与措施', '标签管理', '运行记录', '会话用例组']) {
+    await expect(nav.getByRole('link', { name, exact: true })).toHaveCount(1);
+  }
   await nav.getByRole('link', { name: '用例库', exact: true }).click();
   await page.getByRole('button', { name: '下一页', exact: true }).click();
   await expect(page.getByRole('heading', { name: '从问题登记到回归复测' })).toBeVisible();
@@ -36,7 +39,7 @@ test('mobile browsing has no page overflow and all public modules are reachable'
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/showcase');
   const nav = page.getByRole('navigation', { name: '移动端展示导航' });
-  for (const name of ['任务管理', '用例库', '执行记录', '问题管理', '回归对比', '审核队列', '文献管理', '运行记录']) {
+  for (const name of ['任务管理', '用例库', '执行记录', '问题处理', '回归对比', '审核队列', '文献管理', '运行记录']) {
     await nav.getByRole('link', { name, exact: true }).click();
     await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -48,6 +51,7 @@ test('mobile browsing has no page overflow and all public modules are reachable'
 });
 
 test('quota and loading failures provide a usable recovery path', async ({ page }) => {
+  await page.route('**/api/chat/session', r => r.fulfill({ status: 404, json: {} }));
   await page.route('**/api/chat', r => r.fulfill({ status: 429, json: { detail: { code: 'public_demo_limit', message: '今日实时体验额度已用完，请查看已保存案例，或明天再试。' } } }));
   await page.goto('/');
   await page.getByRole('button', { name: /专业知识解答/ }).click();

@@ -13,7 +13,7 @@ const choices = {
 const labels = { style: "默认表达风格", detail: "默认详细程度", organization: "回答组织方式" };
 const button = "rounded-lg border bg-white px-3 py-2 text-sm disabled:opacity-50";
 
-export function SkillExpressionEditor({ token }: { token: string }) {
+export function SkillExpressionEditor({ token, skill = "case_assistant" }: { token: string; skill?: string }) {
   const [current, setCurrent] = useState<Configuration | null>(null);
   const [draft, setDraft] = useState<Values | null>(null);
   const [history, setHistory] = useState<Configuration[]>([]);
@@ -25,11 +25,11 @@ export function SkillExpressionEditor({ token }: { token: string }) {
 
   useEffect(() => {
     let active = true;
-    evaluationRequest<{ current: Configuration; history: Configuration[] }>(token, "/skills/case_explanation/configuration")
+    evaluationRequest<{ current: Configuration; history: Configuration[] }>(token, `/skills/${skill}/configuration`)
       .then((data) => { if (active) { setCurrent(data.current); setDraft(data.current.values); setHistory(data.history); setError(""); } })
       .catch((problem) => { if (active) setError(problem instanceof Error ? problem.message : "配置读取失败。"); });
     return () => { active = false; };
-  }, [token, reload]);
+  }, [token, skill, reload]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -47,7 +47,7 @@ export function SkillExpressionEditor({ token }: { token: string }) {
     if (!current || !draft || saving) return;
     setSaving(true); setError(""); setNotice("");
     try {
-      const value = await evaluationRequest<Configuration>(token, `/skills/case_explanation/configuration${reset ? "/reset" : ""}`, {
+      const value = await evaluationRequest<Configuration>(token, `/skills/${skill}/configuration${reset ? "/reset" : ""}`, {
         method: reset ? "POST" : "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ expected_revision: current.revision, ...(!reset ? { values: draft } : {}) }),
       });
       setCurrent(value); setDraft(value.values); setHistory((items) => [value, ...items].slice(0, 50));
@@ -58,7 +58,7 @@ export function SkillExpressionEditor({ token }: { token: string }) {
 
   return <section className="space-y-3 rounded-xl border bg-white p-4" aria-label="表达配置">
     <h3 className="text-sm font-semibold">表达配置</h3>
-    <p className="text-sm leading-6 text-slate-600">仅影响案例解释的默认表达；用户本轮要求优先。专业事实、来源、计算口径和路由由系统保留。保存后新运行采用，已受理运行保留当时配置。</p>
+    <p className="text-sm leading-6 text-slate-600">影响案例解释、比较和效果取证的默认表达；用户本轮要求优先。专业事实、来源、计算口径和路由由系统保留。保存后新运行采用，已受理运行保留当时配置。</p>
     {current && draft && <>
       <p className="break-all text-xs text-slate-500">生效版本：{current.version}{dirty ? " · 有未保存修改" : ""}</p>
       <div className="grid gap-3 sm:grid-cols-3">{(Object.keys(choices) as (keyof Values)[]).map((key) => <label key={key} className="space-y-1 text-sm"><span>{labels[key]}</span><select aria-label={labels[key]} disabled={saving} value={draft[key]} onChange={(event) => setDraft({ ...draft, [key]: event.target.value })} className="min-h-10 w-full rounded-lg border bg-white px-2">{Object.entries(choices[key]).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>)}</div>

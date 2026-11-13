@@ -90,7 +90,13 @@ function DimensionPicker({ dimension, nodes, value, onChange, mode, includeDisab
   }
   function close() { setOpen(false); trigger.current?.focus(); }
   const groups = search.trim() ? [selectable.filter((node) => node.path.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()))] : [null, ...branch].map((parent) => visible.filter((node) => node.parent_id === parent));
-  return <div ref={picker} className="relative max-w-full" onBlur={(event) => { if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) setOpen(false); }} onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); close(); } }}>
+  return <div ref={picker} className="relative max-w-full" onBlur={(event) => {
+    if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) {
+      // Label activation focuses its checkbox after the pointer's blur event.
+      // Wait for that focus transfer before treating it as leaving the picker.
+      requestAnimationFrame(() => { if (picker.current && !picker.current.contains(document.activeElement)) setOpen(false); });
+    }
+  }} onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); close(); } }}>
     <button ref={trigger} type="button" className={`${button} bg-white ${count ? "border-emerald-400 text-emerald-900" : "border-slate-300"}`} aria-label={`${dimension.name}级联选择`} aria-expanded={open} onClick={() => setOpen(!open)}>{dimension.name}{dimension.required ? " *" : ""}{count > 0 ? ` · ${count}` : mode === "filter" ? " · 不限" : " · 未选择"}<ChevronDown size={14} /></button>
     {open && <div role="dialog" aria-label={`${dimension.name}标签选择`} className="fixed inset-x-3 top-[15vh] z-40 max-h-[75vh] overflow-auto rounded-xl border border-emerald-200 bg-white p-3 shadow-xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-max sm:max-w-[min(40rem,90vw)]">
       <div className="mb-3 flex items-center gap-2"><input className={input} aria-label={`搜索${dimension.name}标签`} placeholder="搜索标签名称或完整路径" value={search} onChange={(e) => setSearch(e.target.value)} /><button type="button" className={button} aria-label="关闭标签选择" onClick={close}><X size={16} /></button></div>
@@ -109,7 +115,7 @@ function DimensionPicker({ dimension, nodes, value, onChange, mode, includeDisab
 
 /** Explicit nested hierarchy with small, contextual creation forms. */
 export function TaxonomyTree({ nodes, onAdd, actions, description }: {
-  nodes: TaxonomyNode[]; onAdd: (parent: string | null, name: string) => Promise<void>;
+  nodes: TaxonomyNode[]; onAdd?: (parent: string | null, name: string) => Promise<void>;
   actions?: (node: TaxonomyNode) => ReactNode; description?: (node: TaxonomyNode) => ReactNode;
 }) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -120,7 +126,7 @@ export function TaxonomyTree({ nodes, onAdd, actions, description }: {
   const [saving, setSaving] = useState(false);
   const matches = nodes.filter((node) => node.path.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()));
   function start(parent: string) { setAdding(parent); setName(""); setError(""); setExpanded((old) => new Set([...old, parent])); }
-  function addForm(parent: string) { return adding === parent && <form className="my-2 rounded-lg border border-emerald-200 bg-emerald-50/40 p-3" onSubmit={async (e) => { e.preventDefault(); if (saving) return; const trimmed = name.trim(); if (!trimmed) { setError("请填写标签名称。"); return; } setSaving(true); setError(""); try { await onAdd(parent || null, trimmed); setName(""); setAdding(null); } catch (e) { setError(e instanceof Error ? e.message : "保存失败，请重试。"); } finally { setSaving(false); } }}>
+  function addForm(parent: string) { return !!onAdd && adding === parent && <form className="my-2 rounded-lg border border-emerald-200 bg-emerald-50/40 p-3" onSubmit={async (e) => { e.preventDefault(); if (saving || !onAdd) return; const trimmed = name.trim(); if (!trimmed) { setError("请填写标签名称。"); return; } setSaving(true); setError(""); try { await onAdd(parent || null, trimmed); setName(""); setAdding(null); } catch (e) { setError(e instanceof Error ? e.message : "保存失败，请重试。"); } finally { setSaving(false); } }}>
     <p className="mb-2 text-xs text-slate-600">{parent ? `添加到：${nodes.find((n) => n.id === parent)?.path}` : "添加一级标签"}</p><div className="flex flex-wrap gap-2"><input autoFocus className={`${input} flex-1 basis-36`} aria-label="新标签名称" placeholder="标签名称" maxLength={50} value={name} disabled={saving} onChange={(e) => setName(e.target.value)} /><button type="submit" className={`${button} bg-emerald-700 text-white hover:bg-emerald-800`} disabled={saving}>{saving ? "保存中…" : "保存标签"}</button><button type="button" className={button} disabled={saving} onClick={() => setAdding(null)}>取消</button></div>{error && <p role="alert" className="mt-2 text-sm text-red-700">{error}</p>}
   </form>; }
   function branch(parent: string | null, depth: number): ReactNode {
@@ -132,11 +138,11 @@ export function TaxonomyTree({ nodes, onAdd, actions, description }: {
           <div className="flex min-w-0 items-center gap-2">{children ? <button type="button" aria-label={`${open ? "收起" : "展开"} ${node.path}`} aria-expanded={open} className="shrink-0 rounded p-1 hover:bg-slate-200" onClick={() => setExpanded((old) => { const next = new Set(old); if (next.has(node.id)) next.delete(node.id); else next.add(node.id); return next; })}>{open ? <ChevronDown size={15} /> : <ChevronRight size={15} />}</button> : <span className="w-6 shrink-0 text-center text-slate-300">•</span>}
             <div className="min-w-0"><span className="break-words text-sm font-medium" title={node.path}>{node.name}</span><span className="ml-2 whitespace-nowrap text-xs text-slate-400">{depth} 级{node.enabled === 0 || node.enabled === false ? " · 已停用" : ""}</span>{description && <div className="text-xs text-slate-500">{description(node)}</div>}</div>
           </div>
-          <div className="flex flex-wrap items-center gap-3 text-xs">{depth < 5 && <button type="button" disabled={saving} aria-label={`在 ${node.path} 下新增标签`} className="inline-flex items-center gap-1 text-emerald-800 hover:underline" onClick={() => start(node.id)}><Plus size={13} />新增下级</button>}{actions?.(node)}</div>
+          <div className="flex flex-wrap items-center gap-3 text-xs">{onAdd && depth < 5 && <button type="button" disabled={saving} aria-label={`在 ${node.path} 下新增标签`} className="inline-flex items-center gap-1 text-emerald-800 hover:underline" onClick={() => start(node.id)}><Plus size={13} />新增下级</button>}{actions?.(node)}</div>
         </div>
         {addForm(node.id)}{children && open && branch(node.id, depth + 1)}
       </li>;
     })}</ul>;
   }
-  return <div className="space-y-3"><div className="flex flex-wrap gap-2"><input className={`${input} flex-1 basis-40`} placeholder="搜索标签名称或完整路径" aria-label="搜索标签树" value={search} onChange={(e) => setSearch(e.target.value)} /><button type="button" className={button} disabled={saving} onClick={() => { setSearch(""); start(""); }}><Plus size={14} />新增一级标签</button><button type="button" className={button} onClick={() => setExpanded(new Set(nodes.map((n) => n.id)))}>展开全部</button><button type="button" className={button} onClick={() => { setSearch(""); setExpanded(new Set()); }}>收起全部</button></div>{addForm("")}{branch(null, 1)}{!matches.length && <p className="p-4 text-center text-sm text-slate-500">{nodes.length ? "暂无匹配标签" : "暂无标签，点击“新增一级标签”开始分类。"}</p>}<p className="text-xs text-slate-500">维度为分类起点，下设最多五级标签。展开节点可查看下级，在节点旁直接新增。</p></div>;
+  return <div className="space-y-3"><div className="flex flex-wrap gap-2"><input className={`${input} flex-1 basis-40`} placeholder="搜索标签名称或完整路径" aria-label="搜索标签树" value={search} onChange={(e) => setSearch(e.target.value)} />{onAdd && <button type="button" className={button} disabled={saving} onClick={() => { setSearch(""); start(""); }}><Plus size={14} />新增一级标签</button>}<button type="button" className={button} onClick={() => setExpanded(new Set(nodes.map((n) => n.id)))}>展开全部</button><button type="button" className={button} onClick={() => { setSearch(""); setExpanded(new Set()); }}>收起全部</button></div>{addForm("")}{branch(null, 1)}{!matches.length && <p className="p-4 text-center text-sm text-slate-500">{nodes.length ? "暂无匹配标签" : onAdd ? "暂无标签，点击“新增一级标签”开始分类。" : "暂无标签。"}</p>}<p className="text-xs text-slate-500">维度为分类起点，下设最多五级标签。展开节点可查看下级。{onAdd && "在节点旁可直接新增。"}</p></div>;
 }

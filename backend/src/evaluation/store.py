@@ -60,21 +60,33 @@ class EvaluationStore:
             """)
             if "revision" not in {row[1] for row in self.db.execute("PRAGMA table_info(eval_starred_questions)")}:
                 self.db.execute("ALTER TABLE eval_starred_questions ADD COLUMN revision INTEGER NOT NULL DEFAULT 1")
+            if 'reuse_json' not in {row[1] for row in self.db.execute('PRAGMA table_info(eval_starred_questions)')}:
+                self.db.execute("ALTER TABLE eval_starred_questions ADD COLUMN reuse_json TEXT NOT NULL DEFAULT '{}'")
+            self.db.execute('''CREATE TABLE IF NOT EXISTS eval_starred_sources (
+                batch TEXT NOT NULL, source_sq_id TEXT NOT NULL, question_id TEXT NOT NULL UNIQUE,
+                source_sha256 TEXT NOT NULL, PRIMARY KEY(batch,source_sq_id))''')
+
+    def _starred_rows(self, question_id=None):
+        rows=self.db.execute('SELECT question_id,question,answer,created_at,updated_at,revision,reuse_json FROM eval_starred_questions'+
+            (' WHERE question_id=?' if question_id else '')+' ORDER BY created_at,question_id',(question_id,) if question_id else ()).fetchall()
+        sources={row[0]:{'source_batch':row[1],'source_sq_id':row[2]} for row in self.db.execute('SELECT question_id,batch,source_sq_id FROM eval_starred_sources')}
+        return [dict(zip(('question_id','question','answer','created_at','updated_at','revision'),row[:6])) |
+                {'reuse':json.loads(row[6])} | sources.get(row[0],{}) for row in rows]
 
     def starred_questions(self) -> list[dict]:
         with self.lock:
-            rows = self.db.execute("SELECT question_id, question, answer, created_at, updated_at, revision FROM eval_starred_questions ORDER BY created_at, question_id").fetchall()
-        return [dict(zip(("question_id", "question", "answer", "created_at", "updated_at", "revision"), row)) for row in rows]
+            return self._starred_rows()
 
-    def create_starred_question(self, question: str, answer: str) -> dict:
+    def create_starred_question(self, question: str, answer: str, reuse=None) -> dict:
         timestamp = now()
         item = {"question_id": str(uuid4()), "question": question, "answer": answer,
                 "created_at": timestamp, "updated_at": timestamp, "revision": 1}
         with self.lock, self.db:
             self.db.execute("INSERT INTO eval_starred_questions (question_id, question, answer, created_at, updated_at, revision) VALUES (?, ?, ?, ?, ?, ?)", tuple(item.values()))
-        return item
+            self.db.execute('UPDATE eval_starred_questions SET reuse_json=? WHERE question_id=?',(json.dumps(reuse or {},ensure_ascii=False),item['question_id']))
+            return self._starred_rows(item['question_id'])[0]
 
-    def update_starred_question(self, question_id: str, question: str, answer: str, expected_revision: int) -> dict:
+    def update_starred_question(self, question_id: str, question: str, answer: str, expected_revision: int, reuse=None) -> dict:
         timestamp = now()
         with self.lock, self.db:
             cursor = self.db.execute("UPDATE eval_starred_questions SET question=?, answer=?, updated_at=?, revision=revision+1 WHERE question_id=? AND revision=?", (question, answer, timestamp, question_id, expected_revision))
@@ -82,8 +94,9 @@ class EvaluationStore:
                 if not self.db.execute("SELECT 1 FROM eval_starred_questions WHERE question_id=?", (question_id,)).fetchone():
                     raise fail("starred_question_not_found", "星标问题不存在。", 404)
                 raise fail("starred_question_conflict", "内容已被其他人更新。你的输入已保留，请查看最新版本后再保存。")
-            row = self.db.execute("SELECT question_id, question, answer, created_at, updated_at, revision FROM eval_starred_questions WHERE question_id=?", (question_id,)).fetchone()
-        return dict(zip(("question_id", "question", "answer", "created_at", "updated_at", "revision"), row))
+            if reuse is not None:
+                self.db.execute('UPDATE eval_starred_questions SET reuse_json=? WHERE question_id=?',(json.dumps(reuse,ensure_ascii=False),question_id))
+            return self._starred_rows(question_id)[0]
 
     def seed(self, directory: Path):
         original = json.loads((directory / "manual_cases.v1.json").read_text())

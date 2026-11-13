@@ -7,6 +7,7 @@ from openai import APIConnectionError, APITimeoutError
 import pytest
 
 from src.agent.chat_service import ChatServiceResult, Citation, RAGQueryError
+from src.agent.answer_language import answer_language
 from src.agent.composition import MechanismClaim
 from src.agent.prompt import DialogueTurn
 from src.api import chat
@@ -29,7 +30,7 @@ class FakeChatService:
         if self._error is not None:
             raise self._error
         return ChatServiceResult(
-            answer="fake answer",
+            answer="fake answer" if answer_language(query) == "en" else "模拟回答",
             citations=[
                 Citation(
                     index=1,
@@ -118,7 +119,7 @@ async def test_chat_200_happy_path() -> None:
 
     assert response.status_code == 200
     body = response.json()
-    assert body["answer"] == "fake answer"
+    assert body["answer"] == "模拟回答"  # An ambiguous single-letter input defaults to Chinese.
     assert body["citations"] == []  # The fake answer has no citation markers.
     assert body["usage"]["total_tokens"] == 3
     assert service.calls == [("q", 3, [])]

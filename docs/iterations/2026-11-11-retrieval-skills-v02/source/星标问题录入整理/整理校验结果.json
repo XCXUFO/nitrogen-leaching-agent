@@ -1,0 +1,12 @@
+{
+  "result": "passed",
+  "professional_records": 25,
+  "reference_answers": 9,
+  "empty_answers": 16,
+  "other_records": 7,
+  "original_material_counts_reconciled": true,
+  "conflict_answer_left_empty": true,
+  "payload_schema": "field-level check against archived single-record API only",
+  "live_import_performed": false,
+  "business_matching_executed": false
+}

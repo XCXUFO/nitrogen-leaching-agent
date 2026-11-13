@@ -50,7 +50,7 @@ def test_batch_replaces_tags_and_preserves_content_and_availability(client):
     for path in ('', '/' + job['id']):
         response = client.get('/api/case-library/tag-jobs' + path, headers={'Authorization': f"Bearer {TOKENS['reviewer']}"})
         assert response.json() == {'items': []} if not path else response.status_code == 404
-    assert client.post('/api/case-library/tag-jobs/' + job['id'] + '/retry', headers={'Authorization': f"Bearer {TOKENS['reviewer']}"}).status_code == 404
+    assert client.post('/api/case-library/tag-jobs/' + job['id'] + '/retry', headers={'Authorization': f"Bearer {TOKENS['reviewer']}"}).status_code == 403
 
 
 def test_partial_failure_retry_never_reprocesses_success(client):

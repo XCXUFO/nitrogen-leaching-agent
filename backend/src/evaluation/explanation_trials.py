@@ -9,7 +9,7 @@ from uuid import uuid4
 
 from fastapi import HTTPException
 from loguru import logger
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from typing import Literal
 
 from src.agent.contracts import Contract
@@ -17,8 +17,10 @@ from src.agent.case_skills import trial_system_prompt
 from src.agent.explanation_method import METHOD_SOURCE, inspect_explanation
 from src.agent.skill_config import ExpressionPreferences
 from src.agent.submissions import ChatRunManager
-from src.api.chat_schema import ChatRequest
+from src.api.chat_schema import ChatRequest, ChatHistoryMessage
+from src.evaluation.auth import require_developer
 from src.storage.prompt_versions import LEGACY_PROMPT, ENHANCED_PROMPT
+from src.storage.prompt_groups import PromptGroups
 
 
 class TrialPrompt(Contract):
@@ -53,11 +55,47 @@ def prompt_templates():
     return {variant: prompt.snapshot() for variant, prompt in default_prompts()}
 
 
+def evidence_fingerprint(response, trace):
+    """Compare source content and versions independently of retrieval executions."""
+    citation_fields = ('source_type', 'source', 'document_id', 'content_version', 'file_sha256',
+                       'chunk_id', 'chunk_ids', 'snippet', 'char_start', 'char_end')
+    citations = [{key: item.get(key) for key in citation_fields} for item in response.get('citations', [])]
+    cases = [{key: item.get(key) for key in ('id', 'title', 'source')}
+             for item in response.get('case_references', [])]
+    case_versions = [{key: item.get(key) for key in ('id', 'revision', 'fingerprint')}
+                     for selection in trace.retrieval if selection.get('source_type') == 'case'
+                     for item in selection.get('candidates', []) if item.get('selected')]
+    payload = {'citations': citations, 'cases': cases, 'case_versions': case_versions,
+               'case_context': trace.case_context}
+    return hashlib.sha256(json.dumps(payload, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
+
+
+class TrialGroups(Contract):
+    baseline: str = Field(min_length=1, max_length=100)
+    candidate: str = Field(min_length=1, max_length=100)
+
+
 class TrialInput(Contract):
     submission_id: str = Field(min_length=1, max_length=100, pattern=r"^[A-Za-z0-9_-]+$")
     query: str = Field(min_length=1, max_length=3000)
     material: str = Field(default="", max_length=18000)
     prompts: TrialPrompts = Field(default_factory=default_prompts)
+    groups: TrialGroups | None = None
+    followups: list[str] = Field(default_factory=list, max_length=5)
+    history: list[ChatHistoryMessage] = Field(default_factory=list, max_length=12)
+
+    @field_validator('followups')
+    @classmethod
+    def valid_followups(cls, value):
+        if any(not q.strip() or len(q) > 3000 for q in value):
+            raise ValueError('后续问题不能为空，每轮最多3000字。')
+        return value
+
+    @model_validator(mode='after')
+    def group_trajectory(self):
+        if not self.groups and (self.followups or self.history):
+            raise ValueError('多轮测评需要选择两组 Prompt。')
+        return self
 
     @field_validator("query")
     @classmethod
@@ -81,6 +119,7 @@ class ExplanationTrials:
         self.db, self.lock = runtime.runs._connection, runtime.runs._lock
         self.tasks = {}
         self.manager = manager or ChatRunManager(runtime.runs.live)
+        self.groups = PromptGroups(runtime.runs)
         with self.lock, self.db:
             self.db.executescript("""
                 CREATE TABLE IF NOT EXISTS explanation_trials (
@@ -97,6 +136,7 @@ class ExplanationTrials:
         return self.runtime.runs.prompts.list()
 
     def save_prompt(self, body, user):
+        require_developer(user)
         return self.runtime.runs.prompts.save(body.label, body.text, user.tester_id)
 
     def _row(self, trial_id):
@@ -116,14 +156,22 @@ class ExplanationTrials:
             rows = self.db.execute("SELECT trial_id FROM explanation_trials" + ("" if user.role in {"developer", "reviewer"} else " WHERE actor=?") + " ORDER BY created_at DESC LIMIT 50", () if user.role in {"developer", "reviewer"} else (user.tester_id,)).fetchall()
         return [self.get(row[0], user) for row in rows]
 
-    def submit(self, body, user, *, llm):
+    def submit(self, body, user, *, llm, execute=None):
         fingerprint = hashlib.sha256(json.dumps(body.model_dump(exclude={"submission_id"}), sort_keys=True).encode()).hexdigest()
-        saved = self.runtime.runs.prompts.list()
-        left = next((item for item in saved if item["label"] == body.prompts.baseline.label and item["text"] == body.prompts.baseline.text), None)
-        if left is None:
-            raise HTTPException(422, detail={"code": "historical_prompt_required", "message": "左侧请选择一个已保存的 Prompt 版本。"})
-        right = next((item for item in saved if item["label"] == body.prompts.candidate.label and item["text"] == body.prompts.candidate.text), None)
-        right = right or self.save_prompt(body.prompts.candidate, user)
+        groups = None
+        if body.groups:
+            if execute is None:
+                raise HTTPException(422, detail={'code': 'group_executor_required', 'message': 'Prompt 组测评需要正常任务执行入口。'})
+            groups = {side: self.groups.get(identifier) for side, identifier in body.groups}
+            left, right = (groups[side]['communication'] for side in ('baseline', 'candidate'))
+        else:
+            saved = self.runtime.runs.prompts.list()
+            left = next((item for item in saved if item["label"] == body.prompts.baseline.label and item["text"] == body.prompts.baseline.text), None)
+            if left is None:
+                raise HTTPException(422, detail={"code": "historical_prompt_required", "message": "左侧请选择一个已保存的 Prompt 版本。"})
+            right = next((item for item in saved if item["label"] == body.prompts.candidate.label and item["text"] == body.prompts.candidate.text), None)
+            right = right or self.save_prompt(body.prompts.candidate, user)
+        expression = self.runtime.expression_snapshot() if groups else None
         with self.lock, self.db:
             self.db.execute("BEGIN IMMEDIATE")
             prior = self.db.execute("SELECT trial_id,fingerprint FROM explanation_trials WHERE actor=? AND submission_id=?", (user.tester_id, body.submission_id)).fetchone()
@@ -138,10 +186,16 @@ class ExplanationTrials:
                          "method_version": "prompt-comparison-v1", "source": METHOD_SOURCE, "actor": user.tester_id, "variants": {},
                          "prompts": {"baseline": left, "candidate": right},
                          "created_at": datetime.now(timezone.utc).isoformat(), "config_version": self.runtime.config_version}
+                if groups:
+                    value.update(groups=groups, method_version='prompt-group-comparison-v1',
+                        evaluation_mode='full_pipeline', followups=body.followups,
+                        history=[turn.model_dump() for turn in body.history],
+                        group_configs={side: {**expression, 'communication': group['communication'],
+                            'task_prompts': group['task_prompts']} for side, group in groups.items()})
                 self.db.execute("INSERT INTO explanation_trials VALUES (?,?,?,?,?,?,?)", (trial_id, user.tester_id, body.submission_id, fingerprint, "accepted", value["created_at"], json.dumps(value, ensure_ascii=False)))
                 created = True
         if created:
-            task = asyncio.create_task(self._execute(trial_id, user, llm))
+            task = asyncio.create_task(self._execute_groups(trial_id, user, execute) if groups else self._execute(trial_id, user, llm))
             self.tasks[trial_id] = task
             task.add_done_callback(lambda completed: self._done(trial_id, completed))
         return self.get(trial_id, user)
@@ -202,6 +256,87 @@ class ExplanationTrials:
         except Exception:
             logger.exception("Explanation trial stopped without replay | trial_id={}", trial_id)
             self._save(trial_id, value, "failed")
+
+    async def _execute_groups(self, trial_id, user, execute):
+        value = self.get(trial_id, user)
+        value.pop('judgments', None)
+        value.pop('status', None)
+        try:
+            for variant in ('baseline', 'candidate'):
+                group = value['groups'][variant]
+                config = value['group_configs'][variant]
+                history = list(value['history'])
+                session_id = 'group_' + trial_id.replace('-', '') + '_' + variant
+                result = {'status': 'running', 'steps': [], 'group': group}
+                value['variants'][variant] = result
+                self._save(trial_id, value, 'running')
+                try:
+                    for index, query in enumerate([value['query'], *value['followups']]):
+                        if self.runtime.config_version != value['config_version']:
+                            raise RuntimeError('trial_build_changed')
+                        body = ChatRequest(query=query + ('\n待解释材料：\n' + value['material'] if value['material'] else ''),
+                            history=history[-12:], session_id=session_id, operator_id=user.tester_id,
+                            turn_id=f'{trial_id}-{index}', request_id=f'{trial_id}-{variant}-{index}')
+
+                        async def run(record, observer):
+                            return await execute(body, record, observer, config)
+
+                        owner = 'internal_' + user.tester_id
+                        accepted = self.manager.submit(execute=run, owner=owner, session_id=session_id,
+                            turn_id=body.turn_id, request_id=body.request_id,
+                            fingerprint=hashlib.sha256(body.model_dump_json().encode()).hexdigest(),
+                            rerun_of_run_id=None, config_version=value['config_version'] + ':' + group['version'],
+                            source='test', mode='auto')
+                        run_id = accepted['run_id']
+                        entry = {'run_id': run_id, 'query': query, 'history': body.model_dump()['history'], 'status': 'running'}
+                        result['steps'].append(entry)
+                        self._save(trial_id, value, 'running')
+                        task = self.manager.tasks.get(run_id)
+                        if task:
+                            await task
+                        finished = self.manager.get(owner, run_id)
+                        if finished['status'] == 'cancelled':
+                            raise asyncio.CancelledError()
+                        if finished['status'] != 'succeeded' or not finished['result_saved']:
+                            entry.update(status='failed', error=finished.get('error'))
+                            raise RuntimeError('trial_variant_not_saved')
+                        response = finished['result']
+                        trace = self.runtime.runs.get(run_id)
+                        if not trace or trace.skill_config['communication']['prompt_id'] != group['communication']['prompt_id']:
+                            raise RuntimeError('trial_candidate_unverified')
+                        usage = trace.skill_config.get('task_prompt_usage', [])
+                        if any(u.get('prompt_id') != group['task_prompts'][u['scope']]['prompt_id'] for u in usage):
+                            raise RuntimeError('trial_task_candidate_unverified')
+                        entry.update(status='succeeded', response=response,
+                            task_prompt_usage=usage,
+                            actual_prompt=trace.skill_config['communication'],
+                            route=trace.decision.route if trace.decision else None,
+                            skills=trace.decision.skills if trace.decision else [],
+                            evidence_fingerprint=evidence_fingerprint(response, trace))
+                        result.update(run_id=run_id, answer=response['answer'], model=response['model'])
+                        history += [{'role': 'user', 'content': query}, {'role': 'assistant', 'content': response['answer'][:4000]}]
+                        self._save(trial_id, value, 'running')
+                    result['status'] = 'succeeded'
+                    used = {u['scope'] for step in result['steps'] for u in step.get('task_prompt_usage', [])}
+                    result['unused_task_scopes'] = [scope for scope in group['task_prompts'] if scope not in used]
+                except asyncio.CancelledError:
+                    result['status'] = 'interrupted'
+                    if result['steps'] and result['steps'][-1]['status'] == 'running':
+                        result['steps'][-1]['status'] = 'interrupted'
+                    raise
+                except Exception:
+                    logger.exception('Prompt group variant failed | trial_id={} variant={}', trial_id, variant)
+                    result['status'] = 'failed'
+                    if result['steps'] and result['steps'][-1]['status'] == 'running':
+                        result['steps'][-1]['status'] = 'failed'
+                self._save(trial_id, value, 'running')
+            status = 'completed' if all(v['status'] == 'succeeded' for v in value['variants'].values()) else 'failed'
+            self._save(trial_id, value, status)
+        except asyncio.CancelledError:
+            self._save(trial_id, value, 'interrupted')
+        except Exception:
+            logger.exception('Prompt group trial stopped | trial_id={}', trial_id)
+            self._save(trial_id, value, 'failed')
 
     def judge(self, trial_id, body, user):
         trial = self.get(trial_id, user)

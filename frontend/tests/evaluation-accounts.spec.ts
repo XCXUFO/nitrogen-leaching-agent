@@ -2,8 +2,8 @@ import { expect, test } from '@playwright/test';
 
 test.skip(!process.env.ACCOUNTS_TEST_API, 'Requires tests.accounts_fixture with a temporary database');
 const accounts = [
-  ['cau_dev', '开发者'], ['cau_expert1', '复核者'], ['cau_expert2', '复核者'],
-  ['cau_tester1', '协作者'], ['cau_tester2', '协作者'], ['cau_tester3', '协作者'],
+  ['cau_dev', '开发者'], ['cau_expert1', '专家'], ['cau_expert2', '专家'],
+  ['cau_tester1', '普通账号 · 只读'], ['cau_tester2', '普通账号 · 只读'], ['cau_tester3', '普通账号 · 只读'],
 ];
 
 test.beforeEach(async ({ page }) => {
@@ -25,9 +25,11 @@ for (const [username, role] of accounts) {
     const token = (await (await response).json()).token;
     await expect(page.locator('header').getByText(role, { exact: true })).toBeVisible();
     const nav = page.getByRole('navigation', { name: '工作台导航' }).first();
-    await expect(nav.getByRole('link', { name: '审核队列', exact: true })).toHaveCount(role === '协作者' ? 0 : 1);
+    await expect(nav.getByRole('link', { name: '审核队列', exact: true })).toHaveCount(0);
     await expect(nav.getByRole('link', { name: '运行记录', exact: true })).toHaveCount(1);
-    await nav.getByRole('link', { name: '任务管理', exact: true }).click();
+    await expect(nav.getByRole('link', { name: '用例组管理', exact: true })).toHaveCount(1);
+    await expect(nav.getByRole('link', { name: '版本管理', exact: true })).toHaveCount(1);
+    await page.goto('/evaluation/tasks');
     await expect(page.getByRole('button', { name: '退出登录' })).toBeVisible();
     await page.getByRole('button', { name: '退出登录' }).click();
     await expect(page.getByLabel('密码', { exact: true })).toHaveValue('');
@@ -62,7 +64,7 @@ test('revoked session returns to login when a protected request is made', async 
   const token = (await (await response).json()).token;
   await expect(page.getByRole('button', { name: '退出登录' })).toBeVisible();
   await page.request.post(`${process.env.ACCOUNTS_TEST_API}/api/eval/logout`, { headers: { Authorization: `Bearer ${token}` } });
-  await page.getByRole('navigation', { name: '工作台导航' }).first().getByRole('link', { name: '任务管理', exact: true }).click();
+  await page.goto('/evaluation/tasks');
   await expect(page.getByLabel('账号', { exact: true })).toBeVisible();
   await expect(page.getByRole('main').getByRole('alert')).toHaveText('登录已失效，请重新登录。');
 });

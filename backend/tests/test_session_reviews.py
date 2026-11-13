@@ -36,7 +36,7 @@ def test_single_person_can_approve_without_scores_and_later_turns_remain_pending
 def test_shared_issue_comment_manual_resolution_and_reopening_preserve_original(client):
     session = conversation(client)
     original = session['turns'][0]
-    saved = review(client, session, 'issue', person='alice', run_id=original['run_id'], note='解释不完整，应补充适用条件。')
+    saved = review(client, session, 'issue', person='expert', run_id=original['run_id'], note='解释不完整，应补充适用条件。')
     assert saved.status_code == 200, saved.text
     session = saved.json()
     issue = session['review']['issues'][0]
@@ -61,7 +61,8 @@ def test_conflicts_idempotency_membership_and_authentication(client):
     assert client.post(url, json=payload).status_code == 401
     for _ in range(2):
         assert client.post(url, headers=headers('dev'), json=payload).json()['review']['revision'] == 1
-    assert client.post(url, headers=headers('alice'), json=payload).status_code == 409
+    assert client.post(url, headers=headers('expert'), json=payload).status_code == 409
+    assert client.post(url, headers=headers('alice'), json=payload).status_code == 403
     assert review(client, session, 'comment', note='过期表单').status_code == 409
     session = client.get('/api/eval/sessions/review-chat', headers=headers('alice')).json()
     assert review(client, session, 'issue', run_id='another-run', note='问题').status_code == 422
@@ -77,7 +78,7 @@ def test_retest_uses_original_request_and_keeps_human_confirmation_separate(clie
     issue_id = session['review']['issues'][0]['issue_id']
     payload = {'submission_id': str(uuid4()), 'source_run_id': original['run_id'], 'issue_id': issue_id}
     for _ in range(2):
-        result = client.post('/api/eval/sessions/review-chat/retests', headers=headers('alice'), json=payload)
+        result = client.post('/api/eval/sessions/review-chat/retests', headers=headers('expert'), json=payload)
         assert result.status_code == 202, result.text
     for _ in range(100):
         session = client.get('/api/eval/sessions/review-chat', headers=headers('expert')).json()
@@ -127,6 +128,25 @@ def test_status_filter_is_applied_before_pagination(client):
     conversation(client, session='newer')
     result = client.get('/api/eval/sessions?review_status=passed&limit=1', headers=headers('alice')).json()
     assert result['total'] == 1 and result['items'][0]['session_id'] == 'older'
+
+
+def test_legacy_review_recovers_attachment_names_without_file_capabilities(client):
+    session = conversation(client)
+    turn = session['turns'][0]
+    store = client.app.state.agent_runtime.runs
+    store.history.record('dev', 'legacy-tab', session['session_id'], {'query': turn['input']},
+        {'run_id': turn['run_id'], 'turn_id': 'turn-one', 'request_id': 'request-one', 'status': 'succeeded'},
+        [{'filename': '原始记录.xlsx', 'sha256': 'file-hash', 'format': 'xlsx', 'file_id': 'secret-capability'}])
+    recovered = client.get('/api/eval/sessions/review-chat', headers=headers('dev')).json()['turns'][0]
+    assert recovered['request_snapshot']['attachments'] == [
+        {'filename': '原始记录.xlsx', 'sha256': 'file-hash', 'format': 'xlsx'}]
+    assert recovered['request_snapshot']['has_attachments'] is True
+    assert 'secret-capability' not in str(recovered)
+    # Read-time recovery preserves the original append-only trace.
+    assert not store.get(turn['run_id']).request_snapshot['attachments']
+    response = client.post('/api/eval/sessions/review-chat/retests', headers=headers('dev'), json={
+        'submission_id': str(uuid4()), 'source_run_id': turn['run_id']})
+    assert response.status_code == 422 and response.json()['detail']['code'] == 'retest_files_required'
 
 
 def test_retest_keeps_original_text_history(client):

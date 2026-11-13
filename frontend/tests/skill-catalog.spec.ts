@@ -160,3 +160,21 @@ test("limited expression settings persist, detect conflicts and reset with histo
   await page.getByText("变更记录", { exact: true }).click();
   await expect(page.getByLabel("表达配置")).toContainText("expression:3 · 恢复默认");
 });
+
+test("unified case capability appears once and old detail links to the canonical entry", async ({ page }) => {
+  await mockApi(page);
+  const canonical = { ...detail('case_explanation')!, name: 'case_assistant', title: '案例与措施助手', configuration: 'limited' };
+  const current = [canonical, ...summaries.filter(s => !['case_reference', 'case_explanation'].includes(s.name)), { ...summaries[0], name: 'concept_explanation', title: '概念解释' }];
+  await page.route('**/api/eval/skills', route => route.fulfill({ json: current }));
+  await page.route('**/api/eval/skills/case_reference', route => route.fulfill({ json: { ...detail('case_reference'), alias_of: 'case_assistant' } }));
+  await page.route('**/api/eval/skills/case_assistant', route => route.fulfill({ json: canonical }));
+  await page.route('**/api/eval/skills/case_assistant/configuration', route => route.fulfill({ json: { current: { revision: 0, version: 'case-v1', values: { style: 'plain', detail: 'medium', organization: 'answer_first' }, actor: 'builtin', changed_at: null, action: 'default' }, history: [] } }));
+  await page.goto('/evaluation/skills');
+  await login(page);
+  await expect(page.getByRole('link', { name: '查看案例与措施助手详情' })).toHaveCount(1);
+  await expect(page.getByRole('link', { name: '查看案例与措施参考详情' })).toHaveCount(0);
+  await page.goto('/evaluation/skills/case_reference');
+  await page.getByRole('link', { name: '查看统一案例能力' }).click();
+  await expect(page.getByRole('heading', { name: '案例与措施助手', exact: true })).toBeVisible();
+  await expect(page.getByLabel('表达配置', { exact: true })).toBeVisible();
+});

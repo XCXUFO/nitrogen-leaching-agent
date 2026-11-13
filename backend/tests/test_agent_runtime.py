@@ -59,7 +59,7 @@ def test_attached_file_does_not_override_knowledge_intent(client, query):
     assert body["file_evidence"] == []
     assert client.app.state.chat_service.calls[0][0] == query
     trace = client.app.state.agent_runtime.runs.get(body["run_id"])
-    assert [call.skill for call in trace.tool_calls] == ["knowledge_search"]
+    assert [call.skill for call in trace.tool_calls] == (["concept_explanation"] if query == "说说土壤质地" else ["knowledge_search"])
     assert "expired-token" not in trace.model_dump_json()
 
 
@@ -211,7 +211,10 @@ def test_guidance_needs_neither_rag_nor_file_and_has_no_fake_citations(client, q
     body = ask(client, query, file="expired").json()
     assert body["agent_route"] == route
     assert body["citations"] == body["file_evidence"] == body["evidence"] == []
-    assert "WHCNS" in body["answer"]
+    if route == "OUT_OF_SCOPE":
+        assert "农田" in body["answer"] and "无法回答" in body["answer"]
+    else:
+        assert "WHCNS" in body["answer"]
     assert body["usage"]["total_tokens"] == 0
 
 
@@ -290,7 +293,7 @@ def test_registry_publishes_validated_contracts():
     registry = build_registry(None, lambda token: {})
     descriptions = registry.describe()
     assert {item["name"] for item in descriptions} == {
-        "knowledge_search", "whcns_analyzer", "file_inspector", "clarification", "capability_guidance", "case_reference", "case_explanation"}
+        "concept_explanation", "knowledge_search", "whcns_analyzer", "file_inspector", "clarification", "capability_guidance", "case_assistant"}
     assert all(item["input_schema"]["additionalProperties"] is False for item in descriptions)
 
 

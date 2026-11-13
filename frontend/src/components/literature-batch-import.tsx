@@ -7,8 +7,8 @@ import { apiBaseUrl } from "@/lib/api";
 type ImportItem = { filename: string; paper_id?: string; status: string; warnings: string[]; retryable?: boolean };
 type Batch = { kind?: "existing"; id: string; created_at: string; items: ImportItem[] };
 type Upload = { file: File; fingerprint?: string; status: "waiting" | "uploading" | "uploaded" | "failed" | "duplicate"; upload_id?: string; paper_id?: string; message?: string };
-const button = "rounded-lg border px-3 py-2 text-sm disabled:opacity-50";
-const primary = `${button} bg-emerald-700 text-white`;
+const button = "wb-button";
+const primary = "wb-button wb-button-primary";
 const labels: Record<string, string> = { waiting: "等待上传", uploading: "上传中", uploaded: "已上传", queued: "等待 AI 处理", processing: "AI 处理中", ready: "已成功录入", warning: "已保存（有异常）", failed: "处理失败", duplicate: "重复文件，已跳过" };
 
 class ImportError extends Error {
@@ -162,7 +162,7 @@ export function LiteratureBatchImport({ token, maxPdfMb, onChanged, selectedIds,
     <button className={primary} onClick={() => open("import")}>批量导入</button>
     <button className={button} disabled={!selectedIds.length} onClick={() => open("existing")}>批量 AI 解析 · 已选 {selectedIds.length} 篇</button>
     <button className={button} onClick={() => open("history")}>近期批次与恢复</button>
-    <dialog aria-labelledby="literature-batch-title" ref={dialog} onCancel={(event) => { if (busy) event.preventDefault(); else setMode(null); }} onClose={() => setMode(null)} className="fixed inset-0 m-auto max-h-[85vh] w-[min(56rem,94vw)] overflow-auto rounded-xl border bg-white p-6 backdrop:bg-black/40">
+    <dialog aria-labelledby="literature-batch-title" ref={dialog} onCancel={(event) => { if (busy) event.preventDefault(); else setMode(null); }} onClose={() => setMode(null)} className="fixed inset-0 m-auto max-h-[85vh] w-[min(56rem,94vw)] overflow-auto wb-panel backdrop:bg-black/40">
       <div className="mb-4 flex items-center justify-between"><h2 id="literature-batch-title" className="text-lg font-semibold">{mode === "import" ? "批量导入文献" : mode === "history" ? "近期批次与恢复" : "已有文献批量 AI 解析"}</h2><button className={button} disabled={busy} onClick={() => setMode(null)}>关闭流程</button></div>
       {error && <p role="alert" className="mb-3 text-sm text-red-700">{error}</p>}
       {mode === "import" && !currentId && <div className="space-y-4">

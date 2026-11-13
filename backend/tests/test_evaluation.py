@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parents[2]
 TOKENS = {'alice': 'a'*40, 'bob': 'b'*40, 'dev': 'd'*40, 'expert': 'e'*40}
 
 
-def headers(name='alice'):
+def headers(name='dev'):
     return {'Authorization': 'Bearer '+TOKENS[name]}
 
 
@@ -43,13 +43,13 @@ def client(tmp_path):
     runs.close()
 
 
-def start(client, name='alice', case='NEW01', version=2):
+def start(client, name='dev', case='NEW01', version=2):
     response = client.post('/api/eval/executions', headers=headers(name), json={'case_id': case, 'case_version': version})
     assert response.status_code == 201, response.text
     return response.json()['execution_id']
 
 
-def ask(client, eid, query='1', name='alice', **extra):
+def ask(client, eid, query='1', name='dev', **extra):
     return client.post(f'/api/eval/executions/{eid}/query', headers=headers(name), json={'query': query, **extra})
 
 
@@ -132,9 +132,9 @@ def test_failed_frontend_answer_is_visible_as_abnormal_session(client):
 
 
 def test_identity_and_roles_are_verified_server_side(client):
-    assert client.get('/api/eval/me', headers=headers()).json() == {'tester_id': 'alice', 'role': 'tester'}
+    assert client.get('/api/eval/me', headers=headers('alice')).json() == {'tester_id': 'alice', 'role': 'tester'}
     for path in ('runs', 'statistics', 'runs/any-id'):
-        assert client.get('/api/eval/'+path, headers=headers()).status_code == 403
+        assert client.get('/api/eval/'+path, headers=headers('alice')).status_code == 403
     eid = start(client)
     for extra in ({'tester_id': 'dev'}, {'run_id': 'stolen'}, {'session_id': 'stolen'}):
         assert ask(client, eid, **extra).status_code == 422
@@ -157,9 +157,9 @@ def test_other_tester_cannot_read_mutate_or_score_execution(client):
     eid = start(client)
     assert client.get(f'/api/eval/executions/{eid}', headers=headers('bob')).status_code == 404
     assert client.get('/api/eval/executions', headers=headers('bob')).json() == []
-    assert ask(client, eid, name='bob').status_code == 404
-    assert client.post(f'/api/eval/executions/{eid}/reviews', headers=headers('bob'), json=score()).status_code == 404
-    assert ask(client, eid, name='dev').status_code == 403
+    assert ask(client, eid, name='bob').status_code == 403
+    assert client.post(f'/api/eval/executions/{eid}/reviews', headers=headers('bob'), json=score()).status_code == 403
+    assert ask(client, eid, name='expert').status_code == 403
     assert client.get(f'/api/eval/executions/{eid}', headers=headers('dev')).status_code == 200
 
 
@@ -173,7 +173,7 @@ def test_multirun_review_is_immutable_and_survives_reopening(client):
     result = client.post(f'/api/eval/executions/{eid}/reviews', headers=headers(), json=score())
     assert result.status_code == 201, result.text
     review = result.json()['review']
-    assert review['run_ids'] == ids and review['tester_id'] == 'alice'
+    assert review['run_ids'] == ids and review['tester_id'] == 'dev'
     assert review['professional_review'] == 'pending'
     assert result.json()['status'] == 'reviewed'
     assert ask(client, eid).status_code == 409
@@ -181,7 +181,7 @@ def test_multirun_review_is_immutable_and_survives_reopening(client):
     db = client.app.state.evaluation.store.db.execute('PRAGMA database_list').fetchone()[2]
     reopened = RunStore(db)
     try:
-        saved = EvaluationStore(reopened).execution(eid, Principal(tester_id='alice', role='tester'))
+        saved = EvaluationStore(reopened).execution(eid, Principal(tester_id='dev', role='developer'))
         assert saved['review'] == review
     finally:
         reopened.close()
@@ -194,7 +194,7 @@ def test_failed_run_remains_bound_and_trace_is_developer_only(client):
     assert event['run_id'] and not event['trace_missing']
     trace = client.get('/api/eval/runs/'+event['run_id'], headers=headers('dev')).json()
     assert trace['status'] == 'error' and trace['error_code'] == 'rag_not_configured'
-    assert client.get('/api/eval/runs/'+event['run_id'], headers=headers()).status_code == 403
+    assert client.get('/api/eval/runs/'+event['run_id'], headers=headers('alice')).status_code == 403
 
 
 def test_blocked_without_runs_and_statistics_denominators(client):
@@ -205,7 +205,7 @@ def test_blocked_without_runs_and_statistics_denominators(client):
     ask(client, normal)
     partial = score(overall='partial', evidence_correct='partial', notes='部分证据需核对')
     assert client.post(f'/api/eval/executions/{normal}/reviews', headers=headers(), json=partial).status_code == 201
-    start(client, name='bob')
+    start(client, name='expert')
     stats = client.get('/api/eval/statistics', headers=headers('dev')).json()
     assert stats['executions'] == 3 and stats['pending'] == 1
     assert stats['overall'] == {'pass': 0, 'partial': 1, 'fail': 0, 'blocked': 1}
@@ -377,7 +377,7 @@ def test_main_lifespan_initializes_authenticated_evaluation(tmp_path, monkeypatc
     monkeypatch.setattr(settings, 'agent_trace_db', str(tmp_path/'main.sqlite3'))
     monkeypatch.setattr(settings, 'rag_enabled', False)
     with TestClient(app) as c:
-        result = c.get('/api/eval/cases', headers=headers())
+        result = c.get('/api/eval/cases', headers=headers('alice'))
         assert result.status_code == 200, result.text
         assert result.headers['cache-control'] == 'no-store'
         assert c.get('/api/eval/cases').status_code == 401
@@ -406,7 +406,7 @@ def test_task_issue_retest_and_review_identity_form_a_preserved_chain(client):
     assert task['created_by'] == 'dev'
     assert task['runtime_config_version'] == client.app.state.agent_runtime.config_version
     assert 'collection' in task['knowledge_config']
-    assert client.post('/api/eval/tasks', headers=headers(), json=task_body).status_code == 403
+    assert client.post('/api/eval/tasks', headers=headers('alice'), json=task_body).status_code == 403
     assert client.post('/api/eval/executions', headers=headers(),
                        json={'case_id': 'NEW01', 'case_version': 2, 'task_id': task['task_id']}).status_code == 422
     client.app.state.agent_runtime.config_version = 'changed-build:other-config'
@@ -428,7 +428,7 @@ def test_task_issue_retest_and_review_identity_form_a_preserved_chain(client):
     issue = issue_response.json()
     assert issue['run_id'] == old_run and issue['original_question'] == '原始失败问题'
     assert issue['review_id'] == original_review['review_id'] and issue['task_id'] == task['task_id']
-    assert client.post('/api/eval/issues', headers=headers(), json=issue_body).status_code == 403
+    assert client.post('/api/eval/issues', headers=headers('alice'), json=issue_body).status_code == 403
     assert client.get(f'/api/eval/tasks/{task["task_id"]}', headers=headers()).json()['execution_ids'] == [eid]
     assert client.post(f'/api/eval/issues/{issue["issue_id"]}/retests', headers=headers('dev'),
                        json={'execution_id': eid, 'fix_version': 'build-b'}).status_code == 422
@@ -452,7 +452,7 @@ def test_task_issue_retest_and_review_identity_form_a_preserved_chain(client):
                                     'pass': 1, 'partial': 0, 'fail': 1, 'blocked': 0}
     assert dashboard['issues'] == {'total': 1, 'unresolved': 0}
     assert dashboard['severe_regressions'] == []
-    assert client.get(f'/api/eval/tasks/{task["task_id"]}/dashboard', headers=headers()).status_code == 403
+    assert client.get(f'/api/eval/tasks/{task["task_id"]}/dashboard', headers=headers('alice')).status_code == 403
     saved_issue = client.get(f'/api/eval/issues/{issue["issue_id"]}', headers=headers('dev')).json()
     assert saved_issue['review_snapshot'] == original_review and saved_issue['retests'] == [retest]
     assert client.post(f'/api/eval/issues/{issue["issue_id"]}/retests', headers=headers('dev'),
@@ -480,7 +480,7 @@ def test_task_issue_retest_and_review_identity_form_a_preserved_chain(client):
     assert case_after_expert['professional_outcome'] == 'partial' and case_after_expert['domain_expert_review_count'] == 1
     all_assessments = client.get('/api/eval/assessments?case_id=X01', headers=headers('dev')).json()
     assert {a['assessment_id'] for a in all_assessments} == {ai['assessment_id'], expert['assessment_id']}
-    assert client.get('/api/eval/assessments', headers=headers()).status_code == 403
+    assert client.get('/api/eval/assessments', headers=headers('alice')).status_code == 403
 
 
 def test_versioned_case_publication_reuses_evaluation_fixtures(client):

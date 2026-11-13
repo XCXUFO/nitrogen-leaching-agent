@@ -1,0 +1,207 @@
+{
+  "scope": "local business database only; isolated replays generate separate IDs",
+  "database": "/root/projects/nitrogen-leaching-agent/backend/var/agent/runs.sqlite3",
+  "batch": "professional-sq-2026-11",
+  "mapping": [
+    {
+      "source_sq_id": "SQ-002",
+      "question_id": "af377dce-2753-4ece-8538-836193c5ecc3",
+      "revision": 1,
+      "has_answer": false,
+      "reuse_status": "pending",
+      "professional_review": "unknown"
+    },
+    {
+      "source_sq_id": "SQ-003",
+      "question_id": "ea21c9dc-7bf8-4292-9541-b88cd91dd3b3",
+      "revision": 1,
+      "has_answer": false,
+      "reuse_status": "pending",
+      "professional_review": "unknown"
+    },
+    {
+      "source_sq_id": "SQ-004",
+      "question_id": "1e2d2095-fd89-4ef0-9fd4-135727d99c74",
+      "revision": 1,
+      "has_answer": false,
+      "reuse_status": "pending",
+      "professional_review": "unknown"
+    },
+    {
+      "source_sq_id": "SQ-005",
+      "question_id": "0043131f-1055-45f2-9970-e809559dcf9f",
+      "revision": 1,
+      "has_answer": false,
+      "reuse_status": "pending",
+      "professional_review": "unknown"
+    },
+    {
+      "source_sq_id": "SQ-006",
+      "question_id": "c1fcbfb9-6e1e-4c6d-afd2-3f7221167d7b",
+      "revision": 1,
+      "has_answer": false,
+      "reuse_status": "pending",
+      "professional_review": "unknown"
+    },
+    {
+      "source_sq_id": "SQ-007",
+      "question_id": "f34ca05c-b86a-4648-a0cd-b16f8a10e480",
+      "revision": 1,
+      "has_answer": false,
+      "reuse_status": "pending",
+      "professional_review": "unknown"
+    },
+    {
+      "source_sq_id": "SQ-008",
+      "question_id": "aeb9ea1d-880d-4ba8-abe0-d781b4717681",
+      "revision": 1,
+      "has_answer": true,
+      "reuse_status": "reference",
+      "professional_review": "unknown"
+    },
+    {
+      "source_sq_id": "SQ-009",
+      "question_id": "0018dbac-4b8a-4f35-b4df-c34d367769e2",
+      "revision": 1,
+      "has_answer": true,
+      "reuse_status": "reference",
+      "professional_review": "unknown"
+    },
+    {
+      "source_sq_id": "SQ-010",
+      "question_id": "825df493-0ada-40cd-ab03-6640c0767229",
+      "revision": 1,
+      "has_answer": false,
+      "reuse_status": "pending",
+      "professional_review": "unknown"
+    },
+    {
+      "source_sq_id": "SQ-011",
+      "question_id": "65ac4a14-e196-44b7-8b14-bf3c342ceb65",
+      "revision": 1,
+      "has_answer": false,
+      "reuse_status": "pending",
+      "professional_review": "unknown"
+    },
+    {
+      "source_sq_id": "SQ-013",
+      "question_id": "ffffbf92-0dd4-4ec2-bb52-eb27ed4f59e4",
+      "revision": 1,
+      "has_answer": false,
+      "reuse_status": "pending",
+      "professional_review": "unknown"
+    },
+    {
+      "source_sq_id": "SQ-014",
+      "question_id": "ea78409a-4d97-4d38-ad8d-6ca6be64c44b",
+      "revision": 1,
+      "has_answer": false,
+      "reuse_status": "pending",
+      "professional_review": "unknown"
+    },
+    {
+      "source_sq_id": "SQ-015",
+      "question_id": "8ed08e67-613f-4889-bce2-8af48f9dd820",
+      "revision": 1,
+      "has_answer": false,
+      "reuse_status": "pending",
+      "professional_review": "unknown"
+    },
+    {
+      "source_sq_id": "SQ-019",
+      "question_id": "5b9a26b5-849e-4de4-85a4-7736795be4e1",
+      "revision": 1,
+      "has_answer": false,
+      "reuse_status": "pending",
+      "professional_review": "unknown"
+    },
+    {
+      "source_sq_id": "SQ-021",
+      "question_id": "edc3ff1e-65a3-44b9-af16-08d186ae05a9",
+      "revision": 1,
+      "has_answer": false,
+      "reuse_status": "pending",
+      "professional_review": "unknown"
+    },
+    {
+      "source_sq_id": "SQ-022",
+      "question_id": "72f13717-fdcb-432f-bfe1-c2634b6d7162",
+      "revision": 1,
+      "has_answer": false,
+      "reuse_status": "pending",
+      "professional_review": "unknown"
+    },
+    {
+      "source_sq_id": "SQ-024",
+      "question_id": "5e94c227-3020-43ee-be97-45363f9417a0",
+      "revision": 1,
+      "has_answer": true,
+      "reuse_status": "reference",
+      "professional_review": "unknown"
+    },
+    {
+      "source_sq_id": "SQ-025",
+      "question_id": "c6044901-f7ea-4bff-9eb8-756db9703c2e",
+      "revision": 1,
+      "has_answer": true,
+      "reuse_status": "reference",
+      "professional_review": "unknown"
+    },
+    {
+      "source_sq_id": "SQ-026",
+      "question_id": "28e15918-59e0-480a-b43d-148a1cdcb36e",
+      "revision": 1,
+      "has_answer": true,
+      "reuse_status": "reference",
+      "professional_review": "unknown"
+    },
+    {
+      "source_sq_id": "SQ-027",
+      "question_id": "1037fe1b-ddd1-4ff5-b153-8707b43ac976",
+      "revision": 1,
+      "has_answer": false,
+      "reuse_status": "conflict",
+      "professional_review": "unknown"
+    },
+    {
+      "source_sq_id": "SQ-028",
+      "question_id": "667067fa-ff76-4d8f-925f-db57987fadee",
+      "revision": 1,
+      "has_answer": false,
+      "reuse_status": "pending",
+      "professional_review": "unknown"
+    },
+    {
+      "source_sq_id": "SQ-029",
+      "question_id": "125a42ea-c5ca-4876-8b98-1b5859be5e43",
+      "revision": 1,
+      "has_answer": true,
+      "reuse_status": "reference",
+      "professional_review": "unknown"
+    },
+    {
+      "source_sq_id": "SQ-030",
+      "question_id": "1f70f111-ffeb-4f5e-a282-3e0b72585546",
+      "revision": 1,
+      "has_answer": true,
+      "reuse_status": "reference",
+      "professional_review": "unknown"
+    },
+    {
+      "source_sq_id": "SQ-031",
+      "question_id": "234d85fa-92be-4adb-8eb4-b23cee25f770",
+      "revision": 1,
+      "has_answer": true,
+      "reuse_status": "reference",
+      "professional_review": "unknown"
+    },
+    {
+      "source_sq_id": "SQ-032",
+      "question_id": "cb6e4188-d642-492a-a3e2-eaf5109bb36a",
+      "revision": 1,
+      "has_answer": true,
+      "reuse_status": "reference",
+      "professional_review": "unknown"
+    }
+  ]
+}

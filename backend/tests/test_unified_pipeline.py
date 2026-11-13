@@ -45,7 +45,7 @@ async def test_real_knowledge_followup_keeps_subject_and_topic_switch_drops_hist
 
     runtime = AgentRuntime()
     retriever = FakeRetriever([])
-    service = ChatService(retriever, FakeLLMClient(), top_k=5, max_context_chars=3000, temperature=0)
+    service = ChatService(retriever, FakeLLMClient('这是本轮中文回答。'), top_k=5, max_context_chars=3000, temperature=0)
     history = [{"role": "user", "content": "硝态氮淋失是什么？"},
                {"role": "assistant", "content": "这是前一轮回答。"}]
     first = await runtime.execute(ChatRequest(query=history[0]["content"], session_id="subject"), service=service, get_report=None)
@@ -150,7 +150,7 @@ async def test_full_empty_partial_starred_coverage_and_matching_failure():
     assert runtime.runs.get(empty.run_id).starred_match["status"] == "empty_answer" and service.calls == 2
     def broken(): raise RuntimeError("offline")
     failure = await ask("折氮量是什么意思？", broken)
-    assert runtime.runs.get(failure.run_id).starred_match["status"] == "failed" and service.calls == 3
+    assert runtime.runs.get(failure.run_id).starred_match["status"] == "unavailable" and service.calls == 3
     runtime.runs.close()
 
 

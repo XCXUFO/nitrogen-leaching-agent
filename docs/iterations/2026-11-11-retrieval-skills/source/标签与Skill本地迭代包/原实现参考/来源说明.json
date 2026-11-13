@@ -1,0 +1,47 @@
+{
+  "git_commit": "a95b797b4ea0da19cac198167d24d434055816d2",
+  "source_kind": "Local previously archived source, not freshly downloaded server source",
+  "runnable_standalone": false,
+  "files": [
+    {
+      "path": "backend/src/agent/understanding.py",
+      "sha256": "a12e7feef14af68c7ff14f04fcd409f643334996abf422c1ee2fbdb21fdf8961"
+    },
+    {
+      "path": "backend/src/agent/routing.py",
+      "sha256": "8df64e2cb516950e07857da1985f6a7bec96e570a75233b44f0d959475c0a9a2"
+    },
+    {
+      "path": "backend/src/agent/query_intent.py",
+      "sha256": "4d0b1e4f33437218b6f7c8d2755fbc6595d5d8ba140b1577e17015a01af662bb"
+    },
+    {
+      "path": "backend/src/agent/skill_catalog.py",
+      "sha256": "ce684f3fffbfff5fb88ceafd43f74e8242f847e563b25d5a7712e821cf500c53"
+    },
+    {
+      "path": "backend/src/agent/case_retrieval.py",
+      "sha256": "9e4d91a8aa5ee32cb62a8505e90c837a4305eccc9e2e9eff0d1c0b0fa750e43b"
+    },
+    {
+      "path": "backend/src/rag/literature_index.py",
+      "sha256": "011f647ea4ffc4efad48bb6f06a4c8279e7fb3cc431f45929a16b6346cfbd704"
+    },
+    {
+      "path": "docs/iterations/2026-10-17-prd-review/revised-prd/05_共享标签与语义映射_PRD.md",
+      "sha256": "5d754533a50e6d002feb09dc68220b903249c6af3e2b24be11ac8033744a336b"
+    },
+    {
+      "path": "docs/iterations/2026-10-17-prd-review/revised-prd/01_问题理解与上下文_PRD.md",
+      "sha256": "b2b6ed599a197953c7f52baf6b841b1f21af50a69422178f38d146b7d7cb7db6"
+    },
+    {
+      "path": "docs/iterations/2026-10-17-prd-review/revised-prd/06_路由与Skill编排_PRD.md",
+      "sha256": "a9c1c7bd14b849c2be0f33d96606f72703235280c53f7d81b8528097e260ea4e"
+    },
+    {
+      "path": "docs/iterations/2026-10-17-prd-review/revised-prd/14_跨模块运行与审查契约.md",
+      "sha256": "0a002cb4df2fa45898c7af7094dbecce6a6e72508b398d295f7540891a3ae570"
+    }
+  ]
+}

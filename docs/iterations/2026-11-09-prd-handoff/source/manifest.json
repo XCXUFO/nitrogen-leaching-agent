@@ -1,0 +1,108 @@
+{
+  "package": "氮素淋失问答平台本地开发交接包",
+  "version": "1.0",
+  "prepared_on": "2026-11-09",
+  "encoding": "UTF-8",
+  "source": "Authenticated UI observation and user-reviewed conversations; not a production database export",
+  "counts": {
+    "prds": 2,
+    "source_conversations": 8,
+    "source_turns": 21,
+    "repair_conversations": 5,
+    "passed_conversations": 3,
+    "target_turns": 10,
+    "legacy_versions": 34,
+    "legacy_ids": 27,
+    "new_model_runs": 0
+  },
+  "credentials_included": false,
+  "missing_materials": [
+    "完整生产数据库与真实表结构",
+    "完整论文/案例正文与检索索引",
+    "WHCNS原附件及指纹",
+    "所有旧用例的完整机器脚本",
+    "真实模型/外搜凭证及服务器部署配置"
+  ],
+  "files": [
+    {
+      "path": "00-交接说明.md",
+      "bytes": 4910,
+      "sha256": "97bce38253f36ed2a9b5517d1ddf717496179b9286287f1748faa48676042658"
+    },
+    {
+      "path": "01-线上现状与复用清单.md",
+      "bytes": 12850,
+      "sha256": "c918b2068c8e8b1a2be9ebf9a45fe842ef659631b0740619397f4ccaa9d14605"
+    },
+    {
+      "path": "02-PRD-A-Skill与回答策略.md",
+      "bytes": 15158,
+      "sha256": "93122bc8c8a87f22edde139ffd108edc9883e35b0d0c9cdb348086b92a982068"
+    },
+    {
+      "path": "03-PRD-B-日常修复与发布回归.md",
+      "bytes": 17166,
+      "sha256": "538c676932ff9001dda812506920a2827b5dc332d2305e065d5fbb3363243ee6"
+    },
+    {
+      "path": "04-八条审核案例与验收.md",
+      "bytes": 30902,
+      "sha256": "c7a930b58ed50bf461440e9010931fd2638aaab5f1a5d7e0e27b3ff94106d4c0"
+    },
+    {
+      "path": "05-开发顺序与验收清单.md",
+      "bytes": 12171,
+      "sha256": "63c5917595f61182ae90f46bc66275684abfe2cce89f5e94d1d71a0be4177790"
+    },
+    {
+      "path": "data/README.md",
+      "bytes": 3419,
+      "sha256": "201af7274f0fa06c42a9aa302a40216e1ddd1e49c0a63a561a24102406811519"
+    },
+    {
+      "path": "data/baseline-answers.json",
+      "bytes": 46487,
+      "sha256": "dd06fc3a1f808b563da736820b484debe8280ca1b7bfede5dd2ba5affe9d67b4"
+    },
+    {
+      "path": "data/legacy-case-catalog.json",
+      "bytes": 11469,
+      "sha256": "b4c75433ff6e943614eae5af9a04214606af97fc3b509c72d602a49acb831e6f"
+    },
+    {
+      "path": "data/online-observations.json",
+      "bytes": 21650,
+      "sha256": "36c32f33fb18a59b2b2dbf6bc48d7dfbfcb12696b149db54ec59cec4286ff46c"
+    },
+    {
+      "path": "data/reviewed-cases.json",
+      "bytes": 30714,
+      "sha256": "d04936d4333d7dea11af136352e999d3457cbf0680ad772d3a17099cfa3f2c23"
+    },
+    {
+      "path": "evidence/会话来源索引.md",
+      "bytes": 4441,
+      "sha256": "1baa86fabf86752ae3982c69b27ab44fb1cd4c05f0b92f2a0b93589f3e663f27"
+    },
+    {
+      "path": "evidence/典型旧用例定义快照.md",
+      "bytes": 3045,
+      "sha256": "065f64dc54745cb179a72261f681401873124546b46a51e46cba7c29f30c241e"
+    },
+    {
+      "path": "evidence/原审核列表-3条已通过.png",
+      "bytes": 311521,
+      "sha256": "0601bd403fce7dfad1db600ddb6e52dab8cb04442ee7afd9db63cae2d4f89efd"
+    },
+    {
+      "path": "evidence/原审核列表-5条需修改.png",
+      "bytes": 372440,
+      "sha256": "36065d5ff890310daa2ed226e94f6d87868d1ae7683211e5c0be60c8d05c3837"
+    },
+    {
+      "path": "evidence/线上表达Prompt快照.md",
+      "bytes": 2378,
+      "sha256": "925f33cf77d139e21d619337989b7bbcc2550d496824d9a3499c2c7824478b08"
+    }
+  ]
+}

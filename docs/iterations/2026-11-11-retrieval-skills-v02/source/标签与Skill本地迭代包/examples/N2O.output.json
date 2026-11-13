@@ -1,0 +1,77 @@
+{
+  "schema_version": "local-prematch-v1",
+  "input_keywords": [
+    "蔬菜",
+    "N₂O"
+  ],
+  "input_intents": [
+    "knowledge"
+  ],
+  "mappings": [
+    {
+      "term": "蔬菜",
+      "polarity": "include",
+      "source": "current_user",
+      "condition_id": null,
+      "object_group": "subject",
+      "status": "matched",
+      "usage": "ranking_signal",
+      "requires_resolution": false,
+      "candidates": [
+        {
+          "id": "T-57505f36ea27",
+          "dimension_key": "crop",
+          "path": "蔬菜",
+          "method": "exact_name_or_path",
+          "review_status": null,
+          "descendant_ids": [
+            "T-3ba5ddeebb4f",
+            "T-d7779474b34c",
+            "T-668640096e5b",
+            "T-35889ae32951",
+            "T-c485d06672b3",
+            "T-6af7d406ce43",
+            "T-6a5f07139425",
+            "T-bfaa5591007c"
+          ]
+        }
+      ]
+    },
+    {
+      "term": "N₂O",
+      "polarity": "include",
+      "source": "current_user",
+      "condition_id": null,
+      "object_group": "subject",
+      "status": "matched",
+      "usage": "ranking_signal",
+      "requires_resolution": false,
+      "candidates": [
+        {
+          "id": "T-abc4fbaaa59a",
+          "dimension_key": "topic",
+          "path": "氧化亚氮排放",
+          "method": "related_topic",
+          "review_status": "pending",
+          "descendant_ids": []
+        }
+      ]
+    }
+  ],
+  "unmatched_keywords": [],
+  "unresolved_intents": [],
+  "skill_candidates": [
+    {
+      "id": "knowledge_search",
+      "title": "文献检索问答",
+      "observed_status": "依赖待验证"
+    }
+  ],
+  "fallback": {
+    "keep_original_query": true,
+    "keep_unmatched_keywords": true,
+    "retrieve_untagged_content": true,
+    "runtime_access_checks_required": true
+  },
+  "note": "关键词和意图由上游提供；输出是初步候选，不表示资料符合条件或 skill 已执行。"
+}

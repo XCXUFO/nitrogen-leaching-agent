@@ -6,11 +6,12 @@ from pathlib import Path
 from fastapi import Depends, FastAPI, Request
 
 from src.api.literature import LiteratureStore, router
+from src.api.asset_tagging import router as asset_tagging_router
 from src.evaluation.auth import current_user, login, password_hash, sessions
 from src.evaluation.contracts import AccessEntry, AccessFile, LoginInput, Principal
 
 
-TOKENS = {role: f"literature-test-{role}-" + "0" * 32 for role in ("tester", "reviewer", "developer")}
+TOKENS = {role: f"literature-test-{role}-" + "0" * 32 for role in ("tester", "reviewer", "developer", "other-developer")}
 
 
 def create_app(root: Path | None = None):
@@ -18,11 +19,12 @@ def create_app(root: Path | None = None):
     app = FastAPI()
     app.state.literature = LiteratureStore(str(root / "library.db"), str(root / "files"))
     app.state.eval_access = AccessFile(users=[
-        AccessEntry(tester_id=role, role=role, token_sha256=hashlib.sha256(token.encode()).hexdigest(),
+        AccessEntry(tester_id=role, role='developer' if role == 'other-developer' else role, token_sha256=hashlib.sha256(token.encode()).hexdigest(),
                     username=f"cau_{role}", password_hash=password_hash("CauTest123456"))
         for role, token in TOKENS.items()
     ])
     app.include_router(router, prefix="/api")
+    app.include_router(asset_tagging_router, prefix="/api/literature")
 
     @app.post("/api/eval/login")
     def account_login(request: Request, body: LoginInput):

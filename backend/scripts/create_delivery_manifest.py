@@ -7,7 +7,7 @@ import subprocess
 import argparse
 from datetime import datetime, timezone
 from pathlib import Path
-from delivery_checks import build_binding
+from delivery_checks import build_binding, source_inventory
 
 ROOT = Path(__file__).resolve().parents[2]
 parser = argparse.ArgumentParser(description='Fingerprint current uncommitted source without changing it.')
@@ -20,26 +20,9 @@ binding = build_binding(ROOT, args.dist_dir, args.backend_url)
 OUTPUT = (ROOT / 'docs/iterations/2026-09-29-agent-harness' / name).resolve()
 if OUTPUT.parent != (ROOT / 'docs/iterations/2026-09-29-agent-harness').resolve() or OUTPUT.exists():
     raise SystemExit('Output must be a new file in the iteration docs directory')
-PREFIXES = ('backend/src/', 'backend/scripts/', 'backend/tests/', 'frontend/src/',
-            'frontend/tests/', 'frontend/public/', 'data/demo/', 'data/eval/',
-            'data/metadata/', 'data/papers/')
-SINGLES = {'backend/pyproject.toml', 'backend/uv.lock', 'frontend/package.json',
-           'frontend/pnpm-lock.yaml', 'frontend/playwright.config.ts',
-           'frontend/next.config.ts', 'frontend/tsconfig.json',
-           'frontend/eslint.config.mjs', 'frontend/.env.local.example',
-           '.env.example', '.gitignore', 'frontend/.gitignore',
-           '.github/workflows/ci.yml'}
-paths = subprocess.check_output(['git', 'ls-files', '-co', '--exclude-standard', '-z'], cwd=ROOT).decode().split('\0')
 files = {}
-for name in sorted(set(paths)):
-    if not name or not (name.startswith(PREFIXES) or name in SINGLES):
-        continue
+for name in source_inventory(ROOT):
     path = ROOT / name
-    # Deleted tracked files are part of the current working-tree state.
-    if not path.exists() and not path.is_symlink():
-        continue
-    if path.is_symlink() or not path.is_file():
-        raise ValueError(f'Unexpected source path: {name}')
     files[name] = hashlib.sha256(path.read_bytes()).hexdigest()
 digest = hashlib.sha256()
 for name, sha in files.items():
@@ -47,6 +30,7 @@ for name, sha in files.items():
 created_at = datetime.now(timezone.utc)
 build_version = f'delivery-{created_at:%Y%m%d}-{digest.hexdigest()[:12]}'
 result = {'created_at': created_at.isoformat(),
+          'source_inventory_version': 1,
           'base_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT).decode().strip(),
           'source_sha256': digest.hexdigest(), 'build_version': build_version,
           'file_count': len(files), 'files': files, 'frontend_build': binding,

@@ -1,0 +1,19 @@
+{
+  "original_query": "排除玉米，找小麦的氮淋失研究",
+  "keywords": [
+    {
+      "term": "玉米",
+      "polarity": "exclude",
+      "source": "current_user"
+    },
+    {
+      "term": "小麦",
+      "polarity": "include",
+      "source": "current_user"
+    },
+    "氮淋失"
+  ],
+  "intents": [
+    "knowledge"
+  ]
+}

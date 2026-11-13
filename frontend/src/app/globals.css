@@ -163,14 +163,6 @@
 .citation-mark { color: #047857; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: .35rem; padding: 0 .3rem; margin: 0 .12rem; font-size: .78rem; line-height: 1.5; }
 .citation-mark:hover, .citation-mark:focus-visible { outline: 2px solid #10b981; outline-offset: 2px; }
 
-.evaluation-workspace section,
-.evaluation-workspace fieldset.rounded-lg { background-color: var(--card); }
-.evaluation-workspace :is(input, textarea, select):focus-visible { outline: 2px solid #059669; outline-offset: 2px; }
-.evaluation-workspace button:not(:disabled),
-.evaluation-workspace summary { cursor: pointer; }
-.evaluation-workspace table tbody tr:hover { background-color: #f8fafc; }
-.evaluation-workspace pre { overflow-wrap: anywhere; }
-
 @keyframes copy-feedback-in {
   from { opacity: 0; transform: translateY(3px); }
   to { opacity: 1; transform: translateY(0); }

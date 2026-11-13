@@ -1,0 +1,467 @@
+{
+  "legacy_eval_audit": [
+    {
+      "area": "用例定义与版本",
+      "source": "https://www.nitrogen-leaching.com/evaluation/cases/K01%404",
+      "observed": [
+        "用例已有步骤与通过标准",
+        "草稿每次保存保留修订，发布后新增冻结版本",
+        "K01 v4要求文章题名/来源、可辨识正文摘录；chunk_id放开发者详情",
+        "不能以目录/参考文献题名作为机制依据，按作物/场景/时间尺度核对；模拟误差单列模型局限",
+        "可从选定版本进入新建执行"
+      ],
+      "retain": [
+        "冻结用例版本",
+        "原问题与步骤",
+        "证据支持、适用场景与模型局限的判定要求"
+      ],
+      "not_yet_checked": [
+        "执行创建负担",
+        "回归自动化与比较功能",
+        "问题关联闭环"
+      ]
+    },
+    {
+      "area": "执行创建",
+      "source": "https://www.nitrogen-leaching.com/evaluation/executions/new?case=K01%404",
+      "observed": [
+        "选定用例版本已自动带入",
+        "任务可选，默认独立执行（无任务）",
+        "表单仅展示用例版本与所属任务两个选择项，尚未提交执行"
+      ],
+      "retain": [
+        "按固定用例版本执行",
+        "无任务的独立执行入口"
+      ],
+      "interpretation": "无需为低频单人使用重新建设一套任务编排前置流程；先复用已有独立执行。",
+      "not_yet_checked": [
+        "执行详情的快照与评分字段"
+      ]
+    },
+    {
+      "area": "旧执行记录",
+      "source": "https://www.nitrogen-leaching.com/evaluation/executions",
+      "observed": [
+        "当前列表显示暂无执行，可新建执行",
+        "列表字段为用例版本、测试者、状态、创建时间"
+      ],
+      "interpretation": "当前视图没有执行记录；不能由此断言历史上从未使用。它与已有真实会话审核记录不是同一条入口。",
+      "retain": [
+        "用例版本到执行的关联",
+        "执行状态与结果记录入口"
+      ]
+    },
+    {
+      "area": "回归基线",
+      "source": "https://www.nitrogen-leaching.com/evaluation/regressions",
+      "observed": [
+        "可关联已有执行并保存为回归基线",
+        "基线创建说明与标题、说明字段已存在",
+        "页面说明缺附件、附件指纹变化或人工步骤无法复现时会停止、不自动跳过",
+        "当前页面显示还没有回归基线，不自动创建或填入专业评分"
+      ],
+      "retain": [
+        "关联原执行的基线机制",
+        "附件与输入一致性检查",
+        "不伪造专业评分"
+      ],
+      "interpretation": "需要核对和复用现有基线与执行机制，而不是先重建回归平台；当前没有基线可供检查实际对比结果。"
+    },
+    {
+      "area": "旧问题管理",
+      "source": "https://www.nitrogen-leaching.com/evaluation/issues",
+      "observed": [
+        "问题页以关联已有执行为入口",
+        "已有待处理、处理中、待复测、已关闭四个状态",
+        "当前全状态、未填负责人筛选时显示没有匹配的问题",
+        "真实会话审核中此前已看到5条标记问题"
+      ],
+      "retain": [
+        "现有问题状态",
+        "处理历史与复测定位"
+      ],
+      "interpretation": "真实会话反馈和正式评测执行的问题入口可能未在日常界面连起来。页面观察提示需核对统一展示和关联，不能仅凭空列表断言底层一定分库。"
+    },
+    {
+      "area": "Prompt同题对照",
+      "source": "https://www.nitrogen-leaching.com/evaluation/explanation-trials",
+      "observed": [
+        "已有用户问题与固定输入材料字段",
+        "已有历史Prompt与新增Prompt的左右对照",
+        "可保存新版本，生成同题对照，保存对照结果",
+        "全局生效版本单独选择；页面说明保存和对比不会自动切换全局版本"
+      ],
+      "retain": [
+        "同题对照",
+        "固定输入材料",
+        "历史版本与保存对照",
+        "试验和生效分开"
+      ],
+      "interpretation": "原方案中的大量Prompt版本和对照基础能力已有，可优先复用；按Skill选择与示例对照可在现有页上做小扩展。"
+    },
+    {
+      "area": "旧Prompt试验的范围",
+      "source": "https://www.nitrogen-leaching.com/evaluation/explanation-trials",
+      "observed": [
+        "已保存原版解释v1、增强解释v2，当前全局生效为增强解释v2",
+        "两份Prompt均明确是用户未指定表达方式时的默认偏好，不改变来源、数字、条件、权限、JSON输出和其他专业约束",
+        "增强解释v2已经要求先一句话回应、必要术语解释、简单名词无需长模板"
+      ],
+      "interpretation": "旧页主要试验表达层；本次概念/联网/Skill合并涉及任务与取证层。可复用界面和版本机制，但不能把旧表达层能力直接等同于新的Skill内部配置。"
+    },
+    {
+      "area": "真实问题到试验的关联",
+      "source": "https://www.nitrogen-leaching.com/evaluation/explanation-trials?source_run=e4ae91f0-98e8-40ad-8682-6c5a6f3bfd1d",
+      "observed": [
+        "已自动带入真实问题的第二轮原问题",
+        "固定输入材料自动带入首轮用户和助手两条文字上下文",
+        "页面明确显示已带入原问题和文字上下文，调整生效后可返回原会话重新验证"
+      ],
+      "retain": [
+        "source_run来源关联",
+        "原问题与文字上下文自动带入"
+      ],
+      "interpretation": "不能把原问题自动带入当作新需求从零建设。真正应核对的是Skill任务范围、候选配置、复测结果回写和原问题关闭之间的连接。"
+    },
+    {
+      "area": "旧用例规模与复杂链路",
+      "source": "https://www.nitrogen-leaching.com/evaluation/cases",
+      "observed": [
+        "当前34个发布版本对应27个用例编号",
+        "旧目录既有基础界面/附件用例，也有上下文、组合任务、失败追溯和自动回归场景"
+      ],
+      "retain": [
+        "有价值的高风险回归场景",
+        "当前使用版本与历史版本"
+      ],
+      "interpretation": "可整理为常用质量、少量底线与按需专项三类视图，不必每天人工执行全目录。"
+    },
+    {
+      "area": "自动重放与人工边界标准",
+      "source": "https://www.nitrogen-leaching.com/evaluation/cases/RG04%401",
+      "observed": [
+        "RG04 v1明确要求前三轮顺序自动重放，每轮保存独立新Run",
+        "到第4步manual停止并标出blocked_step",
+        "新重放不自动判通过，历史基线、旧评分与人工备注不可覆盖"
+      ],
+      "retain": [
+        "多轮次原始记录",
+        "基线不覆盖",
+        "人工步骤显式停止",
+        "不自动伪造通过结论"
+      ],
+      "interpretation": "这些已有定义和验收标准应沿用；当前无执行/回归基线记录，本轮未实际启动重放，不能宣称自动引擎已验证可用。"
+    },
+    {
+      "area": "组合任务的质量标准",
+      "source": "https://www.nitrogen-leaching.com/evaluation/cases/NEW02%403",
+      "observed": [
+        "已有上传绑定附件、专业机理提问、数值加解释的组合问题、后续最小值追问组成的多轮用例",
+        "要求真实文件结果与固定样例一致，并有实际片段与逐结论证据关联",
+        "一般文献机理不能被写成本次数据峰值的确定原因",
+        "后续查询需要继承已确认指标及并列结果口径"
+      ],
+      "retain": [
+        "计算事实与一般机制分开",
+        "逐结论支持",
+        "上下文与指标继承",
+        "固定样例的确定性校验"
+      ],
+      "interpretation": "原体系含高价值复杂场景。用户层面的通过标准可复用，写死COMPOSED等内部路由名的检查需随Skill重构评估兼容，不作为唯一正确实现。"
+    }
+  ],
+  "review_observations": [
+    {
+      "id": "FIX-01",
+      "title": "菜地 N2O 排放规律",
+      "session_id": "818c5ea66c800c2b95f863c09550fa39ec75d6930ece68a85d94c1080cf5aea7",
+      "target_turn": 1,
+      "run_id": "3aa98452-a081-4645-ac12-6eed72b4df57",
+      "input": "菜地 N2O 排放规律",
+      "history": [],
+      "review_note": "概念性问题解释不佳",
+      "review_actor": "local-developer",
+      "route": "KNOWLEDGE",
+      "skill": "knowledge_search",
+      "observed_behavior": "首轮主要说明资料缺口，未提供规律说明；第二轮具体问排放大小时取到另一组菜地文献。",
+      "diagnosis_status": "检索覆盖、资料充分性判断和表达均为待核对因素，尚未确认单一根因。",
+      "other_turns": [
+        {
+          "turn": 2,
+          "input": "菜地 N2O 排放大小一般是多少",
+          "review_status": "待审核，未标记问题",
+          "skill": "knowledge_search"
+        }
+      ]
+    },
+    {
+      "id": "FIX-02",
+      "title": "WHCNS模型",
+      "session_id": "2a019cecb3f1ec2b99c91754f1fd604c5f47dcd4f66c54e1b8684b0b661685b1",
+      "target_turn": 1,
+      "run_id": "179e9ee8-176e-41db-9dac-fd57d702533a",
+      "input": "WHCNS模型",
+      "history": [],
+      "review_note": "概念解释不佳。具体内容如“它的模型组成与模拟过程、适用场景，还是它在氮素淋失模拟中的功能与局限”，可以做简单介绍说明",
+      "review_actor": "local-developer",
+      "route": "KNOWLEDGE",
+      "skill": "knowledge_search",
+      "observed_behavior": "只提出可选了解方向并要求用户补充问题，没有先介绍模型。",
+      "diagnosis_status": "已确认行为问题：可先提供基础介绍，却把澄清作为前置条件；专业修正版尚需依据资料核对。",
+      "other_turns": [
+        {
+          "turn": 2,
+          "input": "WHCNS模型它在氮素淋失模拟中的功能与局限",
+          "review_status": "待审核，未标记问题"
+        },
+        {
+          "turn": 3,
+          "input": "胡克林",
+          "review_status": "待审核，未标记问题"
+        }
+      ]
+    },
+    {
+      "id": "FIX-03",
+      "title": "解释下光合作用",
+      "session_id": "2e7c23ea53b068aff53dd9f18bb4c37b9cdd5a33a8d59661a154e31c65bf4d02",
+      "target_turn": 1,
+      "run_id": "25b89af7-eff4-49f3-ae44-47fee3330d5b",
+      "input": "解释下光合作用",
+      "history": [],
+      "review_note": "非强相关问题无法做解释。期望实现【基础知识联网搜索】，满足命中相关领域基础知识的前提下，进行适当搜索，解释问题。",
+      "review_actor": "local-developer",
+      "route": "KNOWLEDGE",
+      "skill": "knowledge_search",
+      "observed_behavior": "局限于专题资料中的作物模型与水氮研究表述，没有给出用户所需的基础解释；引用了四份相关模型/作物研究材料。",
+      "diagnosis_status": "审核要求包含新增或接入基础知识联网搜索能力，不能仅视为压缩回答长度。是否已有该能力待现行能力清单核对。",
+      "other_turns": [
+        {
+          "turn": 2,
+          "input": "氮淋失是什么意思",
+          "review_status": "待审核，未标记问题"
+        },
+        {
+          "turn": 3,
+          "input": "有更多的文献吗",
+          "review_status": "待审核，未标记问题"
+        },
+        {
+          "turn": 4,
+          "input": "有没有设施菜地的相关文献",
+          "review_status": "待审核，未标记问题"
+        },
+        {
+          "turn": 5,
+          "input": "还有哪些容易忽略的因素值得继续了解？",
+          "review_status": "待审核，未标记问题"
+        },
+        {
+          "turn": 6,
+          "input": "农田微生物跟氮有什么关系",
+          "review_status": "待审核，未标记问题"
+        },
+        {
+          "turn": 7,
+          "input": "农田有什么类型",
+          "review_status": "待审核，未标记问题"
+        }
+      ]
+    },
+    {
+      "id": "FIX-04",
+      "title": "你能做什么",
+      "session_id": "5b2a757ccc75cb04f2560ed782951bbe07f5a0ba7f7f72677481f798a09cc283",
+      "target_turn": 1,
+      "run_id": "29ce23ae-6bb9-4c3a-b6c4-7b5705202639",
+      "input": "你能做什么？",
+      "history": [],
+      "review_note": "这个答案可能需要优化。已经不太符合现状了。",
+      "review_actor": "local-developer",
+      "route": "DIRECT",
+      "skill": "capability_guidance",
+      "observed_behavior": "能力介绍仍称仅支持单字段最大值/最小值与模型日序等范围。页面显示2026-11-09 10:51已有一次验证回答，内容与旧介绍相同，仍要求人工核对。",
+      "diagnosis_status": "需以当前启用能力为依据更新能力介绍及使用示例；运行成功或已有验证回答不等于审核问题已解决。",
+      "other_turns": [
+        {
+          "turn": 2,
+          "input": "你能做什么？",
+          "review_status": "待审核，未标记问题"
+        }
+      ]
+    },
+    {
+      "id": "FIX-05",
+      "title": "我什么时侯能够上岸",
+      "session_id": "2d083890a3712939070dd104dd84a2db39919285f2aabc00f16829259ed6e010",
+      "target_turn": 2,
+      "run_id": "e4ae91f0-98e8-40ad-8682-6c5a6f3bfd1d",
+      "input": "我一点都不了解农业，我就是想用你这个模型，你觉得你这个模型可以适用于哪些就业应用场景呢？",
+      "history": [
+        {
+          "role": "user",
+          "content": "我什么时侯能够上岸"
+        },
+        {
+          "role": "assistant",
+          "content": "我是面向中国农业研究者的氮素淋失风险问答助手，只能依据提供的文献资料回答氮素淋失、施肥与灌溉管理等相关问题。\n\n“什么时候能上岸”属于个人考试、求职或升学方面的问题，不在我的资料和能力范围内，我无法给出判断或预测。如果你有氮素淋失风险方面的问题，例如某种作物和农田管理措施下的淋失机制、影响因素或模拟结果，欢迎具体说明场景后再问。"
+        }
+      ],
+      "review_note": "非相干问题表现一般。用户提出“模型”，且不了解概念的情况下，我们认为应当至少是需要做一些解释的，而非直接上来就让用户补充信息。",
+      "review_actor": "local-developer",
+      "route": "KNOWLEDGE",
+      "skill": "knowledge_search",
+      "observed_behavior": "真正标记的是第二轮的新手应用场景问题。助手先要求明确模型名称，并把就业应用场景整体排除；本轮携带2条历史消息。",
+      "diagnosis_status": "上下文理解与新手引导问题，不能按会话标题误判为只需优化首轮拒答。应先说明系统/模型可用于哪些实际工作，再在必要处澄清指代。",
+      "other_turns": [
+        {
+          "turn": 1,
+          "input": "我什么时侯能够上岸",
+          "review_status": "待审核，未标记问题",
+          "skill": "knowledge_search"
+        }
+      ]
+    },
+    {
+      "id": "KEEP-01",
+      "title": "有哪些水氮管理相关的案例与措施可以参考",
+      "session_id": "392746f88be2fb12cd4a08455bc83da6672ea5ad9c2ff9c2daa873b82e81d874",
+      "target_turn": 1,
+      "run_id": "1a6fbb28-80fc-4169-a92c-9eaff6e4a372",
+      "input": "有哪些水氮管理相关的案例与措施可以参考？",
+      "history": [],
+      "review_note": "会话已通过；上次已审到第1轮。",
+      "review_actor": "local-developer",
+      "review_time": "2026-11-09 10:43",
+      "route": "KNOWLEDGE",
+      "skill": "case_reference",
+      "observed_behavior": "列出五个水氮管理案例并给出对应案例链接，说明缺少效果数据、不能据此判断哪种模式更优，也不将材料推荐量指定为用户田块用量。",
+      "diagnosis_status": "保留为正向回归样本，不因本次改进表达而撤销审核通过结论。专业审核范围单独登记。",
+      "other_turns": []
+    },
+    {
+      "id": "KEEP-02",
+      "title": "氮素淋失",
+      "session_id": "7576fd7a834b86d87333b92fc5526c40046251446427a8d189b31c1d533abb48",
+      "target_turn": 1,
+      "run_id": "32de5411-555f-463d-8ee1-f318a16b4ae5",
+      "input": "氮素淋失",
+      "history": [],
+      "review_note": "会话已通过；上次已审到第1轮。",
+      "route": "KNOWLEDGE",
+      "skill": "knowledge_search",
+      "observed_behavior": "对独立术语先给一句话解释，再说明术语、因素及资料适用条件，没有把补充田块条件作为解释前置。",
+      "diagnosis_status": "短语概念提问的正向回归样本；与WHCNS首轮共同检查同一Skill对不同术语的一致性。",
+      "other_turns": []
+    },
+    {
+      "id": "KEEP-03",
+      "title": "有哪些水氮管理相关的案例与措施可以参考",
+      "session_id": "45b94482b0c45552de47d26c38f13e7c12ac99c87ddb39299ff95572f3bf9d77",
+      "target_turn": null,
+      "reviewed_turns": [
+        1,
+        2,
+        3
+      ],
+      "input": "有哪些水氮管理相关的案例与措施可以参考？",
+      "history": [],
+      "review_note": "会话已通过；上次已审到第3轮。",
+      "route": "KNOWLEDGE",
+      "skill": "case_reference → case_explanation → case_reference",
+      "run_ids": [
+        "93cb25cd-35fe-4fc0-9d81-544008f9d549",
+        "d700c586-1250-40c5-8d9e-066c614f1d77",
+        "c189b13d-da10-463d-badb-1123d398e35b"
+      ],
+      "user_turns": [
+        "有哪些水氮管理相关的案例与措施可以参考？",
+        "上面案例中的关键措施是什么，为什么这样做？",
+        "案例中的效果有哪些证据，还不能得出哪些结论？"
+      ],
+      "observed_skills": [
+        "case_reference",
+        "case_explanation",
+        "case_reference"
+      ],
+      "observed_history_message_counts": [
+        0,
+        2,
+        4
+      ],
+      "observed_behavior": "三轮分别查案例、解释措施、核对效果证据与不能得出的结论。按会话保留为完整轨迹，不与同名的单轮案例会话合并。",
+      "diagnosis_status": "多轮案例承接及证据边界的正向回归样本；历史路径用于定位，评测不机械要求每次必须采用完全相同的内部步骤。",
+      "other_turns": []
+    }
+  ],
+  "current_skill_registry": {
+    "source": "https://www.nitrogen-leaching.com/evaluation/skills",
+    "as_of": "2026-11-09",
+    "registered_count": 7,
+    "skills": [
+      {
+        "id": "case_reference",
+        "name": "案例与措施参考",
+        "kind": "AI生成",
+        "configuration": "只读",
+        "declared_scope": "从已开放案例中选择相关做法，说明场景差异并提供来源",
+        "dependency_status": "依赖待验证"
+      },
+      {
+        "id": "case_explanation",
+        "name": "案例与措施解释",
+        "kind": "AI生成",
+        "configuration": "可调整默认表达",
+        "declared_scope": "解释指定案例、表格或粘贴文本，也可对指定对象作比较",
+        "dependency_status": "依赖待验证"
+      },
+      {
+        "id": "knowledge_search",
+        "name": "文献检索问答",
+        "kind": "AI生成",
+        "configuration": "只读",
+        "declared_scope": "从本地文献和当前会话材料中查找依据，回答专业问题或解释可能机理",
+        "dependency_status": "依赖待验证"
+      },
+      {
+        "id": "file_inspector",
+        "name": "附件检查",
+        "kind": "本地工具",
+        "configuration": "只读",
+        "declared_scope": "检查附件是否仍有效，并在分析阶段校验WHCNS结果表",
+        "dependency_status": "本地依赖可用"
+      },
+      {
+        "id": "whcns_analyzer",
+        "name": "WHCNS结果分析",
+        "kind": "本地工具",
+        "configuration": "只读",
+        "declared_scope": "对受支持的WHCNS输出表计算单字段整表极值，并保留原件证据",
+        "dependency_status": "本地依赖可用"
+      },
+      {
+        "id": "clarification",
+        "name": "澄清追问",
+        "kind": "程序文案",
+        "configuration": "只读",
+        "declared_scope": "用程序文案请求补充影响执行的必要信息",
+        "dependency_status": "本地依赖可用"
+      },
+      {
+        "id": "capability_guidance",
+        "name": "能力引导",
+        "kind": "程序文案",
+        "configuration": "只读",
+        "declared_scope": "介绍支持的任务、提问示例和当前能力边界",
+        "dependency_status": "本地依赖可用"
+      }
+    ],
+    "notes": [
+      "注册清单是当前能力声明，不自动证明所有能力已通过端到端验证。",
+      "这8条会话实际覆盖4个Skill，未覆盖file_inspector、whcns_analyzer、clarification的有效执行。",
+      "当前注册清单未单独列出基础知识联网搜索；knowledge_search声明的范围是本地文献与会话材料，接入外部检索需要核对实现。",
+      "capability_guidance显示为程序文案，不能把更新问题只交给模型提示词。",
+      "whcns_analyzer的当前声明仍为单字段整表极值；应核对真实开放功能与审核意见，避免凭空增加功能承诺。"
+    ]
+  }
+}

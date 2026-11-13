@@ -17,6 +17,7 @@ class DeepSeekClient(LLMClient):
         max_retries: int = 2,
         proxy: str | None = None,
         output_token_limit: int | None = None,
+        thinking_enabled: bool | None = None,
     ) -> None:
         # 运行时权威值来自 Settings（config.py）→ main.py 显式传入；这里的默认仅
         # 作为直接构造（脚本/测试）时的安全兜底，不再吃 SDK 的 600s 默认超时。
@@ -34,6 +35,7 @@ class DeepSeekClient(LLMClient):
         )
         self._model = model
         self._output_token_limit = output_token_limit
+        self._thinking_enabled = thinking_enabled
         # SDK timeouts apply per network operation. Bound the whole call too,
         # including retries and a response that keeps delivering small chunks.
         self._request_timeout_s = timeout_s * (max_retries + 1) + 10
@@ -74,6 +76,8 @@ class DeepSeekClient(LLMClient):
             max_tokens = min(max_tokens or self._output_token_limit, self._output_token_limit)
         if max_tokens is not None:
             request_kwargs["max_tokens"] = max_tokens
+        if self._thinking_enabled is not None:
+            request_kwargs["extra_body"] = {"thinking": {"type": "enabled" if self._thinking_enabled else "disabled"}}
         if json_mode:
             request_kwargs["response_format"] = {"type": "json_object"}
             request_kwargs["extra_body"] = {"thinking": {"type": "disabled"}}

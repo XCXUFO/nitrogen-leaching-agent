@@ -1,0 +1,10 @@
+{
+  "original_query": "找陕西的小麦案例",
+  "keywords": [
+    "陕西",
+    "小麦"
+  ],
+  "intents": [
+    "case_search"
+  ]
+}

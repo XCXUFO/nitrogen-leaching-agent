@@ -4,6 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from src.agent.case_intent import CaseMode
 from src.agent.case_ids import CaseId, MAX_CASE_IDS
 from src.agent.chat_service import Citation
 from src.agent.contracts import AnswerSection, AttachmentState, Evidence, Route, RunWarning
@@ -26,6 +27,7 @@ class ChatHistoryMessage(BaseModel):
 class ChatRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=24000)
     case_skill: Literal["reference", "explain"] | None = None
+    case_mode: CaseMode | None = None
     case_ids: list[CaseId] = Field(default_factory=list, max_length=MAX_CASE_IDS)
     k: int | None = Field(default=None, ge=1, le=20)
     session_id: str | None = Field(default=None, min_length=1, max_length=100, pattern=r"^[A-Za-z0-9_-]+$")
@@ -37,8 +39,17 @@ class ChatRequest(BaseModel):
     request_id: str | None = Field(default=None, min_length=1, max_length=100, pattern=r"^[A-Za-z0-9_-]+$")
     rerun_of_run_id: str | None = Field(default=None, min_length=1, max_length=100, pattern=r"^[A-Za-z0-9_-]+$")
 
+    @model_validator(mode="before")
+    @classmethod
+    def reject_internal_candidates(cls, value):
+        if isinstance(value, dict) and set(value) & {"task_prompt_ids", "task_prompts", "prompt_id", "expression_config", "candidate_id"}:
+            raise ValueError("候选配置仅可在授权后台验证入口指定")
+        return value
+
     @model_validator(mode="after")
     def submission_identity(self) -> "ChatRequest":
+        if self.case_mode and self.case_skill:
+            raise ValueError("case_mode 与旧 case_skill 不可同时指定")
         if bool(self.turn_id) != bool(self.request_id) or (self.rerun_of_run_id and not self.request_id):
             raise ValueError("turn_id and request_id must be supplied together")
         if self.request_id and not self.session_id:
@@ -91,12 +102,16 @@ class FileEvidence(BaseModel):
 
 
 class CaseReference(BaseModel):
+    retrieval_ids: list[str] = Field(default_factory=list)
     id: str
     title: str
     source: str = ""
 
 
 class ChatResponse(BaseModel):
+    literature_scope: dict | None = None
+    web_retrieval: dict | None = None
+    case_mode: CaseMode | None = None
     case_route: list[str] = Field(default_factory=list)
     case_match: Literal["matched", "missing", "text_only", "unavailable"] | None = None
     case_gap_recorded: bool = False

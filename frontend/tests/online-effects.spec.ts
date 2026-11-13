@@ -62,7 +62,7 @@ test("session metrics retain filters and link to conversation records without re
   await expect(page.getByLabel("实际 Skill", { exact: true })).toHaveValue("case_explanation");
   await expect.poll(() => requests.some(path => path.includes("/online-metrics?") && path.includes("skill=case_explanation") && path.includes("mode=auto") && path.includes("source=formal"))).toBe(true);
   await page.getByRole("link", { name: "查看会话运行记录", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "运行记录 · 会话审核" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "运行记录", exact: true })).toBeVisible();
   expect(requests.some(path => path.includes("formal-runs") || path.includes("formal-samples"))).toBe(false);
   expect(errors).toEqual([]);
 });
@@ -86,7 +86,7 @@ test("old review list and detail links open the conversation records", async ({ 
   await page.goto("/evaluation/formal-reviews?review_status=unreviewed");
   await login(page);
   await expect(page).toHaveURL(/\/evaluation\/runs$/);
-  await expect(page.getByRole("heading", { name: "运行记录 · 会话审核" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "运行记录", exact: true })).toBeVisible();
   await page.goto("/evaluation/formal-reviews/run-one");
   await expect(page).toHaveURL(/\/evaluation\/runs\/run-one$/);
   await expect(page.getByText("保留的历史回答。", { exact: true })).toBeVisible();

@@ -5,6 +5,13 @@ export interface ChatUsage {
 }
 
 export interface Citation {
+  retrieval_ids?: string[];
+  chunk_ids?: string[];
+  source_type?: "local" | "web";
+  publisher?: string | null;
+  retrieved_at?: string | null;
+  fetch_status?: string | null;
+  evidence_level?: string | null;
   index: number;
   chunk_id: string;
   source: string;
@@ -27,6 +34,8 @@ export interface ChatHistoryMessage {
 }
 
 export interface ChatRequest {
+  case_ids?: string[];
+  case_mode?: "search" | "explain" | "compare" | "evidence" | null;
   query: string;
   turn_id?: string;
   request_id?: string;
@@ -77,7 +86,7 @@ export interface SavedChatTurn {
   run_id: string;
   turn_id: string;
   request: { query: string; history: ChatHistoryMessage[]; attachments: FileReceipt[];
-    turnId: string; requestId: string; rerunOfRunId?: string | null };
+    turnId: string; requestId: string; rerunOfRunId?: string | null; caseIds?: string[] };
   status: ChatRunView["status"];
   response: ChatResponse | null;
   error: { code: string; message: string; http_status: number } | null;
@@ -99,10 +108,13 @@ export interface AccountChatHistory {
 }
 
 export interface ChatResponse {
+  literature_scope?: { mode: string; reason?: string; paper_count?: number; total_papers?: number; filters: { term: string; paths: string[] }[]; expanded?: boolean; expansion_reason?: string } | null;
+  web_retrieval?: { status: string; sources_read?: number } | null;
+  case_mode?: "search" | "explain" | "compare" | "evidence" | null;
   case_route?: string[];
   case_match?: "matched" | "missing" | "text_only" | "unavailable" | null;
   case_gap_recorded?: boolean;
-  case_references?: { id: string; title: string; source: string }[];
+  case_references?: { id: string; title: string; source: string; retrieval_ids?: string[] }[];
   answer: string;
   citations: Citation[];
   usage: ChatUsage;

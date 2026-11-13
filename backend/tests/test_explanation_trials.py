@@ -22,7 +22,8 @@ async def test_same_inputs_pinned_method_trusted_test_source_idempotency_and_ind
         def __init__(self): super().__init__(answer="三次施用的合计为160 kg/ha，不能推出每次用量。"); self.calls = []
         async def chat(self, messages, **kwargs):
             self.calls.append(messages)
-            return await super().chat(messages, **kwargs)
+            result = await super().chat(messages, **kwargs)
+            return result.model_copy(update={"content": self.answer})  # Trial calls return prose, not case JSON.
     model = RecordingLLM()
     body = TrialInput(submission_id="one", query="三次合计是什么意思？", material="推荐量160 kg/ha，分三次施用，为三次合计；各次分配未知。")
     receipt = trials.submit(body, expert, llm=model)

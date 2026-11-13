@@ -50,9 +50,9 @@ def test_all_workbench_roles_can_inspect_exactly_the_registered_capabilities(cli
     registry = build_registry(None, skill_catalog._unused_report).describe()
     assert set(items) == {item["name"] for item in registry}
     assert len(items) == 7
-    assert all(item["registered"] and item["configuration"] == ("limited" if item["name"] == "case_explanation" else "read_only") for item in items.values())
+    assert all(item["registered"] and item["configuration"] == ("limited" if item["name"] == "case_assistant" else "read_only") for item in items.values())
     assert all("input_schema" not in item for item in items.values())
-    assert items["case_reference"]["availability"] == "unavailable"
+    assert items["case_assistant"]["availability"] == "unavailable"
     assert items["knowledge_search"]["availability"] == "unavailable"
     assert items["clarification"]["availability"] == "available"
     assert items["whcns_analyzer"]["generation"] == "local"
@@ -167,3 +167,14 @@ def test_parser_dependencies_are_reported_per_format_without_a_fake_full_format_
 @pytest.mark.parametrize("method", ["post", "put", "patch", "delete"])
 def test_read_only_endpoint_has_no_configuration_mutation(client, method):
     assert getattr(client, method)("/api/eval/skills/case_explanation", headers=auth("developer")).status_code == 405
+
+
+def test_case_catalog_is_canonical_but_old_details_keep_alias_metadata(client):
+    items = client.get('/api/eval/skills', headers=auth()).json()
+    names = {item['name'] for item in items}
+    assert 'case_assistant' in names and not names & {'case_reference', 'case_explanation'}
+    for alias in ('case_reference', 'case_explanation'):
+        detail = client.get('/api/eval/skills/' + alias, headers=auth()).json()
+        assert detail['name'] == alias and detail['alias_of'] == 'case_assistant'
+    detail = client.get('/api/eval/skills/case_assistant', headers=auth()).json()
+    assert set(detail['input_schema']['properties']['mode']['enum']) == {'search', 'explain', 'compare', 'evidence'}

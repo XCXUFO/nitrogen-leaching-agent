@@ -2,7 +2,15 @@ import hashlib
 import json
 import time
 
-from tests.test_evaluation import client, headers, ask, score
+from tests.test_evaluation import client, headers as account_headers, ask as ask_execution, score
+
+
+def headers(name='expert'):
+    return account_headers(name)
+
+
+def ask(client, eid, query, name='expert', **extra):
+    return ask_execution(client, eid, query, name=name, **extra)
 
 
 def create_task(client):
@@ -14,13 +22,18 @@ def create_task(client):
     return '/api/eval/tasks/' + result.json()['task_id']
 
 
-def test_prepare_is_idempotent_private_and_preserves_reviews(client):
+def test_prepare_is_idempotent_per_owner_with_shared_expert_visibility_and_preserves_reviews(client):
+    from src.evaluation.contracts import AccessEntry
+    token = 'f' * 40
+    client.app.state.eval_access.users.append(AccessEntry(tester_id='expert2', role='reviewer',
+        token_sha256=hashlib.sha256(token.encode()).hexdigest()))
+    second_headers = {'Authorization': 'Bearer ' + token}
     path = create_task(client)
     prepared = client.post(path + '/prepare', headers=headers()).json()
     assert prepared['summary'] == {'total_cases': 2, 'prepared_cases': 2, 'started_cases': 0, 'reviewed_cases': 0, 'executions': 2}
     assert client.post(path + '/prepare', headers=headers()).json() == prepared
-    alice_ids = prepared['task']['execution_ids']
-    eid = alice_ids[0]
+    expert_ids = prepared['task']['execution_ids']
+    eid = expert_ids[0]
     assert not client.get(f'/api/eval/executions/{eid}', headers=headers()).json()['needs_reset']
     reviewed = client.post(f'/api/eval/executions/{eid}/reviews', headers=headers(), json={
         'overall': 'blocked', 'route_correct': 'n.a.', 'tool_correct': 'n.a.', 'evidence_correct': 'n.a.',
@@ -28,9 +41,16 @@ def test_prepare_is_idempotent_private_and_preserves_reviews(client):
     assert reviewed.status_code == 201
     after = client.post(path + '/prepare', headers=headers()).json()
     assert after['summary']['executions'] == 2 and after['summary']['reviewed_cases'] == 1
-    bob = client.post(path + '/prepare', headers=headers('bob')).json()
-    assert set(bob['task']['execution_ids']).isdisjoint(alice_ids)
-    assert client.get(path, headers=headers('bob')).json()['execution_ids'] == bob['task']['execution_ids']
+    assert client.post(path + '/prepare', headers=headers('bob')).status_code == 403
+    second = client.post(path + '/prepare', headers=second_headers).json()
+    second_ids = [execution['execution_id'] for item in second['cases'] for execution in item['executions']
+                  if execution['tester_id'] == 'expert2']
+    assert len(second_ids) == 2 and set(second_ids).isdisjoint(expert_ids)
+    assert second['scope'] == 'all'
+    assert set(second['task']['execution_ids']) == set(expert_ids + second_ids)
+    assert client.get(path, headers=second_headers).json()['execution_ids'] == second['task']['execution_ids']
+    assert client.post(path + '/prepare', headers=second_headers).json() == second
+    assert client.get(path + '/progress', headers=headers('bob')).json()['task']['execution_ids'] == []
     assert client.get(path + '/progress', headers=headers('dev')).json()['summary']['executions'] == 4
     assert client.get(f'/api/eval/executions/{eid}', headers=headers()).json()['review'] == reviewed.json()['review']
 

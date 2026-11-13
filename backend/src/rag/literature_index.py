@@ -14,6 +14,8 @@ from src.agent.composition import supports_crop
 from src.rag.chunker import chunk_text
 from src.rag.ingest import load_text
 from src.rag.retriever import RetrievalResult
+from src.rag.reference_filter import is_reference_chunk
+from src.retrieval.local_index import LocalIndex, Records
 
 
 class LiteratureIndex:
@@ -28,11 +30,15 @@ class LiteratureIndex:
                     status TEXT NOT NULL, indexed_at TEXT, error TEXT, mode TEXT, chunks_json TEXT);
             """)
             library.db.execute("UPDATE literature_search_sync SET status='failed',error='服务重启导致同步中断，请手动重试。' WHERE status='processing'")
+        try:
+            self.local = LocalIndex(library, 'literature')
+        except Exception:
+            self.local = None
 
     @staticmethod
     def content_key(paper):
         return hashlib.sha256(json.dumps({key: paper.get(key) for key in (
-            "sha256", "title", "authors", "year", "source_note", "source_url", "tag_ids", "registration", "usage")},
+            "sha256", "title", "authors", "year", "source_note", "source_url", "registration", "usage")},
             ensure_ascii=False, sort_keys=True).encode()).hexdigest()
 
     def status(self, paper):
@@ -256,21 +262,64 @@ class LiteratureIndex:
             return any(not row["deleted"] and row["usage"] == "normal" and
                 (row["registration"] == "registered" or self.status(self.library.paper(row))["status"] == "ready") for row in rows)
 
-    def search(self, query, *, understanding=None, mapping=None, limit=20):
+    def tag_scope(self, mapping=None, understanding=None):
+        from src.retrieval.tag_scope import literature_scope
+        return literature_scope(self.library,mapping,understanding)
+
+    def search(self, query, *, understanding=None, mapping=None, limit=20, material_ids=None):
+        if getattr(self.library, 'search_strategy', 'indexed') == 'scan':
+            hits, records = self.search_legacy(query, understanding=understanding, mapping=mapping, limit=limit, material_ids=material_ids)
+            return hits, Records(records, {'version': 'legacy-scan', 'status': 'selected', 'fallback': False})
+        try:
+            if self.local is None: raise RuntimeError('index unavailable')
+            rows, diagnostics = self.local.candidates(query, mapping, understanding=understanding, material_ids=material_ids)
+            results, records = [], []
+            with self.library.lock:
+                for item in rows:
+                    row = self.library.db.execute('SELECT * FROM papers WHERE id=? AND deleted=0 AND usage=\'normal\'', (item['material_id'],)).fetchone()
+                    if row is None: continue
+                    paper = self.library.paper(row)
+                    if self.status(paper).get('version') != item['version'] or self.status(paper)['status'] != 'ready': continue
+                    checks, eligible = assess_conditions(paper['title']+'\n'+item['text'], paper['tag_ids'], understanding or {}, mapping or {})
+                    reference = is_reference_chunk(item['text'])
+                    cid = f"{paper['id']}:{item['version']}:{item['position']}"
+                    records.append({'chunk_id':cid, 'paper_id':paper['id'], 'title':paper['title'], 'version':item['version'], 'checks':checks,
+                        'selected': eligible and not reference, 'reason':'reference_list' if reference else 'eligible' if eligible else 'condition_unconfirmed',
+                        'score':item['fusion_score'], 'recall_paths':item['recall_paths'],
+                        'body_matches':len(terms(query)&terms(item['text'])), 'title_matches':len(terms(query)&terms(paper['title']))})
+                    if eligible and not reference:
+                        results.append(RetrievalResult(cid,item['text'],item['fusion_score'],{
+                            'paper_id':paper['id'], 'content_key':item['version'], 'file_sha256':paper['sha256'], 'title':paper['title'],
+                            'source':f"managed://{paper['id']}/{paper['filename']}", 'char_start':int(item['char_start']), 'char_end':int(item['char_end'])}))
+            from src.agent.understanding import balance_objects
+            checks_by_id={r['chunk_id']:r['checks'] for r in records}
+            results=balance_objects(results,lambda hit:checks_by_id[hit.chunk_id])
+            return results[:limit], Records(records, diagnostics)
+        except Exception as exc:
+            hits, records = self.search_legacy(query, understanding=understanding, mapping=mapping, limit=limit, material_ids=material_ids)
+            return hits, Records(records, {'version':'legacy-scan','status':'degraded','fallback':'scan','error_type':type(exc).__name__})
+
+    def search_legacy(self, query, *, understanding=None, mapping=None, limit=20, material_ids=None):
         candidates, results = [], []
         query_terms = terms(query)
         with self.library.lock:
             rows = self.library.db.execute("SELECT p.*,s.content_key,s.chunks_json FROM papers p JOIN literature_search_sync s ON s.paper_id=p.id WHERE p.deleted=0 AND p.usage='normal' AND s.status='ready'").fetchall()
             for row in rows:
+                if material_ids is not None and row['id'] not in material_ids: continue
                 paper = self.library.paper(row)
                 if self.status(paper)["status"] != "ready" or self.content_key(paper) != row["content_key"]: continue
                 for index, chunk in enumerate(json.loads(row["chunks_json"] or "[]")):
                     checks, eligible = assess_conditions(paper["title"] + "\n" + chunk["text"], paper["tag_ids"], understanding or {}, mapping or {})
-                    score = len(query_terms & terms(chunk["text"] + paper["title"]))
+                    body_matches = len(query_terms & terms(chunk["text"]))
+                    title_matches = len(query_terms & terms(paper["title"]))
+                    score = 2 * body_matches + title_matches
+                    reference = is_reference_chunk(chunk["text"])
                     cid = f"{paper['id']}:{row['content_key']}:{index}"
-                    candidates.append({"chunk_id": cid, "paper_id": paper["id"], "version": row["content_key"], "checks": checks,
-                                       "selected": eligible and score > 0, "reason": "eligible" if eligible else "condition_unconfirmed", "score": score})
-                    if eligible and score > 0:
+                    candidates.append({"chunk_id": cid, "paper_id": paper["id"], "title":paper['title'], "version": row["content_key"], "checks": checks,
+                                       "selected": eligible and not reference and score > 0,
+                                       "reason": "reference_list" if reference else "eligible" if eligible else "condition_unconfirmed",
+                                       "score": score, "body_matches": body_matches, "title_matches": title_matches})
+                    if eligible and not reference and score > 0:
                         results.append(RetrievalResult(chunk_id=cid, document=chunk["text"], score=float(score), metadata={
                             "paper_id": paper["id"], "content_key": row["content_key"], "file_sha256": paper["sha256"], "title": paper["title"],
                             "source": f"managed://{paper['id']}/{paper['filename']}", "char_start": chunk["char_start"], "char_end": chunk["char_end"]}))

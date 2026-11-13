@@ -24,24 +24,25 @@ def test_starred_questions_create_edit_and_persist(client):
     assert client.app.state.evaluation.store.starred_questions() == rows
 
 
-def test_shared_edit_conflicts_and_reloads_latest_revision(client):
+def test_developer_edit_conflicts_and_read_only_reload_latest_revision(client):
     path = '/api/eval/starred-questions'
     original = client.post(path, headers=headers(), json={'question': '原始问题', 'answer': '原始答案'}).json()
     stale = client.get(path, headers=headers('bob')).json()[0]
     url = f"{path}/{original['question_id']}"
-    saved = client.put(url, headers=headers('expert'), json={
+    assert client.put(url, headers=headers('expert'), json={'question': '不能修改', 'answer': '', 'expected_revision': 1}).status_code == 403
+    saved = client.put(url, headers=headers('dev'), json={
         'question': original['question'], 'answer': '专家补录答案', 'expected_revision': original['revision'],
     })
     assert saved.status_code == 200
-    assert client.put(url, headers=headers('bob'), json={
+    assert client.put(url, headers=headers('dev'), json={
         'question': '修改问题措辞', 'answer': stale['answer'], 'expected_revision': stale['revision'],
     }).json()['detail']['code'] == 'starred_question_conflict'
-    assert client.put(url, headers=headers('bob'), json={
+    assert client.put(url, headers=headers('dev'), json={
         'question': '旧客户端', 'answer': stale['answer'],
     }).status_code == 422  # Missing revisions cannot bypass conflict protection.
     latest = client.get(path, headers=headers('bob')).json()[0]
     assert latest['answer'] == '专家补录答案' and latest['revision'] == 2
-    merged = client.put(url, headers=headers('bob'), json={
+    merged = client.put(url, headers=headers('dev'), json={
         'question': '修改问题措辞', 'answer': latest['answer'], 'expected_revision': latest['revision'],
     })
     assert merged.status_code == 200
@@ -74,3 +75,19 @@ def test_legacy_starred_questions_migrate_and_cas_across_connections(tmp_path):
     finally:
         first.close()
         second.close()
+
+
+def test_reuse_metadata_preserved_for_old_clients_and_cas_protected(client):
+    path='/api/eval/starred-questions'
+    reuse={'reuse_status':'reference','coverage_scope':'仅解释区分尺度的原因','excluded_scope':'模型构建',
+           'source_refs':['材料 T4'],'variants':['为何区分尺度？'],'profile':'scale_models'}
+    created=client.post(path,headers=headers(),json={'question':'为何区分农田与区域尺度？','answer':'维护答复','reuse':reuse}).json()
+    assert created['reuse']['professional_review']=='unknown'
+    url=path+'/'+created['question_id']
+    changed=client.put(url,headers=headers(),json={'question':created['question'],'answer':'新答复','expected_revision':1})
+    assert changed.status_code==200 and changed.json()['reuse']==created['reuse']
+    stale=client.put(url,headers=headers(),json={'question':created['question'],'answer':'旧答复','expected_revision':1,'reuse':{'reuse_status':'pending'}})
+    assert stale.status_code==409
+    assert client.get(path,headers=headers()).json()[0]['reuse']['reuse_status']=='reference'
+    assert client.post(path,headers=headers(),json={'question':'新题','reuse':{'reuse_status':'invalid'}}).status_code==422
+    assert client.post(path,headers=headers(),json={'question':'新题','reuse':{'professional_review':'reviewed'}}).status_code==422

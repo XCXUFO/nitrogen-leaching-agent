@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from pathlib import Path
+from threading import Lock
 from typing import Literal
 from pydantic import BaseModel, Field, field_validator
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import Response
 
 from src.agent.skill_catalog import SkillDetail, SkillSummary, describe_skills
 from src.agent.skill_config import ExpressionUpdate, ExpressionReset
@@ -14,22 +17,29 @@ from src.api.files import file_store, upload_file
 from src.evaluation.auth import current_user, login, require_developer, sessions as login_sessions
 from src.evaluation.contracts import LoginInput
 from src.evaluation.contracts import AssessmentInput, CaseDraftBatchInput, CaseDraftInput, CaseDraftRevision, CasePublishInput, EvaluationQuery, IssueInput, IssueUpdateInput, ManualAction, Principal, RegressionInput, RetestInput, ReviewAssignmentInput, ReviewResolutionInput, ReviewInput, StartExecution, TaskInput
+from src.evaluation.handoff_retests import HandoffRetests, HandoffRetestInput, HandoffJudgment, sources as handoff_sources
 from src.evaluation.service import EvaluationService
 from src.evaluation.session_reviews import SessionReviewInput, SessionRetestInput
 from src.evaluation.store import fail
+from src.evaluation.starred_content import StarredReuse
 from src.config import settings
+from src.storage.run_attachments import preview_attachment
 
 router = APIRouter(prefix="/eval")
+
+# Whole-conversation cases are the default lightweight evaluation workflow.
+from src.api.conversation_evaluation import router as conversation_router
+router.include_router(conversation_router)
 
 
 def service(request: Request) -> EvaluationService:
     return request.app.state.evaluation
 
 
-def skill_catalog(request: Request) -> list[SkillDetail]:
+def skill_catalog(request: Request, *, include_aliases=False) -> list[SkillDetail]:
     state = request.app.state
     return describe_skills(service=getattr(state, "chat_service", None), llm=getattr(state, "llm", None),
-                           case_store=getattr(state, "case_library", None), runtime=getattr(state, "agent_runtime", None))
+                           case_store=getattr(state, "case_library", None), runtime=getattr(state, "agent_runtime", None), include_aliases=include_aliases)
 
 
 @router.get("/skills", response_model=list[SkillSummary])
@@ -39,14 +49,14 @@ def skills(request: Request, user: Principal = Depends(current_user)):
 
 @router.get("/skills/{name}", response_model=SkillDetail)
 def skill(request: Request, name: str, user: Principal = Depends(current_user)):
-    item = next((item for item in skill_catalog(request) if item.name == name), None)
+    item = next((item for item in skill_catalog(request, include_aliases=True) if item.name == name), None)
     if item is None:
         raise HTTPException(404, detail={"code": "skill_not_found", "message": "未找到该能力，请返回能力列表。"})
     return item
 
 
 def expression_store(request, name):
-    if name != "case_explanation":
+    if name not in {"case_explanation", "case_assistant"}:
         raise HTTPException(400, detail={"code": "skill_read_only", "message": "此能力不支持配置编辑。"})
     return request.app.state.agent_runtime.runs.skill_config
 
@@ -70,6 +80,7 @@ def reset_expression_configuration(request: Request, name: str, body: Expression
 class StarredQuestionInput(BaseModel):
     question: str = Field(max_length=20000)
     answer: str = Field(default="", max_length=100000)
+    reuse: StarredReuse | None = None
 
     @field_validator("question")
     @classmethod
@@ -91,7 +102,7 @@ def starred_questions(request: Request, user: Principal = Depends(current_user))
 
 @router.post("/starred-questions", status_code=201)
 def create_starred_question(request: Request, body: StarredQuestionInput, user: Principal = Depends(current_user)):
-    return service(request).store.create_starred_question(body.question, body.answer)
+    return service(request).store.create_starred_question(body.question, body.answer, body.reuse.model_dump() if body.reuse else None)
 
 
 class StarredQuestionUpdate(StarredQuestionInput):
@@ -100,7 +111,7 @@ class StarredQuestionUpdate(StarredQuestionInput):
 
 @router.put("/starred-questions/{question_id}")
 def update_starred_question(request: Request, question_id: str, body: StarredQuestionUpdate, user: Principal = Depends(current_user)):
-    return service(request).store.update_starred_question(question_id, body.question, body.answer, body.expected_revision)
+    return service(request).store.update_starred_question(question_id, body.question, body.answer, body.expected_revision, body.reuse.model_dump() if body.reuse else None)
 
 
 def knowledge_config() -> dict:
@@ -295,7 +306,45 @@ def session_detail(request: Request, session_id: str, user: Principal = Depends(
     result = service(request).store.runs.session(session_id)
     if result is None:
         raise fail("session_not_found", "未找到会话记录。", 404)
-    return result
+    return {**result, 'case_groups': service(request).store.runs.conversation_cases.memberships(result['session_id'])}
+
+
+def session_attachment(request: Request, session_id: str, run_id: str, sha256: str):
+    store = service(request).store.runs
+    session = store.session(session_id)
+    turn = next((item for item in (session or {}).get("turns", []) if item["run_id"] == run_id), None)
+    attachments = (turn or {}).get("request_snapshot", {}).get("attachments", [])
+    attachment = next((item for item in attachments if item.get("sha256") == sha256), None)
+    if attachment is None:
+        raise fail("attachment_not_found", "未找到本轮附件记录。", 404)
+    raw = store.attachments.get(sha256)
+    if raw is None:
+        raise fail("attachment_original_missing", "这份历史附件的原文件未保存，暂时无法预览。请重新上传后提交问题。", 404)
+    return attachment, raw
+
+
+@router.get("/sessions/{session_id}/attachments/{run_id}/{sha256}/preview")
+def attachment_preview(request: Request, session_id: str, run_id: str, sha256: str,
+                       response: Response, page: int = Query(1, ge=1, le=300),
+                       sheet: int = Query(0, ge=0), offset: int = Query(0, ge=0),
+                       user: Principal = Depends(current_user)):
+    attachment, raw = session_attachment(request, session_id, run_id, sha256)
+    response.headers["Cache-Control"] = "private, no-store"
+    try:
+        return preview_attachment(raw, attachment["filename"], attachment.get("format") or Path(attachment["filename"]).suffix.lstrip("."), page=page, sheet=sheet, offset=offset)
+    except (ValueError, ImportError) as exc:
+        raise fail("attachment_preview_failed", "附件暂时无法预览，可下载原文件查看。", 422) from exc
+
+
+@router.get("/sessions/{session_id}/attachments/{run_id}/{sha256}/content")
+def attachment_content(request: Request, session_id: str, run_id: str, sha256: str,
+                       user: Principal = Depends(current_user)):
+    from urllib.parse import quote
+
+    attachment, raw = session_attachment(request, session_id, run_id, sha256)
+    return Response(raw, media_type="application/octet-stream", headers={
+        "Content-Disposition": "attachment; filename*=UTF-8''" + quote(attachment["filename"], safe=""),
+        "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
 
 
 @router.post("/sessions/{session_id}/reviews")
@@ -331,7 +380,7 @@ async def retest_session(request: Request, session_id: str, body: SessionRetestI
     owner = "internal_" + user.tester_id
     isolated_session = hashlib.sha256((owner + ":review:" + body.submission_id).encode()).hexdigest()
     replay = ChatRequest.model_validate({key: value for key, value in snapshot.items()
-        if key not in {"has_attachments", "request_id", "turn_id", "rerun_of_run_id"}}).model_copy(
+        if key not in {"has_attachments", "attachments", "request_id", "turn_id", "rerun_of_run_id"}}).model_copy(
             update={"session_id": isolated_session, "operator_id": user.tester_id})
     fingerprint = hashlib.sha256(json.dumps({"source": body.source_run_id, "issue": body.issue_id, "request": snapshot}, sort_keys=True).encode()).hexdigest()
     manager = run_manager(request)
@@ -560,3 +609,50 @@ async def cancel_replay(request: Request, rid: str, user: Principal = Depends(cu
 def comparison(request: Request, rid: str, user: Principal = Depends(current_user)):
     require_developer(user)
     return request.app.state.regressions.compare(rid, user)
+
+# Local handoff sources remain distinct from production conversations and reviews.
+
+
+_handoff_init_lock = Lock()
+
+
+def handoff_retests(request: Request):
+    with _handoff_init_lock:
+        if not hasattr(request.app.state, 'handoff_retests'):
+            request.app.state.handoff_retests = HandoffRetests(request.app.state.agent_runtime, settings.eval_handoff_db)
+        return request.app.state.handoff_retests
+
+
+@router.get('/handoff-sources')
+def local_handoff_sources(request: Request, user: Principal = Depends(current_user)):
+    require_developer(user)
+    return handoff_sources(Path(settings.eval_handoff_db))
+
+
+@router.get('/handoff-sources/{source_id}')
+def local_handoff_source(request: Request, source_id: str, user: Principal = Depends(current_user)):
+    require_developer(user)
+    engine = handoff_retests(request)
+    source = engine.source(source_id)
+    from src.agent.routing import decide
+    names = decide(source['source']['user_turns'][0], has_file=False).skills
+    scope = 'case_assistant' if any(n in names for n in ('case_assistant', 'case_reference', 'case_explanation')) else 'concept_explanation' if 'concept_explanation' in names else 'knowledge_search'
+    return {**source, 'attempts': engine.list(source_id), 'suggested_task_scope': scope}
+
+
+@router.post('/handoff-sources/{source_id}/retests', status_code=202)
+async def retest_handoff_source(request: Request, source_id: str, body: HandoffRetestInput, user: Principal = Depends(current_user)):
+    require_developer(user)
+    from src.api.chat import execute_chat
+
+    async def execute(query, run_id, expression_config):
+        return await execute_chat(request, query, request.app.state.agent_runtime, run_id=run_id,
+                                  expression_config=expression_config, run_context={'source': 'test', 'mode': 'auto'})
+
+    return handoff_retests(request).submit(source_id, body, user, execute)
+
+
+@router.post('/handoff-retests/{attempt_id}/judgments')
+def judge_handoff_retest(request: Request, attempt_id: str, body: HandoffJudgment, user: Principal = Depends(current_user)):
+    require_developer(user)
+    return handoff_retests(request).judge(attempt_id, body, user)

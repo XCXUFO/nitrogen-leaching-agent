@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def main():
     parser = argparse.ArgumentParser(description='Start a fingerprinted local delivery build.')
-    parser.add_argument('--manifest', default='delivery-source-manifest-2026-10-18-release.json')
+    parser.add_argument('--manifest', default='delivery-source-manifest-2026-11-13-release.json')
     parser.add_argument('--dist-dir', choices=DIST_DIRS)
     parser.add_argument('--check', action='store_true', help='Verify source and build without starting services')
     args = parser.parse_args()
@@ -59,7 +59,10 @@ def main():
                 proc = subprocess.Popen(command, cwd=cwd, env=env, stdin=subprocess.DEVNULL,
                                         stdout=log, stderr=log, start_new_session=True)
             started.append((name, proc))
-            deadline = time.monotonic() + 180
+            # Embedding and INT8 reranker warmup can exceed three minutes on
+            # this CPU. Keep a bounded startup budget without killing a healthy
+            # cold start before the readiness probe has a chance to succeed.
+            deadline = time.monotonic() + (600 if name == 'backend' else 180)
             while time.monotonic() < deadline:
                 if proc.poll() is not None: raise RuntimeError(f'{name} exited; inspect {service / (name + ".log")}')
                 try:

@@ -30,7 +30,7 @@ class FakeCrossEncoder:
         self.score_map = score_map
         self.calls: list[list[list[str]]] = []
 
-    def predict(self, pairs: list[list[str]]) -> list[float]:
+    def predict(self, pairs: list[list[str]], **kwargs) -> list[float]:
         self.calls.append(pairs)
         out: list[float] = []
         for _query, passage in pairs:
@@ -117,6 +117,55 @@ def test_rerank_handles_negative_scores() -> None:
     assert [c.chunk_id for c in out] == ["c1", "c0"]
     assert out[0].score == pytest.approx(4.2)
     assert out[1].score == pytest.approx(-3.1)
+
+
+@pytest.mark.parametrize("modern", [False, True])
+def test_quantization_replaces_the_transformer_without_adding_a_pipeline_stage(monkeypatch, modern):
+    import sys
+    from types import SimpleNamespace
+    torch = pytest.importorskip("torch")
+    original, quantized = object(), object()
+    calls = []
+
+    class Legacy:
+        def __init__(self, model_id, **kwargs):
+            self.model = original
+            calls.append(kwargs)
+
+    class Modern:
+        def __init__(self, model_id, **kwargs):
+            self.first = SimpleNamespace(model=original)
+            calls.append(kwargs)
+
+        def __getitem__(self, index):
+            assert index == 0
+            return self.first
+
+        @property
+        def model(self):
+            return self.first.model
+
+    def quantize(module, types, dtype, inplace):
+        assert module is original and types == {torch.nn.Linear} and dtype == torch.qint8 and inplace is True
+        return quantized
+
+    monkeypatch.setitem(sys.modules, "sentence_transformers", SimpleNamespace(CrossEncoder=Modern if modern else Legacy))
+    monkeypatch.setattr(torch.ao.quantization, "quantize_dynamic", quantize)
+    reranker = Reranker("local-model", cpu_quantization="int8", max_length=512, batch_size=2)
+    model = reranker._ensure_loaded()
+    assert model.model is quantized
+    assert calls == [{"device": "cpu", "max_length": 512}]
+    assert reranker._ensure_loaded() is model and len(calls) == 1
+
+
+def test_inference_limits_reach_the_prediction_call():
+    class Recorder:
+        def predict(self, pairs, **kwargs):
+            assert kwargs == {"batch_size": 2, "show_progress_bar": False}
+            return [0.9]
+    reranker = Reranker("local-model", batch_size=2)
+    reranker._model = Recorder()
+    assert reranker.rerank("query", [_hit("one", "full passage")])[0].document == "full passage"
 
 
 # ---------------------------------------------------------------------------

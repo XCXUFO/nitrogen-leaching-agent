@@ -15,7 +15,7 @@ def client(tmp_path):
     app.state.case_library = CaseStore(str(tmp_path / 'cases.db'))
     app.include_router(case_library.router, prefix='/api')
     with TestClient(app) as client:
-        client.headers['Authorization'] = f"Bearer {TOKENS['tester']}"
+        client.headers['Authorization'] = f"Bearer {TOKENS['developer']}"
         yield client
     app.state.case_library.close()
     app.state.literature.close()
@@ -83,15 +83,19 @@ def test_selection_validation_disabled_preservation_and_tag_deletion(client):
     assert create(client, [parent, child]).json()['detail']['code'] == 'ancestor_conflict'
     assert create(client, [child, child]).json()['detail']['code'] == 'duplicate_tag'
     item = create(client, [maize]).json()
-    assert client.delete('/api/literature/tags/' + maize).status_code == 409
     assert client.put('/api/literature/tags/' + maize, json={'name': '玉米', 'enabled': False}).status_code == 200
     assert create(client, [maize]).status_code == 400
     item = update(client, item, title='仍保留停用标签').json()
     assert item['tag_ids'] == [maize]
     assert client.put('/api/literature/dimensions/' + crop, json={'name': '作物', 'selection': 'single', 'enabled': False}).status_code == 200
     assert create(client, [wheat]).status_code == 400
-    assert update(client, item, tag_ids=[]).status_code == 200
-    assert client.delete('/api/literature/tags/' + maize).status_code == 200
+    response = client.delete('/api/literature/tags/' + maize)
+    assert response.status_code == 200
+    assert response.json()['detached_case_count'] == 1
+    latest = client.get('/api/case-library/' + item['id']).json()
+    assert latest['tag_ids'] == [] and latest['revision'] == item['revision'] + 1
+    assert latest['body'] == item['body']
+    assert update(client, item, tag_ids=[]).status_code == 409
 
 
 def test_taxonomy_structure_changes_protect_assigned_cases(client):

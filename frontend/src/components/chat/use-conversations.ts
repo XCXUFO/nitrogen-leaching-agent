@@ -7,7 +7,7 @@ import type { ChatHistoryMessage, ChatResponse, ChatRunView, FileReceipt, SavedC
 export type Turn = { id: string; role: "user"; content: string; filename?: string }
   | { id: string; role: "assistant"; content: string; response: ChatResponse; request: Retry; run?: ChatRunView };
 export type Retry = { query: string; attachments: FileReceipt[]; history: ChatHistoryMessage[]; answerId?: string;
-  turnId: string; requestId: string; rerunOfRunId?: string; recoveryExpired?: boolean };
+  turnId: string; requestId: string; rerunOfRunId?: string; recoveryExpired?: boolean; caseIds?: string[] };
 export type Conversation = {
   id: string; turns: Turn[]; files: SessionFile[]; draft: string;
   uploadNotice: string; error: ApiError | null; retry: Retry | null;

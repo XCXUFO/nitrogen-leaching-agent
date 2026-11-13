@@ -1,4 +1,7 @@
 from pathlib import Path
+import shutil
+
+import pytest
 
 from src.config import Settings
 from src.evaluation.versioning import build_manifest, tree_identity
@@ -32,3 +35,23 @@ def test_manifest_excludes_credentials_and_has_stable_digest():
     assert "sensitive-test-key" not in str(first)
     assert first["manifest_sha256"] and first["agent_code_sha256"]
     assert first["knowledge_index"]["status"] == "disabled"
+
+
+@pytest.mark.parametrize("module", [
+    "storage/prompt_groups.py", "storage/run_attachments.py",
+    "utils/taxonomy.py", "api/asset_tagging.py", "evaluation/auth.py",
+])
+def test_build_identity_detects_changes_to_runtime_dependencies(tmp_path, monkeypatch, module):
+    import src.evaluation.versioning as versioning
+
+    shutil.copytree(versioning.BASE_DIR / "src", tmp_path / "src",
+                    ignore=shutil.ignore_patterns("__pycache__"))
+    shutil.copyfile(versioning.BASE_DIR / "uv.lock", tmp_path / "uv.lock")
+    monkeypatch.setattr(versioning, "BASE_DIR", tmp_path)
+    settings = Settings(rag_enabled=False)
+    before = versioning.build_manifest(settings)
+    path = tmp_path / "src" / module
+    path.write_text(path.read_text() + "\n# changed runtime dependency\n")
+    after = versioning.build_manifest(settings)
+    assert after["agent_code_sha256"] != before["agent_code_sha256"]
+    assert after["manifest_sha256"] != before["manifest_sha256"]

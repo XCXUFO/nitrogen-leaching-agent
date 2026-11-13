@@ -59,6 +59,30 @@ def test_ties_explicitly_report_first_occurrence(client, tmp_path):
     assert body["file_evidence"][0]["cell"] == "Nbal_out!C2"
 
 
+@pytest.mark.parametrize("attachment_key", ["file_id", "file_ids"])
+def test_natural_language_extrema_followup_and_summary(client, tmp_path, attachment_key):
+    token, _ = upload(client, tmp_path)
+    attachment = token if attachment_key == "file_id" else [token]
+    history = []
+    turns = [
+        ("请计算本次上传氮平衡表的硝态氮淋失最大值及对应日序，给出单位和单元格。", [1.5]),
+        ("那最小值呢？", [0.5]),
+        ("请汇总你刚才给出的硝态氮淋失最大值和最小值，并说明单位。", [1.5, 0.5]),
+    ]
+    for query, expected in turns:
+        response = client.post("/api/chat", json={"query": query, "session_id": "natural-extrema",
+            attachment_key: attachment, "history": history})
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body["route"] == "file", body["answer"]
+        assert [item["value"] for item in body["file_evidence"]] == expected
+        assert all(item["unit"] == "kg N ha-1" for item in body["file_evidence"])
+        assert body["usage"]["total_tokens"] == 0
+        if not history:
+            assert "Nbal_out!C3" in body["answer"]
+        history.extend([{"role": "user", "content": query}, {"role": "assistant", "content": body["answer"]}])
+
+
 # v2 supports extrema + possible mechanisms; unsupported extra tasks still clarify.
 @pytest.mark.parametrize("query", ["帮我看看", "氮淋失最大值", "硝态氮和铵态氮最大值", "硝态氮季节总量", "前10天硝态氮最大值", "硝态氮最大值并比较施肥方案", "第20日硝态氮最大值", "硝态氮浓度最大值", "硝态氮和磷最大值", "硝态氮在灌溉当天最大值", "N-mine"])
 def test_ambiguous_or_unsupported_requests_clarify(client, tmp_path, query):

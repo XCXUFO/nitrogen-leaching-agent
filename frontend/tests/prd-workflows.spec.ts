@@ -6,86 +6,51 @@ async function login(page: Page) {
   await page.getByRole("button", { name: "进入工作台" }).click();
 }
 async function account(page: Page) {
-  await page.route("**/api/eval/login", route => route.fulfill({ json: { token: "prd-browser-token", user: { tester_id: "expert", role: "reviewer" } } }));
-  await page.route("**/api/eval/me", route => route.fulfill({ json: { tester_id: "expert", role: "reviewer" } }));
+  await page.route("**/api/eval/login", route => route.fulfill({ json: { token: "prd-browser-token", user: { tester_id: "expert", role: "developer" } } }));
+  await page.route("**/api/eval/me", route => route.fulfill({ json: { tester_id: "expert", role: "developer" } }));
 }
 
-test("prompt versions can be saved, compared and selected globally without per-question ratings", async ({ page }) => {
+test("global prompt management saves immutable versions and activates explicitly", async ({ page }) => {
   await account(page);
-  const oldPrompt = { prompt_id: "old", label: "原版解释 v1", text: "原有的解释要求。", version: "prompt-old", sha256: "old-hash", actor: "builtin", created_at: "2026-10-17T00:00:00Z" };
-  const newPrompt = { ...oldPrompt, prompt_id: "new", label: "增强解释 v2", text: "先回应问题，再解释术语，保留数字口径。", version: "prompt-new", sha256: "new-hash" };
-  const customText = "## 表达要求\n\n**把合计解释清楚**，保留单位。\n\n| 口径 | 说明 |\n| --- | --- |\n| 合计 | 三次总和 |\n\n```text\n160 kg/ha\n```";
-  const versions = [newPrompt, oldPrompt];
-  let active = newPrompt;
+  const original = { prompt_id: "old", label: "全局原版", text: "先回答，再解释。", version: "v1" };
+  const versions = [original];
+  let active = original;
   let activations = 0;
-  const prompts = { baseline: oldPrompt, candidate: newPrompt };
-  const trial = { trial_id: "trial-one", query: "合计是什么意思？", material: "160 kg/ha 是三次合计。", material_fingerprint: "fixed-input", method_version: "prompt-comparison-v1", status: "running", prompts, variants: {} };
-  let posts = 0;
-  await page.route("**/api/eval/explanation-method", route => route.fulfill({ json: { version: "v1", title: "CDC Clear Communication Index", edition: "August 2019", url: "https://www.cdc.gov/ccindex/index.html", adaptation: "本地中文表达规则", notice: "方法参考。", scope: "日常回答统一使用全局生效版本。", prompts } }));
+  const taskPrompts = Object.fromEntries(["concept_explanation", "knowledge_search", "case_assistant"].map(scope => [scope, { ...original, prompt_id: `task-${scope}`, scope, examples: [] }]));
+  await page.route("**/api/eval/task-prompts", route => route.fulfill({ json: { versions: Object.values(taskPrompts), active: taskPrompts } }));
   await page.route("**/api/eval/prompt-versions", route => {
     if (route.request().method() === "GET") return route.fulfill({ json: versions });
-    const body = route.request().postDataJSON();
-    const saved = { ...newPrompt, ...body, prompt_id: "custom", version: "prompt-custom", sha256: "custom-hash" };
+    const saved = { ...route.request().postDataJSON(), prompt_id: "custom", version: "v2" };
     versions.unshift(saved);
     return route.fulfill({ status: 201, json: saved });
   });
+  await page.route("**/api/eval/prompt-groups", route => route.fulfill({ json: [] }));
+  await page.route("**/api/eval/active-prompt-group", route => route.fulfill({ json: { group: null, communication: active,
+    task_prompts: taskPrompts } }));
   await page.route("**/api/eval/active-prompt", route => {
-    if (route.request().method() === "PUT") { activations++; active = versions.find(item => item.prompt_id === route.request().postDataJSON().prompt_id)!; }
+    if (route.request().method() === "PUT") { activations++; active = versions.find(p => p.prompt_id === route.request().postDataJSON().prompt_id)!; }
     return route.fulfill({ json: active });
   });
-  await page.route("**/api/eval/explanation-trials", route => {
-    if (route.request().method() === "GET") return route.fulfill({ json: posts ? [trial] : [] });
-    const body = route.request().postDataJSON(); posts++;
-    expect(body.query).toBe(trial.query); expect(body.material).toBe(trial.material);
-    expect(body.prompts.baseline.text).toBe(oldPrompt.text);
-    expect(body.prompts.candidate.text).toBe(customText);
-    trial.prompts.candidate = { ...newPrompt, ...body.prompts.candidate };
-    return route.fulfill({ status: 202, json: trial });
-  });
-  await page.route("**/api/eval/explanation-trials/trial-one", route => route.fulfill({ json: { ...trial, status: "completed", variants: { baseline: { run_id: "baseline", status: "succeeded", answer: "现有表达。" }, candidate: { run_id: "candidate", status: "succeeded", answer: "三次的总和是160 kg/ha，各次分配未知。" } } } }));
   await page.goto("/evaluation/explanation-trials"); await login(page);
-  await expect(page.getByRole("heading", { name: "Prompt 迭代", exact: true })).toHaveCount(1);
-  await expect(page.getByRole("region", { name: "旧版 Prompt Markdown 预览", exact: true })).toContainText(oldPrompt.text);
-  await page.getByRole("group", { name: "旧版 Prompt 展示方式", exact: true }).getByRole("button", { name: "原文", exact: true }).click();
-  await expect(page.getByLabel("旧版 Prompt", { exact: true })).toHaveValue(oldPrompt.text);
-  await expect(page.getByLabel("旧版 Prompt", { exact: true })).toHaveAttribute("readonly", "");
-  await page.getByLabel("新版已保存版本", { exact: true }).selectOption("old");
-  await page.getByRole("group", { name: "新版 Prompt 展示方式", exact: true }).getByRole("button", { name: "编辑", exact: true }).click();
-  await expect(page.getByLabel("新版 Prompt", { exact: true })).toHaveValue(oldPrompt.text);
-  await page.getByLabel("新版 Prompt 名称", { exact: true }).fill("清晰解释 v3");
-  await page.getByLabel("新版 Prompt", { exact: true }).fill(customText);
-  await page.getByRole("group", { name: "新版 Prompt 展示方式", exact: true }).getByRole("button", { name: "Markdown", exact: true }).click();
-  const preview = page.getByRole("region", { name: "新版 Prompt Markdown 预览", exact: true });
-  await expect(preview.getByRole("heading", { name: "表达要求", exact: true })).toBeVisible();
-  await expect(preview.getByRole("table")).toContainText("三次总和");
-  await expect(preview.locator("strong")).toHaveText("把合计解释清楚");
-  await expect(preview.locator("pre")).toContainText("160 kg/ha");
-  await page.getByRole("button", { name: "保存为新版本" }).click();
-  await expect(page.getByText("已保存版本：清晰解释 v3", { exact: true })).toBeVisible();
-  expect(posts).toBe(0); expect(activations).toBe(0);
-  await page.getByLabel("用户问题", { exact: true }).fill(trial.query);
-  await page.getByLabel("固定输入材料", { exact: true }).fill(trial.material);
-  await page.getByRole("button", { name: "生成同题对照" }).click();
-  await expect(page.getByRole("status")).toHaveText("对照已生成");
-  await expect(page.getByRole("region", { name: "本次旧版 Prompt Markdown 预览", exact: true })).toContainText(oldPrompt.text);
-  await expect(page.getByRole("region", { name: "本次新版 Prompt Markdown 预览", exact: true }).getByRole("heading", { name: "表达要求", exact: true })).toBeVisible();
-  await expect(page.getByLabel("新版对照结果")).toContainText("各次分配未知");
-  await expect(page.getByLabel("评价类型", { exact: true })).toHaveCount(0);
-  await expect(page.getByLabel("评价结论", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Prompt 管理", exact: true })).toHaveCount(1);
+  await page.getByRole("tab", { name: "Prompt 版本管理" }).click();
+  await expect(page.getByRole("region", { name: "全局 Prompt Markdown 预览" })).toContainText(original.text);
+  await page.getByRole("group", { name: "全局 Prompt 展示方式" }).getByRole("button", { name: "编辑", exact: true }).click();
+  await page.getByLabel("全局 Prompt", { exact: true }).fill("## 表达要求\n\n**解释合计**，保留单位。");
+  await page.getByLabel("全局 Prompt 新版本名称").fill("新版表达");
+  await page.getByRole("button", { name: "保存全局新版本" }).click();
+  await expect(page.getByRole("status")).toContainText("已保存版本：新版表达；尚未启用。");
   expect(activations).toBe(0);
   await page.getByLabel("选择全局版本", { exact: true }).selectOption("custom");
   await page.getByRole("button", { name: "设为全局生效版本" }).click();
-  await expect(page.getByText("全局生效版本已切换为：清晰解释 v3，之后的新回答使用此版本。", { exact: true })).toBeVisible();
+  await expect(page.getByRole("status")).toContainText("全局生效版本已切换为：新版表达");
   expect(activations).toBe(1);
   await page.reload();
+  await page.getByRole("tab", { name: "Prompt 版本管理" }).click();
   await expect(page.getByLabel("选择全局版本", { exact: true })).toHaveValue("custom");
-  await expect(page.getByRole("region", { name: "新版 Prompt Markdown 预览", exact: true }).getByRole("heading", { name: "表达要求", exact: true })).toBeVisible();
-  await page.getByLabel("旧版已保存版本", { exact: true }).selectOption("new");
-  await expect(page.getByRole("region", { name: "旧版 Prompt Markdown 预览", exact: true })).toContainText(newPrompt.text);
-  expect(posts).toBe(1);
-  await page.screenshot({ path: test.info().outputPath("prompt-desktop.png"), fullPage: true });
-  await page.setViewportSize({ width: 390, height: 844 });
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await expect(page.getByRole("region", { name: "全局 Prompt Markdown 预览" }).getByRole("heading", { name: "表达要求" })).toBeVisible();
+  await page.getByLabel("全局已保存版本").selectOption("old");
+  await expect(page.getByRole("region", { name: "全局 Prompt Markdown 预览" })).toContainText(original.text);
 });
 
 test("registered literature distinguishes failed sync, retry, ready status and retained reload", async ({ page }) => {

@@ -1,0 +1,668 @@
+{
+  "scope": "received linked materials subset only",
+  "batch": "backend/var/handoff/2026-11-11-retrieval-skills-live-02",
+  "comparison": "backend/var/handoff/2026-11-11-material-retest-07-uniform",
+  "config_version": "6204fdf0f85a9d9cf83614c40f64eb035996fac1e28892f40bcf03dc92b68932",
+  "model": {
+    "declared_name": "deepseek-v4-flash",
+    "provider_content_verified": false
+  },
+  "completed_targets": 8,
+  "completed_rounds": 10,
+  "professional_review": "pending",
+  "original_reviews_changed": false,
+  "full_online_retrieval_reproduced": false,
+  "rounds": [
+    {
+      "case_id": "FIX-01",
+      "turn": 1,
+      "run_id": "9e48ea5d-6bf9-45cc-8947-b5f6e1c22d5f",
+      "status": "completed",
+      "outcome": "complete",
+      "actual_skills": [
+        "knowledge_search"
+      ],
+      "case_mode": null,
+      "history_count": 0,
+      "citation_document_ids": [
+        "P-4C4F471B773A9FF4"
+      ],
+      "supplied_chunks": 5,
+      "index_versions": [
+        "local-postings-v2"
+      ],
+      "professional_review": "pending"
+    },
+    {
+      "case_id": "FIX-02",
+      "turn": 1,
+      "run_id": "8d56d5b6-70d1-4873-be5b-229387232db2",
+      "status": "completed",
+      "outcome": "complete",
+      "actual_skills": [
+        "concept_explanation"
+      ],
+      "case_mode": null,
+      "history_count": 0,
+      "citation_document_ids": [
+        "P-1875190DB8ABD83D",
+        "P-0B728B14BBB46A9F"
+      ],
+      "supplied_chunks": 5,
+      "index_versions": [
+        "local-postings-v2"
+      ],
+      "professional_review": "pending"
+    },
+    {
+      "case_id": "FIX-03",
+      "turn": 1,
+      "run_id": "7f012659-427b-457a-82b3-308f4964e448",
+      "status": "completed",
+      "outcome": "complete",
+      "actual_skills": [
+        "concept_explanation"
+      ],
+      "case_mode": null,
+      "history_count": 0,
+      "citation_document_ids": [
+        "P-D356211BEE7C520A"
+      ],
+      "supplied_chunks": 5,
+      "index_versions": [
+        "local-postings-v2"
+      ],
+      "professional_review": "pending"
+    },
+    {
+      "case_id": "FIX-04",
+      "turn": 1,
+      "run_id": "d2583bf9-c1ff-4a78-a89f-842042010a90",
+      "status": "completed",
+      "outcome": "complete",
+      "actual_skills": [
+        "capability_guidance"
+      ],
+      "case_mode": null,
+      "history_count": 0,
+      "citation_document_ids": [],
+      "supplied_chunks": 0,
+      "index_versions": [],
+      "professional_review": "pending"
+    },
+    {
+      "case_id": "FIX-05",
+      "turn": 1,
+      "run_id": "b3dca455-fdd8-4eb2-983a-964e0281330f",
+      "status": "completed",
+      "outcome": "complete",
+      "actual_skills": [
+        "concept_explanation"
+      ],
+      "case_mode": null,
+      "history_count": 2,
+      "citation_document_ids": [
+        "P-720DC9921896CD10"
+      ],
+      "supplied_chunks": 5,
+      "index_versions": [
+        "local-postings-v2"
+      ],
+      "professional_review": "pending"
+    },
+    {
+      "case_id": "KEEP-01",
+      "turn": 1,
+      "run_id": "3449ed69-e33d-4d29-bb29-baa292884e01",
+      "status": "completed",
+      "outcome": "complete",
+      "actual_skills": [
+        "case_assistant"
+      ],
+      "case_mode": "search",
+      "history_count": 0,
+      "citation_document_ids": [],
+      "supplied_chunks": 0,
+      "index_versions": [
+        "local-postings-v2"
+      ],
+      "professional_review": "pending"
+    },
+    {
+      "case_id": "KEEP-02",
+      "turn": 1,
+      "run_id": "9140b377-a1be-497b-9eb4-e1115144a277",
+      "status": "completed",
+      "outcome": "complete",
+      "actual_skills": [
+        "concept_explanation"
+      ],
+      "case_mode": null,
+      "history_count": 0,
+      "citation_document_ids": [
+        "P-7B96770C90774E82",
+        "P-7EFD3785B2888F9D",
+        "P-F7576A0799BC9752"
+      ],
+      "supplied_chunks": 5,
+      "index_versions": [
+        "local-postings-v2"
+      ],
+      "professional_review": "pending"
+    },
+    {
+      "case_id": "KEEP-03",
+      "turn": 1,
+      "run_id": "ceedd27e-3c46-433a-85bf-5b571d4a52c1",
+      "status": "completed",
+      "outcome": "complete",
+      "actual_skills": [
+        "case_assistant"
+      ],
+      "case_mode": "search",
+      "history_count": 0,
+      "citation_document_ids": [],
+      "supplied_chunks": 0,
+      "index_versions": [
+        "local-postings-v2"
+      ],
+      "professional_review": "pending"
+    },
+    {
+      "case_id": "KEEP-03",
+      "turn": 2,
+      "run_id": "e7fee63c-9c81-4801-877d-2b46520bc33d",
+      "status": "completed",
+      "outcome": "complete",
+      "actual_skills": [
+        "case_assistant"
+      ],
+      "case_mode": "explain",
+      "history_count": 2,
+      "citation_document_ids": [],
+      "supplied_chunks": 0,
+      "index_versions": [
+        "legacy-scan"
+      ],
+      "professional_review": "pending"
+    },
+    {
+      "case_id": "KEEP-03",
+      "turn": 3,
+      "run_id": "60eb96b8-1a0e-4e76-bcde-8ab3993adc30",
+      "status": "completed",
+      "outcome": "complete",
+      "actual_skills": [
+        "case_assistant"
+      ],
+      "case_mode": "evidence",
+      "history_count": 4,
+      "citation_document_ids": [],
+      "supplied_chunks": 0,
+      "index_versions": [
+        "legacy-scan"
+      ],
+      "professional_review": "pending"
+    }
+  ],
+  "benchmark": {
+    "scope": "35 received linked papers only; local text recall, no vectors/reranker/web/LLM",
+    "source_manifest_sha256": "fda095918881c110cf626b7fd76bd662bb9225090cb66086f98e46e9f1935e36",
+    "top_k": 20,
+    "repeats": 3,
+    "cold_build_ms": 2581.069,
+    "cold_rebuilt_materials": 35,
+    "index_version": "local-postings-v2",
+    "queries": [
+      {
+        "query": "玉米氮淋失的影响因素",
+        "understanding_ms": 2.949,
+        "mapping_ms": 0.136,
+        "indexed_ms": [
+          321.181,
+          284.247,
+          260.882
+        ],
+        "scan_ms": [
+          2578.91,
+          2666.668,
+          2453.136
+        ],
+        "indexed_paper_ids": [
+          "P-015A3055B9926C75",
+          "P-0B728B14BBB46A9F",
+          "P-162AE15121275C71",
+          "P-1875190DB8ABD83D",
+          "P-6F82E3E7867C38D6"
+        ],
+        "pipeline": {
+          "version": "local-postings-v2",
+          "status": "ready",
+          "material_count": 35,
+          "rebuilt_materials": 0,
+          "candidate_count": 160,
+          "candidate_budget": 160,
+          "coverage": "bounded",
+          "chunk_count": 5497,
+          "excluded_reference_chunks": 949,
+          "routes": {
+            "full_text": 160,
+            "tag": 0,
+            "bounded_expansion": 0
+          },
+          "elapsed_ms": 25.397
+        },
+        "scan_paper_ids": [
+          "P-015A3055B9926C75",
+          "P-162AE15121275C71",
+          "P-6F82E3E7867C38D6",
+          "P-DC5A09484891892F",
+          "P-F7576A0799BC9752"
+        ],
+        "top20_chunk_overlap": 10
+      },
+      {
+        "query": "菜地 N₂O 排放规律",
+        "understanding_ms": 1.339,
+        "mapping_ms": 0.345,
+        "indexed_ms": [
+          298.579,
+          321.204,
+          352.414
+        ],
+        "scan_ms": [
+          2293.545,
+          2369.394,
+          2337.386
+        ],
+        "indexed_paper_ids": [
+          "P-4203E42564114813",
+          "P-58002C681C1A664A",
+          "P-720DC9921896CD10",
+          "P-BFD7D1005838431D",
+          "P-F7576A0799BC9752"
+        ],
+        "pipeline": {
+          "version": "local-postings-v2",
+          "status": "ready",
+          "material_count": 35,
+          "rebuilt_materials": 0,
+          "candidate_count": 160,
+          "candidate_budget": 160,
+          "coverage": "bounded",
+          "chunk_count": 5497,
+          "excluded_reference_chunks": 949,
+          "routes": {
+            "full_text": 160,
+            "tag": 0,
+            "bounded_expansion": 0
+          },
+          "elapsed_ms": 17.409
+        },
+        "scan_paper_ids": [
+          "P-4203E42564114813",
+          "P-4C4F471B773A9FF4",
+          "P-720DC9921896CD10",
+          "P-BFD7D1005838431D",
+          "P-D59CFB29996B04E3",
+          "P-F7576A0799BC9752"
+        ],
+        "top20_chunk_overlap": 5
+      },
+      {
+        "query": "氧化亚氮排放变化",
+        "understanding_ms": 0.741,
+        "mapping_ms": 0.263,
+        "indexed_ms": [
+          320.338,
+          318.586,
+          318.519
+        ],
+        "scan_ms": [
+          2342.115,
+          2405.38,
+          2413.36
+        ],
+        "indexed_paper_ids": [
+          "P-4203E42564114813",
+          "P-720DC9921896CD10",
+          "P-F7576A0799BC9752"
+        ],
+        "pipeline": {
+          "version": "local-postings-v2",
+          "status": "ready",
+          "material_count": 35,
+          "rebuilt_materials": 0,
+          "candidate_count": 160,
+          "candidate_budget": 160,
+          "coverage": "bounded",
+          "chunk_count": 5497,
+          "excluded_reference_chunks": 949,
+          "routes": {
+            "full_text": 160,
+            "tag": 0,
+            "bounded_expansion": 0
+          },
+          "elapsed_ms": 22.597
+        },
+        "scan_paper_ids": [
+          "P-4203E42564114813",
+          "P-720DC9921896CD10",
+          "P-F7576A0799BC9752"
+        ],
+        "top20_chunk_overlap": 10
+      },
+      {
+        "query": "WHCNS模型的氮平衡",
+        "understanding_ms": 0.828,
+        "mapping_ms": 0.154,
+        "indexed_ms": [
+          290.976,
+          273.153,
+          294.816
+        ],
+        "scan_ms": [
+          2289.118,
+          2317.333,
+          2356.696
+        ],
+        "indexed_paper_ids": [
+          "P-162AE15121275C71",
+          "P-1875190DB8ABD83D",
+          "P-1E68B134F3182EA2",
+          "P-4203E42564114813",
+          "P-8ACB9B163610CF0F",
+          "P-F7576A0799BC9752"
+        ],
+        "pipeline": {
+          "version": "local-postings-v2",
+          "status": "ready",
+          "material_count": 35,
+          "rebuilt_materials": 0,
+          "candidate_count": 160,
+          "candidate_budget": 160,
+          "coverage": "bounded",
+          "chunk_count": 5497,
+          "excluded_reference_chunks": 949,
+          "routes": {
+            "full_text": 160,
+            "tag": 0,
+            "bounded_expansion": 0
+          },
+          "elapsed_ms": 21.786
+        },
+        "scan_paper_ids": [
+          "P-0B728B14BBB46A9F",
+          "P-162AE15121275C71",
+          "P-1875190DB8ABD83D",
+          "P-F7576A0799BC9752"
+        ],
+        "top20_chunk_overlap": 4
+      },
+      {
+        "query": "土壤水分与硝态氮迁移",
+        "understanding_ms": 0.902,
+        "mapping_ms": 0.348,
+        "indexed_ms": [
+          225.845,
+          216.198,
+          217.442
+        ],
+        "scan_ms": [
+          2509.257,
+          2456.032,
+          2418.552
+        ],
+        "indexed_paper_ids": [
+          "P-015A3055B9926C75",
+          "P-15EAE5D04BBE2655",
+          "P-1E68B134F3182EA2",
+          "P-64E652D3DDA93B3E",
+          "P-6F82E3E7867C38D6",
+          "P-7B96770C90774E82",
+          "P-7EFD3785B2888F9D",
+          "P-8266412082732F6D",
+          "P-D59CFB29996B04E3"
+        ],
+        "pipeline": {
+          "version": "local-postings-v2",
+          "status": "ready",
+          "material_count": 35,
+          "rebuilt_materials": 0,
+          "candidate_count": 160,
+          "candidate_budget": 160,
+          "coverage": "bounded",
+          "chunk_count": 5497,
+          "excluded_reference_chunks": 949,
+          "routes": {
+            "full_text": 160,
+            "tag": 0,
+            "bounded_expansion": 0
+          },
+          "elapsed_ms": 27.364
+        },
+        "scan_paper_ids": [
+          "P-015A3055B9926C75",
+          "P-06A6CE61B4F97F8B",
+          "P-162AE15121275C71",
+          "P-1E68B134F3182EA2",
+          "P-64E652D3DDA93B3E",
+          "P-6F82E3E7867C38D6",
+          "P-8266412082732F6D",
+          "P-D59CFB29996B04E3"
+        ],
+        "top20_chunk_overlap": 10
+      },
+      {
+        "query": "小麦氮素利用效率",
+        "understanding_ms": 0.779,
+        "mapping_ms": 0.153,
+        "indexed_ms": [
+          312.938,
+          335.943,
+          338.721
+        ],
+        "scan_ms": [
+          2477.065,
+          2680.19,
+          2647.665
+        ],
+        "indexed_paper_ids": [
+          "P-0B728B14BBB46A9F",
+          "P-12B49675B51455EB",
+          "P-4203E42564114813",
+          "P-7B96770C90774E82",
+          "P-7EFD3785B2888F9D",
+          "P-F7576A0799BC9752"
+        ],
+        "pipeline": {
+          "version": "local-postings-v2",
+          "status": "ready",
+          "material_count": 35,
+          "rebuilt_materials": 0,
+          "candidate_count": 160,
+          "candidate_budget": 160,
+          "coverage": "bounded",
+          "chunk_count": 5497,
+          "excluded_reference_chunks": 949,
+          "routes": {
+            "full_text": 160,
+            "tag": 0,
+            "bounded_expansion": 0
+          },
+          "elapsed_ms": 21.302
+        },
+        "scan_paper_ids": [
+          "P-0B728B14BBB46A9F",
+          "P-7B96770C90774E82",
+          "P-7EFD3785B2888F9D",
+          "P-DC5A09484891892F",
+          "P-F7576A0799BC9752"
+        ],
+        "top20_chunk_overlap": 11
+      },
+      {
+        "query": "灌溉施肥管理",
+        "understanding_ms": 0.796,
+        "mapping_ms": 0.137,
+        "indexed_ms": [
+          337.231,
+          342.917,
+          351.658
+        ],
+        "scan_ms": [
+          2355.487,
+          2561.655,
+          2488.181
+        ],
+        "indexed_paper_ids": [
+          "P-0B728B14BBB46A9F",
+          "P-1875190DB8ABD83D",
+          "P-1E68B134F3182EA2",
+          "P-6F82E3E7867C38D6",
+          "P-D59CFB29996B04E3",
+          "P-DC5A09484891892F",
+          "P-F7576A0799BC9752"
+        ],
+        "pipeline": {
+          "version": "local-postings-v2",
+          "status": "ready",
+          "material_count": 35,
+          "rebuilt_materials": 0,
+          "candidate_count": 160,
+          "candidate_budget": 160,
+          "coverage": "bounded",
+          "chunk_count": 5497,
+          "excluded_reference_chunks": 949,
+          "routes": {
+            "full_text": 160,
+            "tag": 0,
+            "bounded_expansion": 0
+          },
+          "elapsed_ms": 25.996
+        },
+        "scan_paper_ids": [
+          "P-0B728B14BBB46A9F",
+          "P-12B49675B51455EB",
+          "P-6A897C2590EEC53A",
+          "P-6F82E3E7867C38D6",
+          "P-8266412082732F6D",
+          "P-A99AA6CAA70A2189",
+          "P-D59CFB29996B04E3",
+          "P-DC5A09484891892F"
+        ],
+        "top20_chunk_overlap": 7
+      },
+      {
+        "query": "蔬菜田氮排放规律",
+        "understanding_ms": 0.524,
+        "mapping_ms": 0.13,
+        "indexed_ms": [
+          358.968,
+          324.785,
+          480.717
+        ],
+        "scan_ms": [
+          2500.729,
+          2313.748,
+          2399.657
+        ],
+        "indexed_paper_ids": [
+          "P-4203E42564114813",
+          "P-720DC9921896CD10",
+          "P-BFD7D1005838431D",
+          "P-F7576A0799BC9752"
+        ],
+        "pipeline": {
+          "version": "local-postings-v2",
+          "status": "ready",
+          "material_count": 35,
+          "rebuilt_materials": 0,
+          "candidate_count": 160,
+          "candidate_budget": 160,
+          "coverage": "bounded",
+          "chunk_count": 5497,
+          "excluded_reference_chunks": 949,
+          "routes": {
+            "full_text": 160,
+            "tag": 0,
+            "bounded_expansion": 0
+          },
+          "elapsed_ms": 15.914
+        },
+        "scan_paper_ids": [
+          "P-4203E42564114813",
+          "P-F7576A0799BC9752"
+        ],
+        "top20_chunk_overlap": 11
+      }
+    ],
+    "indexed_median_ms": 319.462,
+    "scan_median_ms": 2415.956,
+    "quality_note": "Top20 overlap is diagnostic, not labelled Recall@K or professional review.",
+    "code_sha256": {
+      "backend/src/retrieval/local_index.py": "47dbaa8bffb0edc85941b825c3564a89651f1e716d50b9397540b95d0ddad7d2",
+      "backend/src/rag/literature_index.py": "df3b15b9a45c0142b341c5e6c95f82a8ff0e9c501a0e3155278b282335eaf81c",
+      "backend/src/agent/understanding.py": "d6c68cdd4321d34557d09754e6562f1475cd2951199f5a6933afa0386189d9b9"
+    }
+  },
+  "post_replay_patch": {
+    "change": "Preserve query punctuation; normalize excluded alphanumeric variants only.",
+    "verified_without_model_calls": [
+      {
+        "run_id": "9e48ea5d-6bf9-45cc-8947-b5f6e1c22d5f",
+        "terms_equal": true,
+        "top5_chunks_equal": true
+      },
+      {
+        "run_id": "8d56d5b6-70d1-4873-be5b-229387232db2",
+        "terms_equal": true,
+        "top5_chunks_equal": true
+      },
+      {
+        "run_id": "7f012659-427b-457a-82b3-308f4964e448",
+        "terms_equal": true,
+        "top5_chunks_equal": true
+      },
+      {
+        "run_id": "b3dca455-fdd8-4eb2-983a-964e0281330f",
+        "terms_equal": true,
+        "top5_chunks_equal": true
+      },
+      {
+        "run_id": "9140b377-a1be-497b-9eb4-e1115144a277",
+        "terms_equal": true,
+        "top5_chunks_equal": true
+      }
+    ],
+    "candidate_equivalence_scope": "all 5 literature/concept retrieval rounds; capability and case routes do not use this path",
+    "live_replay_precedes_this_patch": true,
+    "current_agent_code_sha256": "2118bddbafc3456c0b0cde39f2cebc6a36d656c7a310a491ad8f0ba80ff44b6b"
+  },
+  "delivered_code_sha256": {
+    "backend/src/retrieval/local_index.py": "58f83593e795b5147e9493bac927e5b681b1290401e7256ba5e1f78bf4c8bc57",
+    "backend/src/agent/chat_service.py": "6a71ba76f057c8fee45dd18ea1761696076c623d4345c67463122ca890ce4729",
+    "backend/src/agent/understanding.py": "d6c68cdd4321d34557d09754e6562f1475cd2951199f5a6933afa0386189d9b9"
+  },
+  "checks": {
+    "backend": {
+      "command": "backend/.venv/bin/python -m pytest backend/tests -q --tb=short",
+      "passed": 881,
+      "skipped": 4,
+      "failed": 0,
+      "duration_s": 166.41,
+      "warnings": "258 existing Chroma/Pydantic deprecation warnings"
+    },
+    "frontend": {
+      "typescript": "passed",
+      "targeted_eslint": "passed",
+      "browser": {
+        "spec": "evaluation-runs.spec.ts",
+        "passed": 1,
+        "failed": 0
+      }
+    },
+    "diff_whitespace": "passed",
+    "local_index_rebuild_cli": "passed on isolated 35-paper / 6-case fixture"
+  }
+}

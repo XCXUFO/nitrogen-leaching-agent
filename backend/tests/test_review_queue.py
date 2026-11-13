@@ -17,7 +17,7 @@ def test_expert_assignment_disagreement_and_versioned_resolution(client):
     assert client.post(f'/api/eval/executions/{eid}/reviews', headers=headers(), json={
         **score(), 'overall': 'blocked', 'route_correct': 'n.a.', 'answer_correct': 'n.a.',
         'notes': 'synthetic blocked review'}).status_code == 201
-    assert client.get('/api/eval/review-queue', headers=headers()).status_code == 403
+    assert client.get('/api/eval/review-queue', headers=headers('alice')).status_code == 403
     assert client.post(path + '/assignments', headers=headers('dev'), json={'reviewer_id': 'alice'}).status_code == 422
     for name in ('expert', 'expert2'):
         assert client.post(path + '/assignments', headers=headers('dev'), json={'reviewer_id': name}).status_code == 201

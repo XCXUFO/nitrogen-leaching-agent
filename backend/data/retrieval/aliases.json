@@ -1,0 +1,190 @@
+{
+  "version": "local-candidates-v1",
+  "default_usage": "ranking_signal",
+  "note": "本地候选配置。不是线上已审核同义词表；相关主题不等于严格同义。",
+  "entries": [
+    {
+      "tag_ids": [
+        "T-74ce41cce69c"
+      ],
+      "expressions": [
+        "maize",
+        "corn"
+      ],
+      "relation": "alias_candidate",
+      "origin": "existing_code_alias",
+      "review_status": "pending",
+      "usage": "ranking_signal"
+    },
+    {
+      "tag_ids": [
+        "T-9daff4a90de4"
+      ],
+      "expressions": [
+        "wheat"
+      ],
+      "relation": "alias_candidate",
+      "origin": "existing_code_alias",
+      "review_status": "pending",
+      "usage": "ranking_signal"
+    },
+    {
+      "tag_ids": [
+        "T-7bc4c5c129fc"
+      ],
+      "expressions": [
+        "rice"
+      ],
+      "relation": "alias_candidate",
+      "origin": "existing_code_alias",
+      "review_status": "pending",
+      "usage": "ranking_signal"
+    },
+    {
+      "tag_ids": [
+        "T-6a5f07139425"
+      ],
+      "expressions": [
+        "番茄",
+        "tomato"
+      ],
+      "relation": "alias_candidate",
+      "origin": "existing_code_alias",
+      "review_status": "pending",
+      "usage": "ranking_signal"
+    },
+    {
+      "tag_ids": [
+        "T-7d646b48a0ce"
+      ],
+      "expressions": [
+        "irrigation"
+      ],
+      "relation": "alias_candidate",
+      "origin": "existing_code_alias",
+      "review_status": "pending",
+      "usage": "ranking_signal"
+    },
+    {
+      "tag_ids": [
+        "T-e1ba99099af1"
+      ],
+      "expressions": [
+        "drip irrigation"
+      ],
+      "relation": "alias_candidate",
+      "origin": "existing_code_alias",
+      "review_status": "pending",
+      "usage": "ranking_signal"
+    },
+    {
+      "tag_ids": [
+        "T-5e6cb0404324"
+      ],
+      "expressions": [
+        "氮淋失",
+        "氮素淋失",
+        "氮素淋溶",
+        "nitrogen leaching"
+      ],
+      "relation": "alias_candidate",
+      "origin": "proposed_for_local_iteration",
+      "review_status": "pending",
+      "usage": "ranking_signal"
+    },
+    {
+      "tag_ids": [
+        "T-5e6cb0404324"
+      ],
+      "expressions": [
+        "硝态氮淋失",
+        "硝酸盐淋失",
+        "nitrate leaching"
+      ],
+      "relation": "related_topic",
+      "origin": "proposed_for_local_iteration",
+      "review_status": "pending",
+      "usage": "ranking_signal"
+    },
+    {
+      "tag_ids": [
+        "T-abc4fbaaa59a"
+      ],
+      "expressions": [
+        "N2O",
+        "氧化亚氮",
+        "nitrous oxide"
+      ],
+      "relation": "related_topic",
+      "origin": "proposed_for_local_iteration",
+      "review_status": "pending",
+      "usage": "ranking_signal"
+    },
+    {
+      "tag_ids": [
+        "T-23d1a9a0b1ca"
+      ],
+      "expressions": [
+        "NH3",
+        "ammonia volatilization"
+      ],
+      "relation": "related_topic",
+      "origin": "proposed_for_local_iteration",
+      "review_status": "pending",
+      "usage": "ranking_signal"
+    },
+    {
+      "tag_ids": [
+        "T-55fa3491f29b"
+      ],
+      "expressions": [
+        "蒸散量",
+        "evapotranspiration"
+      ],
+      "relation": "alias_candidate",
+      "origin": "proposed_for_local_iteration",
+      "review_status": "pending",
+      "usage": "ranking_signal"
+    },
+    {
+      "tag_ids": [
+        "T-c485d06672b3"
+      ],
+      "expressions": [
+        "土豆",
+        "potato"
+      ],
+      "relation": "alias_candidate",
+      "origin": "proposed_for_local_iteration",
+      "review_status": "pending",
+      "usage": "ranking_signal"
+    },
+    {
+      "tag_ids": [
+        "T-44bfc73bae52"
+      ],
+      "expressions": [
+        "硝化抑制剂",
+        "反硝化抑制剂",
+        "脲酶抑制剂"
+      ],
+      "relation": "related_topic",
+      "origin": "proposed_for_local_iteration",
+      "review_status": "pending",
+      "usage": "ranking_signal"
+    },
+    {
+      "tag_ids": [
+        "T-1711fa953294"
+      ],
+      "expressions": [
+        "缓释肥",
+        "控释肥"
+      ],
+      "relation": "related_topic",
+      "origin": "proposed_for_local_iteration",
+      "review_status": "pending",
+      "usage": "ranking_signal"
+    }
+  ]
+}

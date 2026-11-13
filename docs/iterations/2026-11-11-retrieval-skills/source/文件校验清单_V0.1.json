@@ -1,0 +1,133 @@
+{
+  "date": "2026-11-11",
+  "files": [
+    {
+      "file": "标签与Skill本地迭代包/README.md",
+      "sha256": "5f1e29ff5f35ff71a5bdaa030ff8e245632b1c1b33978c388a828522f0d5ee10"
+    },
+    {
+      "file": "标签与Skill本地迭代包/aliases.proposed.json",
+      "sha256": "e11489d3bdea66f18f90c238a50f2f49eebbf50691ee994af0907b0e85720054"
+    },
+    {
+      "file": "标签与Skill本地迭代包/examples/N2O.input.json",
+      "sha256": "7de6b5705a6c8ae26b1e896c8fc49a74c2e62049917552a236fa7089a5270ba0"
+    },
+    {
+      "file": "标签与Skill本地迭代包/examples/N2O.output.json",
+      "sha256": "b348332e56c6b69fe81d8c0e3d1e8fe0d21245818af8d5b5bb20481588f06990"
+    },
+    {
+      "file": "标签与Skill本地迭代包/examples/WHCNS介绍.input.json",
+      "sha256": "c909f8036acf9726dd9fb8837c8e626a0104dbc5669e67e6c2c3364274dcff73"
+    },
+    {
+      "file": "标签与Skill本地迭代包/examples/WHCNS介绍.output.json",
+      "sha256": "0b8a00a0133f282e5624f7c35b6c9c66c052a0014f78921e6f522510386b1646"
+    },
+    {
+      "file": "标签与Skill本地迭代包/examples/排除条件.input.json",
+      "sha256": "34d665f7d324a101fdf88ae6468ce8d4de71e909b2100ef5b9abfee3d107503d"
+    },
+    {
+      "file": "标签与Skill本地迭代包/examples/排除条件.output.json",
+      "sha256": "bdc554324f9e6556afba5f25b3cfe7f6c81f3d08170f78ea02f79a75b6d9d0a0"
+    },
+    {
+      "file": "标签与Skill本地迭代包/examples/玉米氮淋失.input.json",
+      "sha256": "b1e1b8c2e59cc7fad8eb65d2e6b4d61de76ba167aab787f4c619acf1a5c0e2e0"
+    },
+    {
+      "file": "标签与Skill本地迭代包/examples/玉米氮淋失.output.json",
+      "sha256": "e0da5526c0d29f802a6951613bfb61b8cf9975b27470697392e566f1025e2b57"
+    },
+    {
+      "file": "标签与Skill本地迭代包/examples/陕西歧义.input.json",
+      "sha256": "0960f6741c85f1ab49727ec83ea1eabbb9e2d836975ee43963fc061c5768c0a1"
+    },
+    {
+      "file": "标签与Skill本地迭代包/examples/陕西歧义.output.json",
+      "sha256": "e78ad93375b7b32bb163fa77ab13ca7e78c99610b5ad93d806f61443bbe0d5c5"
+    },
+    {
+      "file": "标签与Skill本地迭代包/intent_skill_mapping.json",
+      "sha256": "4a85340604219f6eb90c0f6419260db79b196de19e57a9e9323fd1d7193f5b65"
+    },
+    {
+      "file": "标签与Skill本地迭代包/match_keywords.py",
+      "sha256": "f78ceb90f6aedcb44b73de69cce5666ef366b8dd61ea2c0fa79c45895b8a3469"
+    },
+    {
+      "file": "标签与Skill本地迭代包/skills.json",
+      "sha256": "3ceb761bad87069edde7ef745f53f3c42a094a0eee1c521a47f97145aaab16b5"
+    },
+    {
+      "file": "标签与Skill本地迭代包/taxonomy.json",
+      "sha256": "4e11c5deb12154c88a2748c5f812c32c9980ed44c153e6be06a452d785ab089a"
+    },
+    {
+      "file": "标签与Skill本地迭代包/原实现参考/backend/src/agent/case_retrieval.py",
+      "sha256": "9e4d91a8aa5ee32cb62a8505e90c837a4305eccc9e2e9eff0d1c0b0fa750e43b"
+    },
+    {
+      "file": "标签与Skill本地迭代包/原实现参考/backend/src/agent/query_intent.py",
+      "sha256": "4d0b1e4f33437218b6f7c8d2755fbc6595d5d8ba140b1577e17015a01af662bb"
+    },
+    {
+      "file": "标签与Skill本地迭代包/原实现参考/backend/src/agent/routing.py",
+      "sha256": "8df64e2cb516950e07857da1985f6a7bec96e570a75233b44f0d959475c0a9a2"
+    },
+    {
+      "file": "标签与Skill本地迭代包/原实现参考/backend/src/agent/skill_catalog.py",
+      "sha256": "ce684f3fffbfff5fb88ceafd43f74e8242f847e563b25d5a7712e821cf500c53"
+    },
+    {
+      "file": "标签与Skill本地迭代包/原实现参考/backend/src/agent/understanding.py",
+      "sha256": "a12e7feef14af68c7ff14f04fcd409f643334996abf422c1ee2fbdb21fdf8961"
+    },
+    {
+      "file": "标签与Skill本地迭代包/原实现参考/backend/src/rag/literature_index.py",
+      "sha256": "011f647ea4ffc4efad48bb6f06a4c8279e7fb3cc431f45929a16b6346cfbd704"
+    },
+    {
+      "file": "标签与Skill本地迭代包/原实现参考/docs/iterations/2026-10-17-prd-review/revised-prd/01_问题理解与上下文_PRD.md",
+      "sha256": "b2b6ed599a197953c7f52baf6b841b1f21af50a69422178f38d146b7d7cb7db6"
+    },
+    {
+      "file": "标签与Skill本地迭代包/原实现参考/docs/iterations/2026-10-17-prd-review/revised-prd/05_共享标签与语义映射_PRD.md",
+      "sha256": "5d754533a50e6d002feb09dc68220b903249c6af3e2b24be11ac8033744a336b"
+    },
+    {
+      "file": "标签与Skill本地迭代包/原实现参考/docs/iterations/2026-10-17-prd-review/revised-prd/06_路由与Skill编排_PRD.md",
+      "sha256": "a9c1c7bd14b849c2be0f33d96606f72703235280c53f7d81b8528097e260ea4e"
+    },
+    {
+      "file": "标签与Skill本地迭代包/原实现参考/docs/iterations/2026-10-17-prd-review/revised-prd/14_跨模块运行与审查契约.md",
+      "sha256": "0a002cb4df2fa45898c7af7094dbecce6a6e72508b398d295f7540891a3ae570"
+    },
+    {
+      "file": "标签与Skill本地迭代包/原实现参考/来源说明.json",
+      "sha256": "9e3894d12763dcd991d146bdfce91285ef9fba1c3006deb3c56e47d3654ce4c9"
+    },
+    {
+      "file": "标签与Skill本地迭代包/原实现同义词.json",
+      "sha256": "cc3459010509cea0eb86c71833aae7c308ba603ded8d54b99abb1e64c895f5ac"
+    },
+    {
+      "file": "标签与Skill本地迭代包/本地校验结果.json",
+      "sha256": "cb5461cef89f52ba9aaeef782807e48c942415176de5064a407a41c3ac02f7f9"
+    },
+    {
+      "file": "标签与Skill本地迭代包/标签全表.md",
+      "sha256": "0a65f0140f4444b0daef4d364ea0210c32d2cbb99163df587e58ef4502c2cabb"
+    },
+    {
+      "file": "标签与Skill本地迭代包/线上标签页面原始行.json",
+      "sha256": "6ff0e43bdc877f3cfe9a29b5a59903fd6a109ee813a8454dcd0131bc79970f6f"
+    },
+    {
+      "file": "检索与Skill链路改造_PRD_V0.1.md",
+      "sha256": "40f44e72894cf5fe3edf0a94406b4a1872184c3ae445c68f69fcab2dba4bf345"
+    }
+  ]
+}

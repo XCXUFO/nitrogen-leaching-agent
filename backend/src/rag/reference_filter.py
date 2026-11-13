@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -34,6 +35,7 @@ def is_reference_chunk(text: str) -> bool:
     paragraphs often cite papers too, so a single year or journal abbreviation
     is not enough to drop a chunk.
     """
+    text = unicodedata.normalize("NFKC", text)
     normalized = " ".join(text.split())
     if not normalized:
         return False
@@ -49,6 +51,9 @@ def is_reference_chunk(text: str) -> bool:
     starts_in_reference_section = normalized.lower().startswith(
         ("references ", "reference ")
     )
+
+    if re.search(r"(?im)^\s*(?:references?|参\s*考\s*文\s*献)\s*[:：]?\s*(?:\n|$)", text) and (years >= 1 or journal_hints >= 1):
+        return True
 
     if starts_in_reference_section and (years >= 1 or journal_hints >= 1):
         return True

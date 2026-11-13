@@ -8,9 +8,9 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-for (const [username, role] of [['cau_dev', '开发者'], ['cau_expert1', '领域审核人'], ['cau_tester1', '测试者']]) {
+for (const [username, role] of [['cau_dev', '开发者'], ['cau_expert1', '专家'], ['cau_tester1', '普通账号 · 只读']]) {
   test(`${role}: front login, navigation, reload and shared logout`, async ({ page }) => {
-    if (role === '领域审核人') await page.setViewportSize({ width: 390, height: 844 });
+    if (role === '专家') await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/');
     await page.getByRole('link', { name: '内部人员登录' }).click();
     await page.getByLabel('账号', { exact: true }).fill(username);
@@ -24,7 +24,10 @@ for (const [username, role] of [['cau_dev', '开发者'], ['cau_expert1', '领�
     await page.reload();
     await expect(page.locator('header')).toContainText(username);
     await expect(page.getByLabel('密码', { exact: true })).toHaveCount(0);
-    await page.locator('header').getByRole('link', { name: '返回对话' }).click();
+    if (role === '专家') {
+      await page.getByRole('button', { name: '打开导航' }).click();
+      await page.getByRole('dialog', { name: '移动端导航' }).getByRole('link', { name: '返回对话' }).click();
+    } else await page.locator('header').getByRole('link', { name: '返回对话' }).click();
     await expect(page).toHaveURL(/\/$/);
     await page.reload();
     await expect(page.getByLabel('内部人员身份')).toContainText(username);
@@ -41,6 +44,8 @@ test('front requests use verified identity and credentials remain window-scoped'
   await page.getByLabel('密码', { exact: true }).fill('CauTest123456');
   await page.getByRole('button', { name: '进入工作台' }).click();
   await page.locator('header').getByRole('link', { name: '返回对话' }).click();
+  await expect(page.getByLabel('内部人员身份')).toContainText('cau_tester2');
+  await page.getByRole('button', { name: '新对话', exact: true }).click();
   const chatRequest = page.waitForRequest(request => request.url().endsWith('/api/chat'));
   await page.getByRole('button', { name: '了解支持的能力' }).click();
   const request = await chatRequest;

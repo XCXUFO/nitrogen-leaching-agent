@@ -1,0 +1,76 @@
+{
+  "schema_version": "local-prematch-v1",
+  "input_keywords": [
+    "陕西",
+    "小麦"
+  ],
+  "input_intents": [
+    "case_search"
+  ],
+  "mappings": [
+    {
+      "term": "陕西",
+      "polarity": "include",
+      "source": "current_user",
+      "condition_id": null,
+      "object_group": "subject",
+      "status": "ambiguous",
+      "usage": "ranking_signal",
+      "requires_resolution": false,
+      "candidates": [
+        {
+          "id": "T-24799bce23b7",
+          "dimension_key": "region",
+          "path": "黄土高原 / 陕西",
+          "method": "exact_name_or_path",
+          "review_status": null,
+          "descendant_ids": []
+        },
+        {
+          "id": "T-cafd9629e04b",
+          "dimension_key": "region",
+          "path": "西北 / 陕西",
+          "method": "exact_name_or_path",
+          "review_status": null,
+          "descendant_ids": []
+        }
+      ]
+    },
+    {
+      "term": "小麦",
+      "polarity": "include",
+      "source": "current_user",
+      "condition_id": null,
+      "object_group": "subject",
+      "status": "matched",
+      "usage": "ranking_signal",
+      "requires_resolution": false,
+      "candidates": [
+        {
+          "id": "T-9daff4a90de4",
+          "dimension_key": "crop",
+          "path": "粮食作物 / 小麦",
+          "method": "exact_name_or_path",
+          "review_status": null,
+          "descendant_ids": []
+        }
+      ]
+    }
+  ],
+  "unmatched_keywords": [],
+  "unresolved_intents": [],
+  "skill_candidates": [
+    {
+      "id": "case_reference",
+      "title": "案例与措施参考",
+      "observed_status": "依赖待验证"
+    }
+  ],
+  "fallback": {
+    "keep_original_query": true,
+    "keep_unmatched_keywords": true,
+    "retrieve_untagged_content": true,
+    "runtime_access_checks_required": true
+  },
+  "note": "关键词和意图由上游提供；输出是初步候选，不表示资料符合条件或 skill 已执行。"
+}

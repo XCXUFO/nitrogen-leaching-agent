@@ -122,3 +122,30 @@ test('a fresh account window recovers an unfinished regeneration without resubmi
   await expect(page.getByLabel('问题输入')).toBeEnabled();
   expect(submissions).toBe(0);
 });
+
+test('restored case suggestions and regeneration retain their structured case scope', async ({ page }) => {
+  const ids = ['C-0000000000000001'];
+  const saved = initial('case-history', '上面这个案例的适用条件是什么？');
+  saved.turns[0].recoverable = true;
+  saved.turns[0].expires_at = Date.now() / 1000 + 3600;
+  saved.turns[0].request.caseIds = ids;
+  saved.turns[0].response = { ...response('这份案例记录了滴灌措施，未记载确定的效果。'),
+    case_match: 'matched', case_route: ['case_assistant'],
+    case_references: [{ id: ids[0], title: '玉米滴灌', source: '测试资料' }] };
+  const requests: ChatRequest[] = [];
+  await page.addInitScript(() => sessionStorage.setItem('nitrogen_account_session', JSON.stringify({ token: 'token-a', username: 'a' })));
+  await page.route('**/api/eval/me', route => route.fulfill({ json: { tester_id: 'a', role: 'tester' } }));
+  await page.route('**/api/chat/history?*', route => route.fulfill({ json: { items: [saved], total: 1 } }));
+  await page.route('**/api/chat/session', route => route.fulfill({ status: 404, json: {} }));
+  await page.route('**/api/chat', route => {
+    requests.push(route.request().postDataJSON());
+    return route.fulfill({ json: saved.turns[0].response });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: '重新回答', exact: true }).click();
+  await expect.poll(() => requests.length).toBe(1);
+  expect(requests[0].case_ids).toEqual(ids);
+  await page.getByRole('region', { name: '推荐追问' }).getByRole('button').last().click();
+  await expect.poll(() => requests.length).toBe(2);
+  expect(requests[1].case_ids).toEqual(ids);
+});

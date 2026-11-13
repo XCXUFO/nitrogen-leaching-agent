@@ -70,7 +70,7 @@ export function EvaluationTasks({ token, role, cases, tasks, currentCase, select
   }
   const visibleCases = cases.filter((item) => `${keyOf(item)} ${item.case.title}`.toLowerCase().includes(caseSearch.toLowerCase()));
   const visibleTasks = tasks.filter((item) => `${item.title} ${item.task_id} ${item.build_version}`.toLowerCase().includes(taskSearch.toLowerCase()));
-  if (view === "new" && role !== "developer") return <p role="alert">当前身份只能查看任务和准备自己的执行。</p>;
+  if (view === "new" && role !== "developer") return <p role="alert">新建任务需要开发者权限。</p>;
   return <section aria-label="任务管理" className={`rounded-lg border ${view === "list" ? "space-y-3 p-3" : "space-y-4 p-5"}`}>
     <div className="flex flex-wrap justify-between gap-3"><div><h2 className="text-lg font-semibold">任务管理</h2></div>
       <div className="flex gap-2">{role === "developer" && view === "list" && <Link className="rounded-lg bg-emerald-700 px-4 py-2 text-sm text-white" href={evaluationHref("tasks", "new")}>新建任务</Link>}<button className={button} disabled={busy} onClick={() => void perform(async () => { await onRefresh(); setGeneration((value) => value + 1); })}>刷新任务</button></div></div>
@@ -119,10 +119,10 @@ export function EvaluationTasks({ token, role, cases, tasks, currentCase, select
       <p className="text-sm">{progress.scope === "own" ? "我的进度" : "任务整体进度"}：{progress.summary.total_cases} 个用例版本 · 已准备 {progress.summary.prepared_cases} · 已开始 {progress.summary.started_cases} · 已评分 {progress.summary.reviewed_cases} · 执行 {progress.summary.executions} 次</p>
       <p className="text-xs text-muted-foreground">批量准备为本人补齐尚无执行的用例；重复点击不会新建重复记录。打开后重置上下文，再按用例步骤执行并独立评分。</p>
       {config && config !== progress.task.runtime_config_version && <p className="text-sm text-amber-800">当前服务配置与冻结任务不同，请为新版本新建任务；历史证据仍可查看。</p>}
-      <button className={button} disabled={busy || !config || config !== progress.task.runtime_config_version} onClick={() => void perform(async () => {
+      {role !== "tester" && <button className={button} disabled={busy || !config || config !== progress.task.runtime_config_version} onClick={() => void perform(async () => {
         await request(token, `/tasks/${progress.task.task_id}/prepare`, evaluationJson({}));
         await onRefresh(); setGeneration((value) => value + 1); setNotice("已为本人补齐执行，请逐项打开继续。");
-      })}>批量准备我的执行</button>
+      })}>批量准备我的执行</button>}
       {role === "developer" && <button className={`${button} ml-2`} disabled={busy} onClick={() => void perform(async () => {
         const evidence = await request<Record<string, unknown>>(token, `/tasks/${progress.task.task_id}/evidence`);
         const url = URL.createObjectURL(new Blob([JSON.stringify(evidence, null, 2)], { type: "application/json" }));

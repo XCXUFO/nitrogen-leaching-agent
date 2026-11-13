@@ -1,0 +1,41 @@
+.trigger {
+  /* Other cells determine the row height; tags use that space without enlarging it. */
+  position: absolute;
+  inset: 12px 16px;
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  border-radius: 4px;
+  padding: 0 6px;
+  text-align: left;
+  color: var(--foreground);
+  font-size: 12px;
+  line-height: 18px;
+  vertical-align: middle;
+}
+
+.trigger:hover,
+.trigger[data-popup-open] { background: var(--muted); }
+.trigger:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.summary { min-width: 0; max-height: 100%; flex: 1; overflow: hidden; }
+.line { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.count { flex-shrink: 0; color: var(--muted-foreground); font-size: 12px; font-variant-numeric: tabular-nums; }
+.positioner { z-index: 60; max-width: calc(100vw - 24px); }
+
+.popup {
+  width: min(360px, var(--available-width));
+  max-height: min(320px, var(--available-height));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  padding: 12px;
+  box-shadow: 0 4px 16px rgb(24 45 32 / 12%);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.tags { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.tag { max-width: 100%; border-radius: 4px; background: var(--muted); padding: 4px 8px; overflow-wrap: anywhere; white-space: normal; }

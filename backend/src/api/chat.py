@@ -26,9 +26,26 @@ from src.api.chat_schema import ChatRequest, ChatResponse, ChatRunView
 from src.api.files import file_store
 from src.evaluation.auth import current_user, front_principal
 from src.rag.documents import citation_metadata
+from src.evaluation.conversation_cases import FeedbackInput, IssueInput
 
 router = APIRouter()
 CHAT_REQUEST_TIMEOUT_S = 240.0
+
+
+@router.post('/chat/feedback', status_code=201)
+def feedback(request: Request, body: FeedbackInput):
+    user = front_principal(request)
+    visitor = getattr(request.state, 'public_visitor', None)
+    actor = user.tester_id if user else 'visitor_' + visitor if visitor else None
+    if actor is None:
+        raise HTTPException(401, detail={'code': 'feedback_identity_required', 'message': '请恢复登录或刷新页面后提交反馈。'})
+    runs = request.app.state.agent_runtime.runs
+    session = runs.session(body.run_id)
+    if not session or session['operator_id'] != actor:
+        raise HTTPException(404, detail={'code': 'feedback_run_missing', 'message': '未找到你的这条回答。'})
+    issue = runs.conversation_cases.create_issue(IssueInput(session_id=session['session_id'],
+        run_id=body.run_id, note=body.note), actor, source='feedback', submission_id=body.submission_id)
+    return {'issue_id': issue['issue_id'], 'status': 'received'}
 
 
 def run_manager(request: Request) -> ChatRunManager:
@@ -173,7 +190,7 @@ async def chat(request: Request, body: ChatRequest) -> ChatResponse | JSONRespon
         receipt = run_manager(request).submit(execute=execute, owner=owner, session_id=body.session_id,
                                              turn_id=body.turn_id, request_id=body.request_id,
                                              fingerprint=fingerprint, rerun_of_run_id=body.rerun_of_run_id,
-                                             config_version=runtime.config_version + ":" + expression_config["version"] + ":" + expression_config["communication"]["version"], mode="specified" if body.case_skill else "auto",
+                                             config_version=runtime.config_version + ":" + expression_config["version"] + ":" + expression_config["communication"]["version"], mode="specified" if (body.case_skill or body.case_mode) else "auto",
                                              on_created=transfer_slot if slot else None, on_finished=release_slot if slot else None)
         if internal:
             runtime.runs.history.record(internal.tester_id, client_session_id, body.session_id,
@@ -193,18 +210,28 @@ async def chat(request: Request, body: ChatRequest) -> ChatResponse | JSONRespon
 
 async def execute_chat(request: Request, body: ChatRequest, runtime: AgentRuntime, **execution_options) -> ChatResponse:
     t0 = time.perf_counter()
+    attachments = []
+    for token in dict.fromkeys(([body.file_id] if body.file_id else []) + (body.file_ids or [])):
+        entry = file_store(request).entries.get(token)
+        if entry is not None:
+            if entry.original_path is not None:
+                runtime.runs.attachments.put(entry.original_path.read_bytes(), entry.sha256)
+            attachments.append({"filename": entry.filename, "sha256": entry.sha256, "format": entry.format})
     try:
         response = await asyncio.wait_for(runtime.execute(body, service=getattr(request.app.state, "chat_service", None),
+                                         attachment_metadata=attachments,
                                          get_report=file_store(request).inspect,
                                          get_documents=file_store(request).documents,
                                          case_store=getattr(request.app.state, "case_library", None),
-                                         taxonomy_provider=getattr(getattr(request.app.state, "literature", None), "taxonomy", None),
+                                         taxonomy_provider=getattr(getattr(request.app.state, "literature", None), "matching_taxonomy", None),
                                          starred_provider=getattr(getattr(getattr(request.app.state, "evaluation", None), "store", None), "starred_questions", None),
                                          llm=getattr(request.app.state, "llm", None), **execution_options), timeout=CHAT_REQUEST_TIMEOUT_S)
         library = getattr(request.app.state, "literature", None)
         enriched = []
         for citation in response.citations:
-            if citation.source.startswith("session://"):
+            if citation.source_type == "web":
+                metadata = {}
+            elif citation.source.startswith("session://"):
                 metadata = {"title": citation.source.rsplit("/", 1)[-1], "author_hint": None, "year": None,
                             "document_id": citation.source.split("/", 3)[2], "document_available": False}
             else:

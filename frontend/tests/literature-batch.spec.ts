@@ -6,8 +6,8 @@ test('batch limit, defaults, mixed uploads, background receipts and review links
   await page.route('**/api/**', async (route) => {
     const path = new URL(route.request().url()).pathname;
     let json: unknown = {};
-    if (path === '/api/eval/me') json = { tester_id: 'tester', role: 'tester' };
-    else if (path === '/api/eval/login') json = { token: 'test-token', user: { tester_id: 'tester', role: 'tester' } };
+    if (path === '/api/eval/me') json = { tester_id: 'tester', role: 'developer' };
+    else if (path === '/api/eval/login') json = { token: 'test-token', user: { tester_id: 'tester', role: 'developer' } };
     else if (path === '/api/literature/taxonomy') json = { dimensions: [], tags: [] };
     else if (path === '/api/literature/users') json = [];
     else if (path === '/api/literature/config') json = { max_pdf_mb: 100 };
@@ -79,8 +79,8 @@ test('repeated file selections accumulate and retain completed uploads', async (
   await page.route('**/api/**', async route => {
     const url = new URL(route.request().url());
     let json: unknown = {};
-    if (url.pathname === '/api/eval/me') json = { tester_id: 'tester', role: 'tester' };
-    else if (url.pathname === '/api/eval/login') json = { token: 'test-token', user: { tester_id: 'tester', role: 'tester' } };
+    if (url.pathname === '/api/eval/me') json = { tester_id: 'tester', role: 'developer' };
+    else if (url.pathname === '/api/eval/login') json = { token: 'test-token', user: { tester_id: 'tester', role: 'developer' } };
     else if (url.pathname.endsWith('/taxonomy')) json = { dimensions: [], tags: [] };
     else if (url.pathname.endsWith('/users')) json = [];
     else if (url.pathname.endsWith('/config')) json = { max_pdf_mb: 100 };

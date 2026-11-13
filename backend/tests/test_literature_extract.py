@@ -30,11 +30,13 @@ def test_extract_owned_upload_and_existing_paper_without_saving(tmp_path):
     llm = FakeLLM()
     app.state.llm = llm
     with TestClient(app) as client:
-        client.headers["Authorization"] = f"Bearer {TOKENS['tester']}"
+        client.headers["Authorization"] = f"Bearer {TOKENS['developer']}"
         raw = pdf_bytes("Nitrogen leaching in maize. Li Wei. Agronomy Journal 2024. DOI 10.1234/nitrogen.2024. Field results show nitrogen leaching patterns.")
         upload = client.post("/api/literature/uploads?filename=paper.pdf", content=raw).json()
         denied = client.post("/api/literature/extract", headers={"Authorization": f"Bearer {TOKENS['reviewer']}"}, json={"upload_id": upload["upload_id"]})
-        assert denied.status_code == 404
+        assert denied.status_code == 403
+        assert client.post('/api/literature/extract', headers={"Authorization": f"Bearer {TOKENS['other-developer']}"},
+                           json={"upload_id": upload["upload_id"]}).status_code == 404
         extracted = client.post("/api/literature/extract", json={"upload_id": upload["upload_id"]})
         assert extracted.status_code == 200, extracted.text
         assert extracted.json()["fields"]["authors"] == [{"name": "Li Wei", "kind": "person"}]
@@ -50,7 +52,7 @@ def test_extract_owned_upload_and_existing_paper_without_saving(tmp_path):
 def test_extract_reports_scanned_pdf_and_unavailable_ai(tmp_path):
     app = create_app(tmp_path)
     with TestClient(app) as client:
-        client.headers["Authorization"] = f"Bearer {TOKENS['tester']}"
+        client.headers["Authorization"] = f"Bearer {TOKENS['developer']}"
         upload = client.post("/api/literature/uploads?filename=scan.pdf", content=pdf_bytes(" ")).json()
         no_ai = client.post("/api/literature/extract", json={"upload_id": upload["upload_id"]})
         assert no_ai.status_code == 422
@@ -73,7 +75,7 @@ def test_extract_uses_pdf_metadata_when_model_connection_fails(tmp_path):
     llm = BrokenLLM()
     app.state.llm = llm
     with TestClient(app) as client:
-        client.headers["Authorization"] = f"Bearer {TOKENS['tester']}"
+        client.headers["Authorization"] = f"Bearer {TOKENS['developer']}"
         raw = pdf_bytes(
             "Journal of Agronomy 42 (2024). Nitrogen leaching in maize fields. "
             "This paper examines field data and reports significant nitrogen losses.",
@@ -98,7 +100,7 @@ def test_local_metadata_failure_does_not_block_online_extraction(tmp_path):
     app = create_app(tmp_path)
     app.state.llm = FakeLLM()
     with TestClient(app) as client:
-        client.headers["Authorization"] = f"Bearer {TOKENS['tester']}"
+        client.headers["Authorization"] = f"Bearer {TOKENS['developer']}"
         raw = pdf_bytes("Nitrogen leaching in maize fields. A study with sufficient selectable text.",
                         {"subject": "doi:10.1234/" + "x" * 301})
         upload = client.post("/api/literature/uploads?filename=paper.pdf", content=raw).json()
@@ -122,7 +124,7 @@ def test_invalid_model_output_does_not_disable_next_extraction(tmp_path):
     app = create_app(tmp_path)
     app.state.llm = OnceInvalidLLM()
     with TestClient(app) as client:
-        client.headers["Authorization"] = f"Bearer {TOKENS['tester']}"
+        client.headers["Authorization"] = f"Bearer {TOKENS['developer']}"
         raw = pdf_bytes("Nitrogen leaching in maize fields. A study with sufficient selectable text.")
         upload = client.post("/api/literature/uploads?filename=paper.pdf", content=raw).json()
         target = {"upload_id": upload["upload_id"]}
@@ -183,7 +185,7 @@ def test_conclusion_suggestion_and_manual_edit_survive_reopening(tmp_path):
     app = create_app(tmp_path)
     app.state.llm = ConclusionLLM()
     with TestClient(app) as client:
-        client.headers["Authorization"] = f"Bearer {TOKENS['tester']}"
+        client.headers["Authorization"] = f"Bearer {TOKENS['developer']}"
         upload = client.post("/api/literature/uploads?filename=conclusions.pdf",
                              content=pdf_bytes("5. Conclusions\n" + conclusion)).json()
         paper = client.post("/api/literature/papers", json={"upload_id": upload["upload_id"], "title": "Original"}).json()
@@ -205,6 +207,8 @@ def test_conclusion_suggestion_and_manual_edit_survive_reopening(tmp_path):
         record = client.get(path).json()
         assert record["conclusion"] == conclusion + "\n手动补充说明"
         old_client_payload = {key: value for key, value in record.items() if key != "conclusion"}
+        assert client.put(path, json=old_client_payload).status_code == 403
+        client.headers["Authorization"] = f"Bearer {TOKENS['developer']}"
         assert client.put(path, json=old_client_payload).json()["conclusion"] == record["conclusion"]
         record = client.get(path).json()
         assert client.put(path, json={**record, "conclusion": ""}).json()["conclusion"] == ""

@@ -1,5 +1,8 @@
 import importlib.util
 import json
+import shutil
+import subprocess
+import sys
 from pathlib import Path
 import pytest
 
@@ -36,3 +39,35 @@ def test_missing_source_wrong_build_and_wrong_proxy_are_rejected(tmp_path):
     with pytest.raises(ValueError, match='backend'): checks.build_binding(tmp_path, '.next-candidate', 'http://127.0.0.1:8107')
     (tmp_path / 'source.py').unlink()
     with pytest.raises(ValueError, match='missing'): checks.verify(tmp_path, manifest)
+
+
+def test_delivery_manifest_includes_retrieval_aliases_and_rejects_their_changes(tmp_path):
+    fixture(tmp_path)
+    scripts = tmp_path / 'backend/scripts'
+    scripts.mkdir(parents=True)
+    for name in ('create_delivery_manifest.py', 'delivery_checks.py'):
+        shutil.copyfile(Path(__file__).parents[1] / 'scripts' / name, scripts / name)
+    output_dir = tmp_path / 'docs/iterations/2026-09-29-agent-harness'
+    output_dir.mkdir(parents=True)
+    aliases = tmp_path / 'backend/data/retrieval/aliases.json'
+    aliases.parent.mkdir(parents=True)
+    aliases.write_text('{"aliases": []}')
+    subprocess.run(['git', 'init', '-q', str(tmp_path)], check=True)
+    # The source fingerprint records a base commit; no project Git state is used.
+    subprocess.run(['git', '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid',
+                    'commit', '--allow-empty', '-qm', 'fixture'], cwd=tmp_path, check=True)
+    subprocess.run([sys.executable, str(scripts / 'create_delivery_manifest.py'), '--output', 'fixture.json'],
+                   cwd=tmp_path, check=True, capture_output=True, text=True)
+    manifest = json.loads((output_dir / 'fixture.json').read_text())
+    assert manifest['files']['backend/data/retrieval/aliases.json'] == checks.fingerprint(aliases)
+    checks.verify(tmp_path, manifest)
+    added = tmp_path / 'backend/src/new_runtime.py'
+    added.parent.mkdir(parents=True)
+    added.write_text('VALUE = 1\n')
+    with pytest.raises(ValueError, match='inventory.*new_runtime.py'):
+        checks.verify(tmp_path, manifest)
+    added.unlink()
+    checks.verify(tmp_path, manifest)
+    aliases.write_text('{"aliases": ["changed"]}')
+    with pytest.raises(ValueError, match='aliases.json'):
+        checks.verify(tmp_path, manifest)

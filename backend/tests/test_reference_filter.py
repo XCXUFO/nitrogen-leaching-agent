@@ -27,6 +27,12 @@ def test_is_reference_chunk_detects_bibliography_entries() -> None:
     assert is_reference_chunk(REFERENCE_TEXT)
 
 
+def test_wrapped_chinese_reference_header_and_fullwidth_entries_are_filtered():
+    assert is_reference_chunk('结论尚待验证。\n参\n考文献:\n［１］Ju X T. Vegetable emissions［J］. Environmental Pollution, 2006, 143:117-125.')
+    assert is_reference_chunk('［１］王某. Soil nitrogen［J］. Soil Science, 2009, 3:1-4.\n［２］李某. Water［J］. Soil Science, 2010, 4:3-8.')
+    assert not is_reference_chunk('Results showed temporal peaks after irrigation. Other relevant references are discussed by Wang (2010).')
+
+
 def test_is_reference_chunk_keeps_body_evidence_with_citations() -> None:
     body_with_citation = (
         BODY_TEXT

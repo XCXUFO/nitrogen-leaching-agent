@@ -169,9 +169,9 @@ def test_regression_endpoints_are_developer_only(regression_client):
     c = regression_client
     saved = baseline(c)
     for path in ('/regressions', '/regressions/'+saved['regression_id'], '/replays/unknown/comparison'):
-        assert c.get('/api/eval'+path, headers=headers()).status_code == 403
-    assert c.post('/api/eval/regressions', headers=headers(), json={'execution_id': saved['baseline']['execution_id'], 'title': 'x'}).status_code == 403
-    assert c.post('/api/eval/regressions/'+saved['regression_id']+'/replays', headers=headers()).status_code == 403
+        assert c.get('/api/eval'+path, headers=headers('alice')).status_code == 403
+    assert c.post('/api/eval/regressions', headers=headers('alice'), json={'execution_id': saved['baseline']['execution_id'], 'title': 'x'}).status_code == 403
+    assert c.post('/api/eval/regressions/'+saved['regression_id']+'/replays', headers=headers('alice')).status_code == 403
 
 
 def test_replay_differences_keep_errors_separate_from_success(regression_client):

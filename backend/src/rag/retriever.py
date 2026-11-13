@@ -11,6 +11,7 @@ from src.rag.numeric_boost import (
     apply_numeric_boost,
 )
 from src.rag.reference_filter import filter_reference_chunks
+from src.rag.source_labels import article_label
 from src.storage.chroma_store import ChromaStore
 
 if TYPE_CHECKING:
@@ -30,6 +31,21 @@ class RetrievalResult:
     document: str
     score: float                                   # higher == more similar
     metadata: dict[str, ChunkMetaValue]
+
+
+def describe_hits(results: list[RetrievalResult]) -> list[dict]:
+    """Persist ordering and source identity without duplicating passage bodies."""
+    snapshots = []
+    for rank, item in enumerate(results, 1):
+        identity = {key: item.metadata[key] for key in ('paper_id', 'title', 'source') if item.metadata.get(key)}
+        if not identity.get('title') and identity.get('source'):
+            try:
+                title, _ = article_label(str(identity['source']))
+                if title: identity['title'] = title
+            except (OSError, ValueError, TypeError):
+                pass  # An unavailable display-name manifest cannot block retrieval.
+        snapshots.append({'chunk_id': item.chunk_id, 'rank': rank, 'score': item.score, **identity})
+    return snapshots
 
 
 class Retriever:
@@ -91,7 +107,8 @@ class Retriever:
         self._numeric_boost_band = numeric_boost_band
 
     def retrieve(self, query: str, k: int = 5, *,
-                 eligibility_filter: Callable[[RetrievalResult], bool] | None = None) -> list[RetrievalResult]:
+                 eligibility_filter: Callable[[RetrievalResult], bool] | None = None,
+                 diagnostics: dict | None = None, where: dict | None = None) -> list[RetrievalResult]:
         if not query.strip():
             return []
         if k <= 0:
@@ -106,7 +123,7 @@ class Retriever:
         )
 
         vector = self._embedder.embed_query(query)
-        raw = self._store.query(vector, k=raw_k)
+        raw = self._store.query(vector, k=raw_k, **({'where':where} if where is not None else {}))
 
         ids = (raw.get("ids") or [[]])[0]
         docs = (raw.get("documents") or [[]])[0]
@@ -126,6 +143,9 @@ class Retriever:
                 )
             )
 
+        if diagnostics is not None:
+            diagnostics.update(recall=describe_hits(results), rerank_status='disabled' if self._reranker is None else 'no_candidates')
+
         # Exclude unavailable or outdated papers before spending cross-encoder
         # inference on them, and before a top-k cut can crowd out usable hits.
         if eligibility_filter is not None:
@@ -140,6 +160,8 @@ class Retriever:
 
         if self._reranker is not None and results:
             results = self._reranker.rerank(query, results)
+            if diagnostics is not None:
+                diagnostics.update(rerank_status='applied', reranked=describe_hits(results))
             # numeric/evidence boost is a reranker post-processing step — only
             # reachable on the reranker path, so non-reranker retrieval is
             # unchanged (M1.5-b). No-op unless enabled and the query is
@@ -152,4 +174,6 @@ class Retriever:
                     band=self._numeric_boost_band,
                 )
 
+        if diagnostics is not None:
+            diagnostics.update(returned=describe_hits(results[:k]), numeric_boost_enabled=self._numeric_boost_enabled)
         return results[:k]

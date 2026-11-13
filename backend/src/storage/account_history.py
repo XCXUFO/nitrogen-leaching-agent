@@ -35,6 +35,8 @@ class AccountHistory:
         request = {"query": body["query"], "history": body.get("history", []),
                    "attachments": attachments, "turnId": receipt["turn_id"],
                    "requestId": receipt["request_id"], "rerunOfRunId": receipt.get("rerun_of_run_id")}
+        if body.get("case_ids"):
+            request["caseIds"] = body["case_ids"]
         self.db.execute("""INSERT OR IGNORE INTO account_chat_conversations VALUES (?,?,?,?,?,?)""",
                         (account_id, client_id, session_id, body["query"][:80], timestamp, timestamp))
         self.db.execute("""INSERT OR IGNORE INTO account_chat_turns VALUES (?,?,?,?,?,?,?,?,?,?)""",
@@ -72,6 +74,7 @@ class AccountHistory:
             location, provenance = evidence.get("location", {}), evidence.get("provenance", {})
             if evidence["source_type"] == "literature" and location.get("citation_index"):
                 citations.append({"index": location["citation_index"], "chunk_id": evidence["source_id"],
+                    "retrieval_ids": evidence.get("retrieval_ids", []), "chunk_ids": evidence.get("chunk_ids", []),
                     "source": provenance.get("source", ""), "title": provenance.get("title"), "score": 0,
                     "snippet": str(evidence["claim_or_value"]),
                     **{key: provenance[key] for key in ("content_version", "file_sha256") if key in provenance},
@@ -106,7 +109,7 @@ class AccountHistory:
             client_id = previous[0] if previous else "saved_" + hashlib.sha256(session_id.encode()).hexdigest()[:32]
             snapshot = trace.get("request_snapshot") or {}
             response = json.loads(saved) if saved else self._legacy_response(trace) if trace.get("answer") else None
-            self._record(account_id, client_id, session_id, {"query": trace["input"], "history": snapshot.get("history", [])},
+            self._record(account_id, client_id, session_id, {"query": trace["input"], "history": snapshot.get("history", []), "case_ids": snapshot.get("case_ids", [])},
                 {"run_id": trace["run_id"], "turn_id": trace.get("turn_id") or trace["run_id"],
                  "request_id": trace.get("request_id") or trace["run_id"],
                  "accepted_at": trace["started_at"], "status": "succeeded" if response else "failed",

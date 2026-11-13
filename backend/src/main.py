@@ -8,8 +8,10 @@ from loguru import logger
 from src import __version__
 from src.agent.chat_service import ChatService
 from src.agent.runtime import AgentRuntime
+from src.agent.semantic_query import SemanticQuery
+from src.retrieval.deepseek import create_web_search
 from src.storage.run_store import RunStore
-from src.api import case_library, chat, demo, documents, evaluation, explanation_trials, files, health, literature, online_metrics
+from src.api import asset_tagging, case_library, chat, demo, documents, evaluation, explanation_trials, files, health, literature, online_metrics
 from src.operations.public_access import PublicAccess, public_access
 from src.evaluation.auth import load_access
 from src.evaluation.service import EvaluationService
@@ -35,7 +37,7 @@ async def lifespan(app: FastAPI):
     app.state.version_manifest = build_manifest(settings)
     config_hash = app.state.version_manifest["manifest_sha256"][:16]
     from src.storage.case_library import CaseStore
-    app.state.case_library = CaseStore(settings.case_library_db)
+    app.state.case_library = CaseStore(settings.case_library_db, search_strategy=settings.retrieval_strategy)
     run_store = RunStore(settings.agent_trace_db)
     app.state.eval_access = None
     app.state.literature = None
@@ -49,7 +51,7 @@ async def lifespan(app: FastAPI):
             app.state.evaluation = EvaluationService(evaluation_store)
             app.state.regressions = RegressionService(app.state.evaluation)
             app.state.eval_access = access
-            app.state.literature = literature.LiteratureStore(settings.literature_db, settings.literature_files_dir)
+            app.state.literature = literature.LiteratureStore(settings.literature_db, settings.literature_files_dir, search_strategy=settings.retrieval_strategy)
             async def clean_literature_uploads():
                 while True:
                     await asyncio.sleep(3600)
@@ -62,6 +64,8 @@ async def lifespan(app: FastAPI):
         runs=run_store,
         config_version=f"{settings.agent_build_version}:{config_hash}",
         config_manifest=app.state.version_manifest,
+        web=create_web_search(settings),
+        unified_routing=settings.unified_routing_enabled,
     )
     from src.evaluation.explanation_trials import ExplanationTrials
     logger.info(
@@ -83,12 +87,16 @@ async def lifespan(app: FastAPI):
         output_token_limit=settings.public_max_output_tokens if settings.public_demo_enabled else None,
     ) if settings.deepseek_api_key else None
     app.state.llm = llm
+    app.state.agent_runtime.semantic_query = SemanticQuery(llm) if llm is not None else None
     app.state.chat_service = None
 
     if settings.rag_enabled and llm is not None:
         chroma_dir = settings.rag_chroma_dir or settings.chroma_persist_dir
         try:
+            import torch
+            torch.set_num_threads(settings.rag_cpu_threads)
             embedder = BGEEmbedder(model_id=settings.embedding_model)
+            app.state.agent_runtime.semantic_query.embedder = embedder
             store = ChromaStore(chroma_dir, settings.rag_collection)
             if app.state.literature is not None:
                 restored = await asyncio.to_thread(app.state.literature.search_index.adopt_legacy_index, store)
@@ -96,7 +104,9 @@ async def lifespan(app: FastAPI):
 
             reranker: Reranker | None = None
             if settings.rag_reranker_enabled:
-                reranker = Reranker(model_id=settings.rag_reranker_model)
+                reranker = Reranker(model_id=settings.rag_reranker_model,
+                    max_length=settings.rag_reranker_max_length, batch_size=settings.rag_reranker_batch_size,
+                    cpu_quantization=settings.rag_reranker_cpu_quantization)
 
             retriever = Retriever(
                 embedder,
@@ -129,6 +139,7 @@ async def lifespan(app: FastAPI):
                 max_context_chars=settings.chat_max_context_chars,
                 temperature=settings.chat_temperature,
                 literature_index=app.state.literature.search_index if app.state.literature is not None else None,
+                recall_fusion=settings.retrieval_fusion,
             )
             logger.info(
                 "RAG enabled | chroma_dir={} | collection={} | "
@@ -178,10 +189,16 @@ async def lifespan(app: FastAPI):
     app.state.chat_runs = ChatRunManager(run_store.live, retention_seconds=settings.chat_run_retention_seconds,
                                         max_active=settings.public_max_concurrent if settings.public_demo_enabled else settings.chat_run_max_active)
     app.state.explanation_trials = ExplanationTrials(app.state.agent_runtime, manager=app.state.chat_runs)
+    if settings.eval_enabled:
+        from src.evaluation.handoff_retests import HandoffRetests
+        app.state.handoff_retests = HandoffRetests(app.state.agent_runtime, settings.eval_handoff_db)
     try:
         yield
     finally:
+        if hasattr(app.state, "handoff_retests"):
+            await app.state.handoff_retests.shutdown()
         await app.state.chat_runs.shutdown()
+        await run_store.conversation_cases.shutdown()
         await app.state.explanation_trials.shutdown()
         if settings.eval_enabled:
             await app.state.regressions.shutdown()
@@ -228,6 +245,7 @@ app.include_router(online_metrics.router, prefix="/api", tags=["online-metrics"]
 app.include_router(explanation_trials.router, prefix="/api", tags=["explanation-trials"])
 app.include_router(case_library.router, prefix="/api", tags=["case-library"])
 app.include_router(literature.router, prefix="/api", tags=["literature"])
+app.include_router(asset_tagging.router, prefix="/api/literature", tags=["asset-tagging"])
 app.state.public_settings = settings
 app.middleware("http")(public_access)
 

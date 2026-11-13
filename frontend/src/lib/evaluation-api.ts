@@ -49,14 +49,19 @@ export type SessionTrace = {
   run_id: string; started_at: string; input: string; answer: string | null;
   history_count?: number;
   status: string; outcome: string | null; latency_ms: number; error_code: string | null;
-  decision?: { route?: string; reason_code?: string } | null;
-  tool_calls?: { skill: string; status: string; latency_ms: number; error_code?: string | null }[];
+  decision?: { route?: string; reason_code?: string; skills?: string[] } | null;
+  tool_calls?: { skill: string; status: string; latency_ms: number; error_code?: string | null; step_id?: string | null }[];
   state_before?: Record<string, unknown>; state_after?: Record<string, unknown> | null;
   evidence?: unknown[]; sections?: unknown[]; warnings?: unknown[];
   config_version?: string; config_manifest?: unknown;
-  skill_config?: unknown; understanding?: unknown; tag_mapping?: unknown;
+  web_retrieval?: unknown;
+  case_context?: unknown;
+  execution_plan?: { version?: string; mode?: string; tasks?: unknown[]; actual_calls?: { skill: string; status: string }[]; outcome?: string };
+  skill_config?: unknown; understanding?: unknown; execution_context?: unknown; tag_mapping?: unknown;
   starred_match?: unknown; retrieval?: unknown; execution_steps?: unknown;
-  request_snapshot?: { has_attachments?: boolean; query?: string };
+  answer_assembly?: unknown;
+  request_snapshot?: { has_attachments?: boolean; query?: string;
+    attachments?: { filename: string; sha256?: string; format?: string }[] };
 };
 export type SessionIssue = { issue_id: string; run_id: string; note: string; status: "open" | "resolved";
   recorded_by: string; verification_run_id?: string | null; resolution_note?: string };
@@ -65,7 +70,7 @@ export type SessionRetest = { run_id: string; source_run_id: string; issue_id?: 
 export type SessionDetail = SessionSummary & { turns: SessionTrace[]; review?: {
   revision: number; reviewed_turn_count: number; issues: SessionIssue[]; retests: SessionRetest[];
   history: { action: string; recorded_by: string; recorded_at: string; note?: string; review_kind: string }[];
-} };
+}; case_groups?: { group_id: string; title: string }[] };
 
 export async function evaluationRequest<T>(token: string, path: string, init: RequestInit = {}): Promise<T> {
   let response: Response;

@@ -6,8 +6,8 @@ test('starred question conflict preserves draft and requires explicit reload bef
   await page.route('**/api/**', async route => {
     const path = new URL(route.request().url()).pathname;
     let json: unknown;
-    if (path === '/api/eval/me') json = { tester_id: 'tester', role: 'tester' };
-    else if (path === '/api/eval/login') json = { token: 'mock-token', user: { tester_id: 'tester', role: 'tester' } };
+    if (path === '/api/eval/me') json = { tester_id: 'tester', role: 'developer' };
+    else if (path === '/api/eval/login') json = { token: 'mock-token', user: { tester_id: 'tester', role: 'developer' } };
     else if (path === '/api/eval/starred-questions') json = [record];
     else if (path === '/api/eval/starred-questions/shared') {
       const body = route.request().postDataJSON();
@@ -54,8 +54,8 @@ test('all children leave parent partial; selecting parent includes directly assi
   await page.route('**/api/**', async route => {
     const url = new URL(route.request().url());
     let json: unknown;
-    if (url.pathname === '/api/eval/me') json = { tester_id: 'tester', role: 'tester' };
-    else if (url.pathname === '/api/eval/login') json = { token: 'mock-token', user: { tester_id: 'tester', role: 'tester' } };
+    if (url.pathname === '/api/eval/me') json = { tester_id: 'tester', role: 'developer' };
+    else if (url.pathname === '/api/eval/login') json = { token: 'mock-token', user: { tester_id: 'tester', role: 'developer' } };
     else if (url.pathname === '/api/case-library/taxonomy') json = {
       dimensions: [{ id: 'crop', name: '作物', enabled: true, selection: 'multiple' }],
       tags: [

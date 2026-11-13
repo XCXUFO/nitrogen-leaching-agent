@@ -27,9 +27,22 @@ class Reranker:
         self,
         model_id: str = "BAAI/bge-reranker-v2-m3",
         device: str = "cpu",
+        *,
+        max_length: int = 512,
+        batch_size: int = 2,
+        cpu_quantization: str = "none",
     ) -> None:
+        if max_length < 32 or batch_size < 1:
+            raise ValueError("Invalid reranker sequence length or batch size")
+        if cpu_quantization not in {"none", "int8"}:
+            raise ValueError("Unsupported CPU quantization")
+        if cpu_quantization != "none" and device != "cpu":
+            raise ValueError("Dynamic INT8 quantization requires the CPU device")
         self._model_id = model_id
         self._device = device
+        self._max_length = max_length
+        self._batch_size = batch_size
+        self._cpu_quantization = cpu_quantization
         self._model: CrossEncoder | None = None
 
     @property
@@ -46,7 +59,20 @@ class Reranker:
                     "Run `uv sync --extra rag` in backend/ before using Reranker."
                 ) from exc
 
-            self._model = CrossEncoder(self._model_id, device=self._device)
+            model = CrossEncoder(self._model_id, device=self._device, max_length=self._max_length)
+            if self._cpu_quantization == "int8":
+                import torch
+                # The model is newly created and exclusively owned here. Avoid
+                # an extra full FP32 copy during startup on memory-limited CPUs.
+                quantized = torch.ao.quantization.quantize_dynamic(
+                    model.model, {torch.nn.Linear}, dtype=torch.qint8, inplace=True)
+                # v5 exposes model as a read-only property over the first
+                # Transformer module; v3 stores the transformer directly.
+                if isinstance(getattr(type(model), "model", None), property):
+                    model[0].model = quantized
+                else:
+                    model.model = quantized
+            self._model = model
         return self._model
 
     def rerank(
@@ -65,7 +91,7 @@ class Reranker:
 
         model = self._ensure_loaded()
         pairs = [[query, c.document] for c in candidates]
-        scores = model.predict(pairs)
+        scores = model.predict(pairs, batch_size=self._batch_size, show_progress_bar=False)
 
         ranked = sorted(
             zip(scores, candidates),

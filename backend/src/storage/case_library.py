@@ -57,7 +57,8 @@ class AvailabilityInput(RevisionInput):
 
 
 class CaseStore:
-    def __init__(self, path: str):
+    def __init__(self, path: str, *, search_strategy='indexed'):
+        self.search_strategy = search_strategy
         Path(path).parent.mkdir(parents=True, exist_ok=True)
         self.db = sqlite3.connect(path, check_same_thread=False, timeout=10)
         self.db.row_factory = sqlite3.Row
@@ -79,6 +80,11 @@ class CaseStore:
         self.db.execute("""CREATE TABLE IF NOT EXISTS case_tag_jobs (
             id TEXT PRIMARY KEY, owner TEXT NOT NULL, created_at TEXT NOT NULL, data TEXT NOT NULL)""")
         self.db.commit()
+        try:
+            from src.retrieval.local_index import LocalIndex
+            self.search_index = LocalIndex(self, 'case')
+        except Exception:
+            self.search_index = None
 
     def record_gap(self, question: str, context: str = ""):
         fingerprint = hashlib.sha256(json.dumps([question.strip(), context.strip()], ensure_ascii=False).encode()).hexdigest()

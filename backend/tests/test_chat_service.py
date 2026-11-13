@@ -210,7 +210,8 @@ async def test_answer_handles_empty_retrieval() -> None:
     assert result.citations == []
     assert result.retrieved_count == 0
     assert llm.last_messages is not None
-    assert "未检索到相关参考资料" in llm.last_messages[0].content
+    assert "可靠的通用知识" in llm.last_messages[0].content
+    assert "不编造具体研究结论、数值或引用" in llm.last_messages[0].content
 
 
 @pytest.mark.asyncio

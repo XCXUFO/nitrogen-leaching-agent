@@ -1,0 +1,349 @@
+{
+  "as_of": "2026-11-09",
+  "source": "https://www.nitrogen-leaching.com/evaluation/cases",
+  "published_versions": 34,
+  "unique_ids": 27,
+  "note": "目录快照，不等于完整用例机器脚本；readable_definition_summary_in_bundle 表示该版本有可读定义/标准快照，不是数据库JSON导出。",
+  "records": [
+    {
+      "id": "A01",
+      "version": 1,
+      "category": "A",
+      "priority": "P0",
+      "title": "界面与入口",
+      "source_review_status": "待专业审核",
+      "source_url": "https://www.nitrogen-leaching.com/evaluation/cases/A01%401",
+      "readable_definition_summary_in_bundle": false
+    },
+    {
+      "id": "B01",
+      "version": 1,
+      "category": "B",
+      "priority": "P0",
+      "title": "超出范围时追问",
+      "source_review_status": "待专业审核",
+      "source_url": "https://www.nitrogen-leaching.com/evaluation/cases/B01%401",
+      "readable_definition_summary_in_bundle": false
+    },
+    {
+      "id": "B02",
+      "version": 3,
+      "category": "B",
+      "priority": "P0",
+      "title": "单位错误延迟检查且不复用旧附件",
+      "source_review_status": "待专业审核",
+      "source_url": "https://www.nitrogen-leaching.com/evaluation/cases/B02%403",
+      "readable_definition_summary_in_bundle": false
+    },
+    {
+      "id": "B02",
+      "version": 1,
+      "category": "B",
+      "priority": "P0",
+      "title": "错误单位与旧附件清理",
+      "source_review_status": "待专业审核",
+      "source_url": "https://www.nitrogen-leaching.com/evaluation/cases/B02%401",
+      "readable_definition_summary_in_bundle": false
+    },
+    {
+      "id": "B03",
+      "version": 3,
+      "category": "B",
+      "priority": "P0",
+      "title": "分析时定位非数值单元格",
+      "source_review_status": "待专业审核",
+      "source_url": "https://www.nitrogen-leaching.com/evaluation/cases/B03%403",
+      "readable_definition_summary_in_bundle": false
+    },
+    {
+      "id": "B03",
+      "version": 1,
+      "category": "B",
+      "priority": "P0",
+      "title": "非数值定位",
+      "source_review_status": "待专业审核",
+      "source_url": "https://www.nitrogen-leaching.com/evaluation/cases/B03%401",
+      "readable_definition_summary_in_bundle": false
+    },
+    {
+      "id": "B04",
+      "version": 1,
+      "category": "B",
+      "priority": "P0",
+      "title": "损坏或伪装文件",
+      "source_review_status": "待专业审核",
+      "source_url": "https://www.nitrogen-leaching.com/evaluation/cases/B04%401",
+      "readable_definition_summary_in_bundle": false
+    },
+    {
+      "id": "F01",
+      "version": 1,
+      "category": "F",
+      "priority": "P0",
+      "title": "缺文件追问",
+      "source_review_status": "待专业审核",
+      "source_url": "https://www.nitrogen-leaching.com/evaluation/cases/F01%401",
+      "readable_definition_summary_in_bundle": false
+    },
+    {
+      "id": "F02",
+      "version": 3,
+      "category": "F",
+      "priority": "P0",
+      "title": "先接收附件，分析时检查内容",
+      "source_review_status": "待专业审核",
+      "source_url": "https://www.nitrogen-leaching.com/evaluation/cases/F02%403",
+      "readable_definition_summary_in_bundle": false
+    },
+    {
+      "id": "F02",
+      "version": 1,
+      "category": "F",
+      "priority": "P0",
+      "title": "真实表上传",
+      "source_review_status": "待专业审核",
+      "source_url": "https://www.nitrogen-leaching.com/evaluation/cases/F02%401",
+      "readable_definition_summary_in_bundle": false
+    },
+    {
+      "id": "F03",
+      "version": 1,
+      "category": "F",
+      "priority": "P0",
+      "title": "真实表最大值",
+      "source_review_status": "待专业审核",
+      "source_url": "https://www.nitrogen-leaching.com/evaluation/cases/F03%401",
+      "readable_definition_summary_in_bundle": false
+    },
+    {
+      "id": "F04",
+      "version": 1,
+      "category": "F",
+      "priority": "P0",
+      "title": "同文件连续查询",
+      "source_review_status": "待专业审核",
+      "source_url": "https://www.nitrogen-leaching.com/evaluation/cases/F04%401",
+      "readable_definition_summary_in_bundle": false
+    },
+    {
+      "id": "F05",
+      "version": 2,
+      "category": "F",
+      "priority": "P0",
+      "title": "已确认指标的文件省略式追问",
+      "source_review_status": "待专业审核",
+      "source_url": "https://www.nitrogen-leaching.com/evaluation/cases/F05%402",
+      "readable_definition_summary_in_bundle": false
+    },
+    {
+      "id": "F05",
+      "version": 1,
+      "category": "F",
+      "priority": "P0",
+      "title": "文件省略式追问边界",
+      "source_review_status": "待专业审核",
+      "source_url": "https://www.nitrogen-leaching.com/evaluation/cases/F05%401",
+      "readable_definition_summary_in_bundle": false
+    },
+    {
+      "id": "F06",
+      "version": 1,
+      "category": "F",
+      "priority": "P0",
+      "title": "更换真实文件",
+      "source_review_status": "待专业审核",
+      "source_url": "https://www.nitrogen-leaching.com/evaluation/cases/F06%401",
+      "readable_definition_summary_in_bundle": false
+    },
+    {
+      "id": "F07",
+      "version": 1,
+      "category": "F",
+      "priority": "P0",
+      "title": "可手算并列样例",
+      "source_review_status": "待专业审核",
+      "source_url": "https://www.nitrogen-leaching.com/evaluation/cases/F07%401",
+      "readable_definition_summary_in_bundle": false
+    },
+    {
+      "id": "K01",
+      "version": 4,
+      "category": "K",
+      "priority": "P1",
+      "title": "知识首问的文章级引用与摘录",
+      "source_review_status": "待专业审核",
+      "source_url": "https://www.nitrogen-leaching.com/evaluation/cases/K01%404",
+      "readable_definition_summary_in_bundle": true
+    },
+    {
+      "id": "K01",
+      "version": 1,
+      "category": "K",
+      "priority": "P0",
+      "title": "知识首问与引用",
+      "source_review_status": "待专业审核",
+      "source_url": "https://www.nitrogen-leaching.com/evaluation/cases/K01%401",
+      "readable_definition_summary_in_bundle": false
+    },
+    {
+      "id": "K02",
+      "version": 1,
+      "category": "K",
+      "priority": "P0",
+      "title": "知识上下文追问",
+      "source_review_status": "待专业审核",
+      "source_url": "https://www.nitrogen-leaching.com/evaluation/cases/K02%401",
+      "readable_definition_summary_in_bundle": false
+    },
+    {
+      "id": "K03",
+      "version": 1,
+      "category": "K",
+      "priority": "P0",
+      "title": "知识条件更正",
+      "source_review_status": "待专业审核",
+      "source_url": "https://www.nitrogen-leaching.com/evaluation/cases/K03%401",
+      "readable_definition_summary_in_bundle": false
+    },
+    {
+      "id": "NEW01",
+      "version": 2,
+      "category": "NEW",
+      "priority": "P0",
+      "title": "无关短输入的能力引导",
+      "source_review_status": "待专业审核",
+      "source_url": "https://www.nitrogen-leaching.com/evaluation/cases/NEW01%402",
+      "readable_definition_summary_in_bundle": false
+    },
+    {
+      "id": "NEW02",
+      "version": 3,
+      "category": "NEW",
+      "priority": "P0",
+      "title": "文件事实与一般文献机理组合",
+      "source_review_status": "待专业审核",
+      "source_url": "https://www.nitrogen-leaching.com/evaluation/cases/NEW02%403",
+      "readable_definition_summary_in_bundle": true
+    },
+    {
+      "id": "NEW03",
+      "version": 3,
+      "category": "NEW",
+      "priority": "P0",
+      "title": "组合链路部分失败可追溯",
+      "source_review_status": "待专业审核",
+      "source_url": "https://www.nitrogen-leaching.com/evaluation/cases/NEW03%403",
+      "readable_definition_summary_in_bundle": false
+    },
+    {
+      "id": "NEW04",
+      "version": 3,
+      "category": "NEW",
+      "priority": "P0",
+      "title": "不丢弃组合问题中的额外要求",
+      "source_review_status": "待专业审核",
+      "source_url": "https://www.nitrogen-leaching.com/evaluation/cases/NEW04%403",
+      "readable_definition_summary_in_bundle": false
+    },
+    {
+      "id": "O01",
+      "version": 1,
+      "category": "O",
+      "priority": "P1",
+      "title": "附件到期",
+      "source_review_status": "待专业审核",
+      "source_url": "https://www.nitrogen-leaching.com/evaluation/cases/O01%401",
+      "readable_definition_summary_in_bundle": false
+    },
+    {
+      "id": "O02",
+      "version": 1,
+      "category": "O",
+      "priority": "P1",
+      "title": "上传体积",
+      "source_review_status": "待专业审核",
+      "source_url": "https://www.nitrogen-leaching.com/evaluation/cases/O02%401",
+      "readable_definition_summary_in_bundle": false
+    },
+    {
+      "id": "O03",
+      "version": 1,
+      "category": "O",
+      "priority": "P1",
+      "title": "故障与重试",
+      "source_review_status": "待专业审核",
+      "source_url": "https://www.nitrogen-leaching.com/evaluation/cases/O03%401",
+      "readable_definition_summary_in_bundle": false
+    },
+    {
+      "id": "RG04",
+      "version": 1,
+      "category": "X",
+      "priority": "P1",
+      "title": "回归自动执行到首个人工步骤",
+      "source_review_status": "待专业审核",
+      "source_url": "https://www.nitrogen-leaching.com/evaluation/cases/RG04%401",
+      "readable_definition_summary_in_bundle": true
+    },
+    {
+      "id": "X01",
+      "version": 2,
+      "category": "X",
+      "priority": "P0",
+      "title": "带附件直接进行知识问答",
+      "source_review_status": "待专业审核",
+      "source_url": "https://www.nitrogen-leaching.com/evaluation/cases/X01%402",
+      "readable_definition_summary_in_bundle": false
+    },
+    {
+      "id": "X01",
+      "version": 1,
+      "category": "X",
+      "priority": "P0",
+      "title": "两条链路切换",
+      "source_review_status": "待专业审核",
+      "source_url": "https://www.nitrogen-leaching.com/evaluation/cases/X01%401",
+      "readable_definition_summary_in_bundle": false
+    },
+    {
+      "id": "X02",
+      "version": 2,
+      "category": "X",
+      "priority": "P0",
+      "title": "清空后会话状态隔离",
+      "source_review_status": "待专业审核",
+      "source_url": "https://www.nitrogen-leaching.com/evaluation/cases/X02%402",
+      "readable_definition_summary_in_bundle": false
+    },
+    {
+      "id": "X02",
+      "version": 1,
+      "category": "X",
+      "priority": "P0",
+      "title": "清空对话",
+      "source_review_status": "待专业审核",
+      "source_url": "https://www.nitrogen-leaching.com/evaluation/cases/X02%401",
+      "readable_definition_summary_in_bundle": false
+    },
+    {
+      "id": "X03",
+      "version": 1,
+      "category": "X",
+      "priority": "P0",
+      "title": "刷新行为",
+      "source_review_status": "待专业审核",
+      "source_url": "https://www.nitrogen-leaching.com/evaluation/cases/X03%401",
+      "readable_definition_summary_in_bundle": false
+    },
+    {
+      "id": "X04",
+      "version": 1,
+      "category": "X",
+      "priority": "P0",
+      "title": "基本输入与等待状态",
+      "source_review_status": "待专业审核",
+      "source_url": "https://www.nitrogen-leaching.com/evaluation/cases/X04%401",
+      "readable_definition_summary_in_bundle": false
+    }
+  ]
+}

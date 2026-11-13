@@ -53,6 +53,21 @@ async def test_json_extraction_disables_thinking_and_requests_json(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_diagnostic_thinking_setting_is_explicit_and_json_still_disables_it(monkeypatch):
+    client = DeepSeekClient(api_key='x', base_url='https://example', model='test', thinking_enabled=False)
+    create = AsyncMock(return_value=_make_response('answer'))
+    monkeypatch.setattr(client._client.chat.completions, 'create', create)
+    try:
+        await client.chat([ChatMessage(role='user', content='hello')])
+        assert create.await_args.kwargs['extra_body'] == {'thinking': {'type': 'disabled'}}
+        client._thinking_enabled = True
+        await client.chat_json([ChatMessage(role='user', content='hello')])
+        assert create.await_args.kwargs['extra_body'] == {'thinking': {'type': 'disabled'}}
+    finally:
+        await client._client.close()
+
+
+@pytest.mark.asyncio
 async def test_public_output_limit_caps_default_and_explicit_requests(monkeypatch):
     client = DeepSeekClient(api_key="x", base_url="https://example", model="test", output_token_limit=256)
     create = AsyncMock(return_value=_make_response("hello"))

@@ -5,9 +5,10 @@ from enum import Enum
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
+from src.agent.case_intent import CaseMode
 
 HARNESS_VERSION = "0.2.0"
-SkillName = Literal["knowledge_search", "whcns_analyzer", "file_inspector", "clarification", "capability_guidance", "case_reference", "case_explanation"]
+SkillName = Literal["case_assistant", "concept_explanation", "knowledge_search", "whcns_analyzer", "file_inspector", "clarification", "capability_guidance", "case_reference", "case_explanation"]
 
 
 class Contract(BaseModel):
@@ -38,6 +39,10 @@ class TaskState(Contract):
     current_metric: str | None = None
     current_operation: list[Literal["min", "max"]] = Field(default_factory=list)
     last_tool: SkillName | None = None
+    case_mode: CaseMode | None = None
+    case_material_source: Literal["library", "user_text"] | None = None
+    retrieved_case_ids: list[str] = Field(default_factory=list, max_length=30)
+    user_selected_case_ids: list[str] = Field(default_factory=list, max_length=30)
     current_case_ids: list[str] = Field(default_factory=list, max_length=30)
     case_context_text: str = Field(default="", max_length=24000)
     case_clarification_pending: bool = False
@@ -48,8 +53,10 @@ class TaskState(Contract):
 
 class Evidence(Contract):
     evidence_id: str
-    source_type: Literal["file", "literature", "case", "starred"]
+    source_type: Literal["file", "literature", "case", "starred", "web"]
     source_id: str
+    retrieval_ids: list[str] = Field(default_factory=list)
+    chunk_ids: list[str] = Field(default_factory=list)
     claim_or_value: str | float
     unit: str | None = None
     location: dict[str, str | int] = Field(default_factory=dict)
@@ -67,6 +74,7 @@ class ToolCall(Contract):
     step_id: str | None = None
     kind: Literal["skill"] = "skill"
     attempt_no: int = 1
+    case_mode: CaseMode | None = None
 
 
 class AttachmentState(Contract):
@@ -123,10 +131,15 @@ class RunTrace(Contract):
     config_manifest: dict = Field(default_factory=dict)
     skill_config: dict = Field(default_factory=dict)
     understanding: dict = Field(default_factory=dict)
+    execution_context: dict = Field(default_factory=dict)
     tag_mapping: dict = Field(default_factory=dict)
     starred_match: dict = Field(default_factory=dict)
     retrieval: list[dict] = Field(default_factory=list)
     execution_steps: list[dict] = Field(default_factory=list)
+    web_retrieval: list[dict] = Field(default_factory=list)
+    case_context: dict = Field(default_factory=dict)
+    execution_plan: dict = Field(default_factory=dict)
+    answer_assembly: dict = Field(default_factory=dict)
     request_snapshot: dict = Field(default_factory=dict)
     replay_of_run_id: str | None = None
     replay_comparability: str | None = None

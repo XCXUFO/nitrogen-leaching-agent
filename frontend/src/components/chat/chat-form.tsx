@@ -1,8 +1,9 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
-import { Paperclip, Send, X, FileSpreadsheet, FileText } from "lucide-react";
+import { Paperclip, Send, X, FileSpreadsheet, FileText, Mic, Square } from "lucide-react";
 import type { SessionFile } from "@/lib/types";
+import { useSpeechInput } from "./use-speech-input";
 
 interface Props {
   value: string;
@@ -19,7 +20,15 @@ export function ChatForm({ value, onValueChange: setValue, onSubmit, disabled, o
   const input = useRef<HTMLInputElement>(null);
   const question = useRef<HTMLTextAreaElement>(null);
   const dragDepth = useRef(0);
-  const canSubmit = !disabled && value.trim().length > 0 && value.length <= 24000;
+  const draft = useRef(value);
+  useLayoutEffect(() => { draft.current = value; }, [value]);
+  const speech = useSpeechInput((text) => {
+    const previous = draft.current;
+    const next = previous + (previous && !/\s$/.test(previous) ? " " : "") + text;
+    draft.current = next;
+    setValue(next);
+  }, disabled);
+  const canSubmit = !disabled && !speech.active && value.trim().length > 0 && value.length <= 24000;
   useLayoutEffect(() => {
     const textarea = question.current;
     if (!textarea) return;
@@ -65,14 +74,21 @@ export function ChatForm({ value, onValueChange: setValue, onSubmit, disabled, o
           <button type="button" title={removeLabel} aria-label={removeLabel} disabled={disabled} onClick={() => onRemoveFile(file.clientId)} className="rounded p-1 hover:bg-muted disabled:opacity-40"><X className="size-4" /></button>
         </div>;
       })}</div>}
-    <textarea ref={question} rows={1} aria-label="问题输入" disabled={disabled} value={value} onChange={(event) => setValue(event.target.value)}
+    <textarea ref={question} rows={1} aria-label="问题输入" disabled={disabled} readOnly={speech.active} value={value} onChange={(event) => setValue(event.target.value)}
       onKeyDown={(event) => { if ((event.ctrlKey || event.metaKey) && event.key === "Enter" && !event.nativeEvent.isComposing) { event.preventDefault(); submit(); } }}
       placeholder={dragging ? "松开上传文件" : "输入问题，或拖入文件…"}
       className="block max-h-40 min-h-6 w-full resize-none border-0 bg-transparent text-sm leading-6 outline-none disabled:opacity-50" />
+    {speech.active && <p role="status" className="break-words text-xs text-muted-foreground">{speech.phase === "starting" ? "正在开启麦克风…" : speech.phase === "stopping" ? "正在识别…" : speech.interim || "正在聆听，请说话…"}</p>}
+    {speech.error && <p role="alert" className="text-xs text-destructive">{speech.error}</p>}
     <div className="flex items-center justify-between gap-2">
       <div className="flex shrink-0 items-center gap-2"><input ref={input} type="file" multiple accept=".xls,.xlsx,.txt,.md,.pdf,.doc,.docx" aria-label="选择会话文件" className="sr-only" tabIndex={-1} disabled={disabled} onChange={(event) => { select(event.target.files); event.target.value = ""; }} />
         <button type="button" disabled={disabled} className="flex items-center gap-1 rounded-lg border px-2 py-2 text-xs hover:bg-muted disabled:opacity-40 sm:px-3" onClick={() => input.current?.click()}><Paperclip className="size-4" />附加文件</button>
-        <span className={`text-xs ${value.length > 24000 ? "text-destructive" : "text-muted-foreground"}`}>{value.length}/24000</span>
+        <button type="button" aria-label={speech.active ? "停止语音输入" : "语音输入"} title={speech.active ? "停止语音输入" : "语音输入"}
+          aria-pressed={speech.active} disabled={disabled || speech.phase === "stopping"} onClick={speech.toggle}
+          className={`flex size-8 shrink-0 items-center justify-center rounded-lg border disabled:opacity-40 ${speech.active ? "border-emerald-700 bg-emerald-50 text-emerald-800" : "hover:bg-muted"}`}>
+          {speech.active ? <Square aria-hidden="true" className="size-3 fill-current" /> : <Mic aria-hidden="true" className="size-4" />}
+        </button>
+        <span className={`hidden text-xs min-[400px]:inline ${value.length > 24000 ? "text-destructive" : "text-muted-foreground"}`}>{value.length}/24000</span>
       </div>
       <div className="flex min-w-0 items-center justify-end gap-2">
         <span className="whitespace-nowrap text-[10px] text-muted-foreground sm:text-[11px]"><span className="hidden sm:inline">Enter 换行 · Ctrl / ⌘ + Enter 发送</span><span className="sm:hidden">Ctrl/⌘+↵</span></span>

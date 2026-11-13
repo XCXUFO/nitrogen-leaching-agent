@@ -19,6 +19,14 @@ const RAW_BASE_URL =
 
 export const apiBaseUrl = RAW_BASE_URL.replace(/\/+$/, "");
 
+export async function submitAnswerFeedback(runId: string, note: string, submissionId: string): Promise<void> {
+  const auth = accountHeaders();
+  const response = await fetch(`${apiBaseUrl}/api/chat/feedback`, { method: 'POST', credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...auth },
+    body: JSON.stringify({ run_id: runId, note, submission_id: submissionId }) });
+  await readResponse(response, auth.Authorization?.slice(7));
+}
+
 let fallbackOperatorId: string | null = null;
 function newOperatorId(): string {
   const random = typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -58,6 +66,7 @@ export class ApiError extends Error {
 }
 
 export interface ChatSubmission {
+  caseIds?: string[];
   turnId: string;
   requestId: string;
   rerunOfRunId?: string;
@@ -121,6 +130,7 @@ export async function postChat(
   submission?: ChatSubmission,
 ): Promise<ChatResponse> {
   const body: ChatRequest = { query };
+  if (submission?.caseIds?.length) body.case_ids = submission.caseIds;
   if (history.length > 0) body.history = history;
   if (k !== undefined) body.k = k;
   if (sessionId !== undefined) body.session_id = sessionId;

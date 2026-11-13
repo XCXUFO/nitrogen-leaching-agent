@@ -1,0 +1,72 @@
+[
+  {
+    "source_sq_id": "SQ-001",
+    "kind": "非专业知识问题",
+    "original_question": "课题一多参数氮素传感器研制有哪些前期基础和初步结果？",
+    "table_answer": "无，待补",
+    "priority": "P1",
+    "has_material_answer": false,
+    "source": "专家反馈问题-6位.docx · 专家1 第1条（E1-1）。",
+    "original_variants": "传感器已有成果是什么；课题一有什么研究基础。"
+  },
+  {
+    "source_sq_id": "SQ-012",
+    "kind": "非专业知识问题",
+    "original_question": "秸秆开沟深埋还田在生产中是否可推广，农民接受度、成本和劳动强度如何？",
+    "table_answer": "对于规模较大的种植农田，可方便开展秸秆开沟深埋；对于农民个体种植而言，农民接受度不高，劳动强度也更高。",
+    "priority": "P1",
+    "has_material_answer": true,
+    "source": "专家反馈问题-6位.docx · 专家2 第1条（E2-1）；专家反馈问题-6位.docx · 专家4 第1条（E4-1）。",
+    "original_variants": "秸秆深埋是否太贵；农民愿不愿采用深埋技术。"
+  },
+  {
+    "source_sq_id": "SQ-016",
+    "kind": "非专业知识问题",
+    "original_question": "课题三氮素淋溶驱动因子智能识别与课题二如何衔接？",
+    "table_answer": "无，待补",
+    "priority": "P1",
+    "has_material_answer": false,
+    "source": "专家反馈问题-6位.docx · 专家5 第3条（E5-3）。",
+    "original_variants": "课题二和课题三是什么关系。"
+  },
+  {
+    "source_sq_id": "SQ-017",
+    "kind": "非专业知识问题",
+    "original_question": "课题四全剖面氮素迁移研究与课题二监测装备研制如何衔接？",
+    "table_answer": "有，待审核",
+    "priority": "P0",
+    "has_material_answer": true,
+    "source": "专家反馈问题-6位.docx · 专家5 第4条（E5-4）；课题四反馈问题.docx · 第3组问答（T3）。",
+    "original_variants": "课题二与四怎样协同；监测设备给模型提供什么。"
+  },
+  {
+    "source_sq_id": "SQ-018",
+    "kind": "非专业知识问题",
+    "original_question": "项目如何利用农业面源污染监测国控网已有研究成果支持北方设备研发和在线监测？",
+    "table_answer": "无，待补",
+    "priority": "P1",
+    "has_material_answer": false,
+    "source": "专家反馈问题-6位.docx · 专家5 第5条（E5-5）。",
+    "original_variants": "项目怎样衔接已有国控网。"
+  },
+  {
+    "source_sq_id": "SQ-020",
+    "kind": "非专业知识问题",
+    "original_question": "野外传感器监测的建设和运行维护成本如何？",
+    "table_answer": "无，待补",
+    "priority": "P1",
+    "has_material_answer": false,
+    "source": "专家反馈问题-6位.docx · 专家6 第2条（E6-2）。",
+    "original_variants": "传感器监测贵不贵。"
+  },
+  {
+    "source_sq_id": "SQ-023",
+    "kind": "非专业知识问题",
+    "original_question": "氮素回收再利用与暗管排水结合的成本如何？",
+    "table_answer": "无，待补",
+    "priority": "P1",
+    "has_material_answer": false,
+    "source": "专家反馈问题-6位.docx · 专家6 第3条（E6-3）。",
+    "original_variants": "暗管排水回收氮要多少钱。"
+  }
+]

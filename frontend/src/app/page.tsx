@@ -136,14 +136,14 @@ function ConversationWorkspace({ conversation, active, scope, notice, update }: 
       setUploadNotice(err instanceof ApiError ? err.userMessage : "文件读取失败，请重试。");
     } finally { busy.current = false; setUploading(false); update(sessionId, "preparing", false); }
   }
-  async function send(query: string, previous?: Retry, resumeOnly = false) {
+  async function send(query: string, previous?: Retry, resumeOnly = false, caseIds?: string[]) {
     // A paused poll is still an unresolved submission. Only its recovery may
     // reuse this conversation; a new question must use a new conversation.
     if (busy.current || (conversation.running && !previous)) return;
     busy.current = true; follow.current = true;
     const attachments = previous ? previous.attachments : pendingFiles;
     const history = previous?.history ?? turns.slice(-12).map((t) => ({ role: t.role, content: t.content.slice(0, 4000) }));
-    const request: Retry = { query, attachments, history, answerId: previous?.answerId,
+    const request: Retry = { query, attachments, history, caseIds: previous?.caseIds ?? caseIds, answerId: previous?.answerId,
       turnId: previous?.turnId ?? makeId(), requestId: previous?.requestId ?? makeId(), rerunOfRunId: previous?.rerunOfRunId };
     const nextTurns: Turn[] = previous ? turns : [...turns, { id: request.turnId, role: "user", content: query, filename: attachments.map((file) => file.filename).join("、") || undefined }];
     const submittedIds = new Set(attachments.map((file) => file.file_id));
@@ -225,7 +225,7 @@ function ConversationWorkspace({ conversation, active, scope, notice, update }: 
           regenerateHint={t.id === turns.at(-1)?.id && !canRegenerate(t.request) ? (t.request.recoveryExpired ? "原运行的恢复窗口已结束，可以继续发送新问题。" : "原问题的附件已失效，请重新上传后再次提问。") : undefined} />{t.run && !t.run.result_saved && t.run.result && <p className="text-xs text-amber-800">本次结果尚未保存，关闭页面后可能无法找回。</p>}</div>)}
         {pending && (progress ? <ExecutionProgress run={progress} recovering={recovering} /> : <div role="status" className="rounded-2xl border bg-background p-5 text-sm"><p className="flex items-center gap-2"><LoaderCircle className="size-4 animate-spin" />{recovering ? "正在查询原运行" : "正在提交问题"} · {elapsed} 秒</p>{elapsed >= 10 && <p className="mt-2 text-xs text-muted-foreground">连接或处理仍在进行，请稍候。</p>}</div>)}
         {suggestMinimum && !pending && <div className="flex flex-wrap gap-2"><button disabled={inputBlocked} className="rounded-full border bg-white px-3 py-2 text-xs text-emerald-800" onClick={() => void send("那最小值呢？")}>那最小值呢？</button></div>}
-        {!pending && !error && <FollowUpSuggestions turns={turns} disabled={inputBlocked} onSelect={(question) => void send(question)} />}
+        {!pending && !error && <FollowUpSuggestions turns={turns} disabled={inputBlocked} onSelect={(question, caseIds) => void send(question, undefined, false, caseIds)} />}
         {!pending && error && progress && <ExecutionProgress run={progress} />}
         {error && <ChatError error={error} onRetry={retry && !retry.answerId && !pending && !uploading ? () => void send(retry.query, retry) : undefined} />}
         {conversation.running && !pending && <p role="status" className="text-sm text-amber-900">原问题的执行状态尚未确认，请先重试找回结果，或新建对话继续提问。</p>}

@@ -18,6 +18,7 @@ type Case = { id: string; title: string; category: string; summary: string; expe
 type Catalog = { version: string; published_on: string; notice: string; cases: Case[];
   sources: { name: string; sha256: string }[] };
 const modules = evaluationModules.map((item) => [item.key, item.title]);
+const moduleGroups = [...new Set(evaluationModules.map((item) => item.group))];
 
 export function DemoWorkspace({ section, detail }: { section: string; detail: string }) {
   const isLiterature = section === "literature" || section === "literature-tags";
@@ -53,7 +54,7 @@ export function DemoWorkspace({ section, detail }: { section: string; detail: st
   return <div className={`min-h-dvh bg-slate-50 ${collapsed ? "lg:pl-[76px]" : "lg:pl-[232px]"}`}>
     <aside className={`fixed inset-y-0 left-0 hidden flex-col border-r bg-white lg:flex ${collapsed ? "w-[76px]" : "w-[232px]"}`}>
       <Link href="/showcase" aria-label="展示工作台" className="flex h-16 shrink-0 items-center gap-3 border-b px-6 font-semibold text-emerald-900"><FlaskConical size={23} className="shrink-0" /><span className={collapsed ? "sr-only" : ""}>展示工作台</span></Link>
-      <nav aria-label="展示后台导航" className="flex-1 space-y-3 overflow-y-auto p-3">{["工作台", "评测管理", "质量管理", "资料与证据"].map((group) => <div key={group}><p className={`mb-1 px-3 text-[11px] text-slate-400 ${collapsed ? "sr-only" : ""}`}>{group}</p>{evaluationModules.filter((item) => item.group === group).map((item) => <Link key={item.key} href={`/showcase/${item.key}`} aria-current={section === item.key ? "page" : undefined} title={item.title}
+      <nav aria-label="展示后台导航" className="flex-1 space-y-3 overflow-y-auto p-3">{moduleGroups.map((group) => <div key={group}><p className={`mb-1 px-3 text-[11px] text-slate-400 ${collapsed ? "sr-only" : ""}`}>{group}</p>{evaluationModules.filter((item) => item.group === group).map((item) => <Link key={item.key} href={`/showcase/${item.key}`} aria-current={section === item.key ? "page" : undefined} title={item.title}
         className={`flex min-h-8 items-center rounded-lg px-3 py-1 text-sm ${section === item.key ? "bg-emerald-50 font-semibold text-emerald-900" : "text-slate-600 hover:bg-slate-100"}`}><span aria-hidden="true" className={collapsed ? "text-xs" : "hidden"}>{item.title.slice(0, 2)}</span><span className={collapsed ? "sr-only" : ""}>{item.title}</span></Link>)}</div>)}</nav>
       <button className="m-3 flex justify-center rounded-lg border p-2 text-slate-500" aria-label={collapsed ? "展开侧边栏" : "收起侧边栏"} onClick={() => setCollapsed(!collapsed)}>{collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}</button>
     </aside>

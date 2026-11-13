@@ -1,0 +1,85 @@
+{
+  "status": "local_iteration_proposal",
+  "entries": [
+    {
+      "intent": "capability",
+      "title": "能力咨询",
+      "skills": [
+        "capability_guidance"
+      ],
+      "examples": [
+        "你能做什么？"
+      ]
+    },
+    {
+      "intent": "knowledge",
+      "title": "概念、规律与文献问答",
+      "skills": [
+        "knowledge_search"
+      ],
+      "examples": [
+        "玉米氮淋失受哪些因素影响？",
+        "WHCNS模型是什么？"
+      ]
+    },
+    {
+      "intent": "case_search",
+      "title": "寻找案例与措施",
+      "skills": [
+        "case_reference"
+      ],
+      "examples": [
+        "有没有玉米滴灌案例？"
+      ]
+    },
+    {
+      "intent": "material_explanation",
+      "title": "解释指定材料或案例",
+      "skills": [
+        "case_explanation"
+      ],
+      "examples": [
+        "解释这段材料：追肥分三次施用。"
+      ]
+    },
+    {
+      "intent": "file_calculation",
+      "title": "已上传WHCNS输出表的极值查询",
+      "skills": [
+        "file_inspector",
+        "whcns_analyzer"
+      ],
+      "examples": [
+        "Nbal_out.xls中硝态氮淋失最大值是多少？"
+      ]
+    },
+    {
+      "intent": "file_and_mechanism",
+      "title": "输出表极值及可能机理",
+      "skills": [
+        "file_inspector",
+        "whcns_analyzer",
+        "knowledge_search"
+      ],
+      "examples": [
+        "硝态氮淋失最大值是多少，为什么可能这么高？"
+      ]
+    },
+    {
+      "intent": "clarification",
+      "title": "缺少执行所需信息",
+      "skills": [
+        "clarification"
+      ],
+      "examples": [
+        "那两份材料指哪两份？"
+      ]
+    }
+  ],
+  "rules": [
+    "任务意图决定 skill 候选，主题标签决定资料范围；二者分别保存。",
+    "WHCNS 标签不意味着要调用表格分析，更不表示已能执行仿真。",
+    "多任务可组合 skills，缺文件、字段或比较对象时再作必要澄清。",
+    "在线可用性必须运行时验证，注册成功不等于依赖可用。"
+  ]
+}

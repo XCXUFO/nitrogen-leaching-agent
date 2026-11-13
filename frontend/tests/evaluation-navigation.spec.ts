@@ -43,12 +43,14 @@ test('sidebar routes preserve login, open linked records and restore a deep link
   await mockApi(page);
   await page.goto('/evaluation'); await login(page);
   const nav = page.getByRole('navigation', { name: '工作台导航' }).first();
-  await expect(page.getByRole('heading', { name: '运行记录 · 会话审核' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '运行记录', exact: true })).toBeVisible();
   await nav.getByText('更多工具与历史记录', { exact: true }).click();
   await expect(nav.getByRole('link', { name: '资产目录', exact: true })).toHaveCount(0);
-  await nav.getByRole('link', { name: '任务管理', exact: true }).click();
+  await expect(nav.getByRole('link', { name: '任务管理', exact: true })).toHaveCount(0);
+  await nav.getByRole('link', { name: '用例组管理', exact: true }).click();
+  await expect(nav.getByRole('link', { name: '用例组管理', exact: true })).toHaveAttribute('aria-current', 'page');
+  await page.goto('/evaluation/tasks');
   await expect(page).toHaveURL(/\/evaluation\/tasks$/);
-  await expect(nav.getByRole('link', { name: '任务管理', exact: true })).toHaveAttribute('aria-current', 'page');
   await expect(page.getByRole('heading', { name: '独立审核队列' })).toHaveCount(0);
   await page.getByRole('button', { name: '查看任务' }).click();
   await expect(page).toHaveURL(/\/tasks\/task-navigation$/);
@@ -75,13 +77,14 @@ test('sidebar routes preserve login, open linked records and restore a deep link
 test('tester navigation and direct URLs respect module permissions', async ({ page }) => {
   const requests = await mockApi(page, 'tester');
   await page.goto('/evaluation/issues'); await login(page);
-  await expect(page.getByRole('main').getByRole('alert')).toContainText('无权访问');
+  await expect(page.getByRole('heading', { name: '问题处理', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '保存处理结果', exact: true })).toHaveCount(0);
   const nav = page.getByRole('navigation', { name: '工作台导航' }).first();
-  await expect(nav.getByRole('link', { name: '问题管理', exact: true })).toHaveCount(0);
+  await expect(nav.getByRole('link', { name: '问题处理', exact: true })).toBeVisible();
   await expect(nav.getByRole('link', { name: '运行记录', exact: true })).toBeVisible();
   expect(requests).not.toContain('/issues');
-  if (!await nav.getByRole('link', { name: '用例库', exact: true }).isVisible()) await nav.getByText('更多工具与历史记录', { exact: true }).click();
-  await nav.getByRole('link', { name: '用例库', exact: true }).click();
+  await expect(nav.getByRole('link', { name: '用例库', exact: true })).toHaveCount(0);
+  await page.goto('/evaluation/cases');
   await expect(page.getByRole('button', { name: '查看用例' })).toBeVisible();
   await expect(page.getByRole('link', { name: '管理草稿' })).toHaveCount(0);
   expect(requests).not.toContain('/assets');
@@ -109,10 +112,10 @@ test('mobile drawer supports navigation and Escape without horizontal overflow',
   const dialog = page.getByRole('dialog', { name: '移动端导航' });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole('link', { name: '资产目录', exact: true })).toHaveCount(0);
-  await dialog.getByRole('link', { name: '用例库', exact: true }).click();
+  await dialog.getByRole('link', { name: '用例组管理', exact: true }).click();
   await expect(dialog).not.toBeVisible();
-  await expect(page).toHaveURL(/\/evaluation\/cases$/);
-  await expect(page.getByRole('heading', { name: '用例版本目录' })).toBeVisible();
+  await expect(page).toHaveURL(/\/evaluation\/case-groups$/);
+  await expect(page.getByRole('heading', { name: '用例组管理', exact: true })).toBeVisible();
   await page.getByRole('button', { name: '打开导航' }).click();
   await page.keyboard.press('Escape');
   await expect(dialog).not.toBeVisible();
@@ -121,7 +124,7 @@ test('mobile drawer supports navigation and Escape without horizontal overflow',
 });
 
 test('task execution returns to its task after scoring, including refresh and mobile', async ({ page }) => {
-  await mockApi(page, 'tester');
+  await mockApi(page, 'reviewer');
   await page.goto('/evaluation/tasks/task-navigation'); await login(page);
   await page.getByRole('button', { name: /打开执行 execution-navigation/ }).click();
   await expect(page.getByRole('link', { name: '返回所属任务', exact: true })).toHaveAttribute('href', '/evaluation/tasks/task-navigation');
@@ -141,7 +144,7 @@ test('task execution returns to its task after scoring, including refresh and mo
 });
 
 test('independent execution returns to the execution list', async ({ page }) => {
-  await mockApi(page, 'tester', null);
+  await mockApi(page, 'reviewer', null);
   await page.goto('/evaluation/executions/execution-navigation'); await login(page);
   await expect(page.getByLabel('执行问题')).toBeVisible();
   await expect(page.getByRole('link', { name: '返回所属任务', exact: true })).toHaveCount(0);

@@ -22,19 +22,20 @@ def test_general_factors_without_body_evidence_still_generate_an_explanation(cli
     result = response.json()
     assert result["agent_route"] == "KNOWLEDGE" and result["outcome"] == "complete"
     assert result["model"] == "fake-model" and result["warnings"] == []
-    assert result["answer"].startswith("以下回答未引用本知识库资料")
-    assert EXPLANATION in result["answer"] and "[99]" not in result["answer"]
+    assert result["answer"].strip() == EXPLANATION
     assert result["citations"] == result["evidence"] == []
     assert len(retriever.calls) == 1
     assert "当前任务是解释一般影响因素" in llm.last_messages[0].content
     assert "supporting_quote" not in llm.last_messages[0].content
     trace = client.app.state.agent_runtime.runs.get(result["run_id"])
     assert [call.skill for call in trace.tool_calls] == ["knowledge_search"]
-    assert trace.retrieval[-1]["status"] == "no_match"
+    assert trace.retrieval[0]["status"] == "no_match"
+    assert trace.retrieval[-1]["stage"] == "model_context"
+    assert trace.retrieval[-1]["adopted_chunk_ids"] == []
 
 
-def test_general_factors_can_combine_body_evidence_and_labeled_general_knowledge(client):
-    answer = "该玉米研究条件下，排水可使硝态氮向根区以下迁移。[1]\n\n一般知识补充：作物吸收也影响剩余氮量。"
+def test_general_factors_can_combine_body_evidence_and_general_knowledge(client):
+    answer = "该玉米研究条件下，排水可使硝态氮向根区以下迁移。[1]\n\n通常，作物吸收也影响剩余氮量。"
     knowledge, _, llm = service(text=answer, documents=[DOCUMENT])
     client.app.state.chat_service = knowledge
 
@@ -43,7 +44,7 @@ def test_general_factors_can_combine_body_evidence_and_labeled_general_knowledge
     assert result["answer"] == answer and result["outcome"] == "complete"
     assert len(result["citations"]) == len(result["evidence"]) == 1
     assert result["citations"][0]["chunk_id"] == "synthetic-0"
-    assert "一般知识补充" in llm.last_messages[0].content
+    assert "面向用户的表达规则" in llm.last_messages[0].content
     assert "【参考资料】" in llm.last_messages[0].content
     assert DOCUMENT in llm.last_messages[0].content
 

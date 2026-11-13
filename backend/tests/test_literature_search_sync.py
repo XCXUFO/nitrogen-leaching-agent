@@ -5,6 +5,7 @@ import pytest
 
 from src.api.literature import LiteratureStore, PaperInput, PaperUpdateInput, ReasonInput, create_paper, update_paper, disable_paper, delete_paper
 from src.agent.chat_service import ChatService
+from src.rag.reference_filter import is_reference_chunk
 from src.agent.understanding import understand, map_tags
 from src.agent.contracts import TaskState
 from src.api.chat_schema import ChatRequest
@@ -28,6 +29,22 @@ def seed(store, title="玉米水肥试验", text="Maize nitrogen leaching depend
     upload_id = upload_pdf(store, USER, raw=pdf_bytes(text))
     return create_paper(FakeRequest(store), PaperInput(upload_id=upload_id, title=title, authors=["Author"],
         publication_type="期刊论文", venue="Fixture Journal", year=2024, language="英文", source_note="仅测试夹具", action="register"), USER)
+
+
+def test_body_matches_outrank_title_only_chunks_and_references_do_not_consume_limit(library):
+    paper = seed(library, title='Vegetable nitrous oxide emissions')
+    references = ('Liang, X., Wang, Y., 2011. Vegetable nitrous oxide emissions temporal peaks. '
+                  'Agric. Water Manage. 208, 1-10.\nZhang, L., Hu, K., 2019. Vegetable emissions. '
+                  'Field Crops Res. 204, 1-11.\n\n') * 4
+    background = ('This paragraph introduces the model and its input requirements. ' * 8) + '\n\n'
+    results = ('Observed vegetable emissions showed temporal peaks after irrigation. '
+               'Nitrous oxide dynamics varied between seasons. ' * 5)
+    library.search_index.sync(paper['id'], actor='fixture', loader=lambda _: background + references + results)
+    hits, candidates = library.search_index.search('vegetable nitrous oxide emissions temporal peaks dynamics', limit=1)
+    assert len(hits) == 1 and 'Observed vegetable emissions' in hits[0].document
+    assert not is_reference_chunk(hits[0].document)
+    assert candidates.diagnostics['excluded_reference_chunks'] > 0
+    assert any(row['body_matches'] == 0 and row['title_matches'] > 0 for row in candidates)
 
 
 def edit(store, paper_id, **changes):
@@ -109,7 +126,7 @@ def test_unavailable_vectors_are_filtered_before_reranking(library, mode):
         assert model.last_messages is None
     else:
         result = asyncio.run(service.answer("氮素淋失影响因素", allow_general_knowledge=True))
-        assert result.answer.startswith("以下回答未引用本知识库资料") and result.citations == []
+        assert result.answer == "通用知识说明。" and result.citations == []
     assert reranker.calls == []
 
 
@@ -175,7 +192,8 @@ def test_managed_scope_and_tags_survive_answer_validation(library, monkeypatch, 
     assert len(result.citations) == 1
     assert paper["id"] in result.citations[0].source
     assert quote in "\n".join(message.content for message in model.last_messages)
-    assert records[-1]["status"] == "selected"
+    assert records[-1]['status'] == 'supplied'
+    if mode == 'answer': assert records[-1]['adopted_chunk_ids']
     if explicit_tag:
         # Preserving the tag filter must not make an untagged record eligible.
         updated = edit(library, paper["id"], tag_ids=[])

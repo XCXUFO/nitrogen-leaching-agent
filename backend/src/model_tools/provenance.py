@@ -14,10 +14,15 @@ def received_case_metadata() -> dict:
     return json.loads(METADATA_PATH.read_text(encoding="utf-8"))
 
 
-def output_source_note(sha256: str) -> str | None:
+def output_source_note(sha256: str, *, language: str = "zh") -> str | None:
     meta = received_case_metadata()
     if sha256 != meta["output"]["sha256"]:
         return None
+    if language == "en":
+        return ("The accompanying WHCNS manual defines Leak_NO3 as nitrate N leaching (page 26). "
+                "Pages 4 and 21 describe a daily time step, with Day 1 corresponding to the first sowing date in manage_in. "
+                "The pairing of this output with the supplied inputs, the executable version and the output boundary depth "
+                "have not been independently verified, so no calendar dates or boundary depth are inferred. ")
     return ("随包 WHCNS 手册第 26 页将 Leak_NO3 定义为硝态氮淋失量；"
             "第 4、21 页说明模型以天为步长，Day 1 对应 manage_in 首次播种日期。"
             "本表与随包输入文件的实际运行配对、可执行程序版本和输出边界深度尚未独立核实，"

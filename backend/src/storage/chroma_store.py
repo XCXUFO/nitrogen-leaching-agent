@@ -68,11 +68,10 @@ class ChromaStore:
         self,
         embedding: list[float],
         k: int = 5,
+        *, where: dict | None = None,
     ) -> dict[str, Any]:
-        return self._collection.query(
-            query_embeddings=[embedding],
-            n_results=k,
-        )
+        options = {'where':where} if where is not None else {}
+        return self._collection.query(query_embeddings=[embedding], n_results=k, **options)
 
     def count(self) -> int:
         return self._collection.count()

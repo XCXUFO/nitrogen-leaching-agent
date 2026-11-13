@@ -3,10 +3,11 @@ import os
 from pathlib import Path
 from fastapi import FastAPI
 from src.agent.runtime import AgentRuntime
-from src.api import evaluation, chat, files
+from src.api import evaluation, chat, files, demo
 from src.evaluation.auth import password_hash
 from src.evaluation.contracts import AccessFile
 from src.evaluation.service import EvaluationService
+from src.evaluation.regression import RegressionService
 from src.evaluation.store import EvaluationStore
 from src.storage.run_store import RunStore
 
@@ -25,7 +26,9 @@ def create_app():
     store = EvaluationStore(runs)
     store.seed(Path(__file__).resolve().parents[2] / 'data/eval')
     app.state.evaluation = EvaluationService(store)
+    app.state.regressions = RegressionService(app.state.evaluation)
     app.include_router(evaluation.router, prefix='/api')
     app.include_router(chat.router, prefix='/api')
     app.include_router(files.router, prefix='/api')
+    app.include_router(demo.router, prefix='/api')
     return app

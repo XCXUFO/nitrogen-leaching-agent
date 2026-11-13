@@ -121,18 +121,40 @@ def current_user(request: Request) -> Principal:
     fingerprint = hashlib.sha256(token.encode()).hexdigest()
     user = sessions(request).resolve(fingerprint, access)
     if user:
-        return user
+        return authorize_workbench(request, user)
     # Compatibility for unmigrated installations and isolated legacy fixtures.
     # Migrating an account removes its old token hash, disabling key login.
     for entry in access.users:
         if entry.token_sha256 and hmac.compare_digest(fingerprint, entry.token_sha256):
-            return Principal(tester_id=entry.tester_id, role=entry.role)
+            return authorize_workbench(request, Principal(tester_id=entry.tester_id, role=entry.role))
     raise HTTPException(401, detail={"code": "evaluation_unauthorized", "message": "登录已失效，请重新登录。"})
 
 
 def require_developer(user: Principal) -> None:
     if user.role != "developer":
         raise HTTPException(403, detail={"code": "evaluation_forbidden", "message": "此功能仅供开发者使用。"})
+
+
+def authorize_workbench(request: Request, user: Principal) -> Principal:
+    """One server policy covers old and new workbench mutation endpoints.
+
+    tester = ordinary read-only account; reviewer = expert. Front chat and
+    personal attachments/history remain available to all authenticated accounts.
+    """
+    path = request.url.path
+    managed = path.startswith(('/api/eval/', '/api/literature', '/api/case-library'))
+    if not managed or request.method in {'GET', 'HEAD', 'OPTIONS'} or path in {'/api/eval/login', '/api/eval/logout'}:
+        return user
+    if user.role == 'developer':
+        return user
+    daily = path.startswith(('/api/eval/case-groups', '/api/eval/conversation-cases',
+        '/api/eval/conversation-batches', '/api/eval/conversation-issues', '/api/eval/sessions/',
+        '/api/eval/executions', '/api/eval/tasks', '/api/eval/reviews', '/api/eval/assessments',
+        '/api/eval/handoff-retests', '/api/eval/explanation-trials', '/api/eval/review-queue/'))
+    if user.role == 'reviewer' and daily:
+        return user
+    raise HTTPException(403, detail={'code': 'workbench_read_only', 'message':
+        '普通账号在工作台仅可查看。日常运行评测需要专家或开发者权限；发布、回滚及配置修改仅限开发者。'})
 
 
 def front_principal(request: Request) -> Principal | None:

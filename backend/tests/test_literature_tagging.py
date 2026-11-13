@@ -24,7 +24,7 @@ def tagging(tmp_path):
     app = create_app(tmp_path)
     app.state.llm = TagLLM()
     with TestClient(app) as client:
-        client.headers["Authorization"] = f"Bearer {TOKENS['tester']}"
+        client.headers["Authorization"] = f"Bearer {TOKENS['developer']}"
         yield client, app.state.llm
     app.state.literature.close()
 
@@ -80,7 +80,8 @@ def test_tagging_requires_login_owned_file_taxonomy_and_available_ai(tagging):
     target = {"upload_id": upload(client)}
     path = "/api/literature/suggest-tags"
     assert client.post(path, json=target, headers={"Authorization": ""}).status_code == 401
-    assert client.post(path, json=target, headers={"Authorization": f"Bearer {TOKENS['reviewer']}"}).status_code == 404
+    assert client.post(path, json=target, headers={"Authorization": f"Bearer {TOKENS['reviewer']}"}).status_code == 403
+    assert client.post(path, json=target, headers={"Authorization": f"Bearer {TOKENS['other-developer']}"}).status_code == 404
     assert client.post(path, json=target).json()["detail"]["code"] == "no_available_tags"
     label = tag(client, dimension(client, "主题"), "氮素淋失")
     assert client.post(path, json={**target, "tag_ids": ["missing"]}).status_code == 422

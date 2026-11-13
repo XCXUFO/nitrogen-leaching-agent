@@ -1,0 +1,67 @@
+{
+  "status": "passed",
+  "checks": 15,
+  "results": [
+    {
+      "check": "101 unique live tag IDs; 97 effective",
+      "result": "passed"
+    },
+    {
+      "check": "Online disabled corn tag kept but excluded from matching",
+      "result": "passed"
+    },
+    {
+      "check": "Descendants of disabled region excluded",
+      "result": "passed"
+    },
+    {
+      "check": "Active corn retains its original ID",
+      "result": "passed"
+    },
+    {
+      "check": "Two Shaanxi branches stay ambiguous",
+      "result": "passed"
+    },
+    {
+      "check": "Full path resolves Shaanxi",
+      "result": "passed"
+    },
+    {
+      "check": "Parent expansion includes active descendants",
+      "result": "passed"
+    },
+    {
+      "check": "Slashes in the inhibitor label do not become hierarchy separators",
+      "result": "passed"
+    },
+    {
+      "check": "Proposed aliases off by default",
+      "result": "passed"
+    },
+    {
+      "check": "N2O subscript normalization maps to related topic",
+      "result": "passed"
+    },
+    {
+      "check": "Aliases never silently become explicit hard filters",
+      "result": "passed"
+    },
+    {
+      "check": "Explicit exact tag filter supported",
+      "result": "passed"
+    },
+    {
+      "check": "Negative polarity preserved",
+      "result": "passed"
+    },
+    {
+      "check": "WHCNS topic does not execute result analysis",
+      "result": "passed"
+    },
+    {
+      "check": "Unknown term and intent are retained",
+      "result": "passed"
+    }
+  ],
+  "scope": "Local exported-data consistency and prematcher behavior only; no end-to-end live retrieval, skill execution, speed or accuracy benchmark"
+}

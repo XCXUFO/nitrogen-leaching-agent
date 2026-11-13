@@ -17,8 +17,8 @@ import { evaluationJson, evaluationRequest as request } from "@/lib/evaluation-a
 import { canViewModule, evaluationHref, evaluationModules, type EvaluationModule } from "@/lib/evaluation-navigation";
 import type { Evaluator, EvaluationCase, EvaluationExecution, EvaluationStats, ExecutionSummary } from "@/lib/evaluation-api";
 
-const inputStyle = "w-full rounded-md border border-input bg-background px-3 py-2 text-sm";
-const buttonStyle = "rounded-md border border-input px-3 py-2 text-sm hover:bg-muted disabled:opacity-50";
+const inputStyle = "wb-field";
+const buttonStyle = "wb-button";
 const labels: Record<string, string> = { route_correct: "路由是否正确", tool_correct: "工具使用是否正确", evidence_correct: "证据是否支持", answer_correct: "答案是否正确" };
 const overallLabels: Record<string, string> = { pass: "通过", partial: "部分通过", fail: "不通过", blocked: "受阻" };
 const blankScores = () => ({ overall: "", route_correct: "", tool_correct: "", evidence_correct: "", answer_correct: "", usability: "", tags: "", notes: "" });
@@ -60,7 +60,7 @@ export function EvaluationWorkspace({ section, detail = "", executionId = "", ca
   const [selectedTask, setSelectedTask] = useState(section === "tasks" && detail !== "new" ? detail : "");
   const currentCase = cases.find((c) => `${c.case.case_id}@${c.case.version}` === selectedCase);
   const owned = execution?.tester_id === user.tester_id;
-  const editable = section === "executions" && !!execution && owned && execution.status === "open" && !execution.automation_running;
+  const editable = user.role !== "tester" && section === "executions" && !!execution && owned && execution.status === "open" && !execution.automation_running;
   const targetExecution = (["executions", "reviews"].includes(section) && detail && detail !== "new") ? detail : executionId;
   useEvaluationReturnTask(section === "executions" && execution?.execution_id === detail ? execution.task_id ?? null : null);
 
@@ -124,9 +124,9 @@ export function EvaluationWorkspace({ section, detail = "", executionId = "", ca
 
   if (!allowed) return <section role="alert" className="rounded-xl border bg-white p-8"><h2 className="font-semibold">当前身份无权访问此模块</h2><p className="mt-2 text-sm text-muted-foreground">请从左侧选择可用的工作入口。</p><Link href="/evaluation/overview" className="mt-4 inline-block text-sm text-emerald-700 underline">返回工作台总览</Link></section>;
   if (loading) return <p role="status" className="rounded-xl border bg-white p-8 text-sm text-muted-foreground">正在读取数据…</p>;
-  if (error && targetExecution && !execution) return <div role="alert" className="rounded-xl border bg-white p-6 text-sm text-destructive">{error}</div>;
+  if (error && targetExecution && !execution) return <div role="alert" className="wb-panel text-sm text-destructive">{error}</div>;
 
-  const contextSelector = <section className="flex flex-wrap items-center gap-2 rounded-xl border bg-white p-3">
+  const contextSelector = <section className="flex flex-wrap items-center gap-2 wb-panel">
     <label className="text-sm font-medium" htmlFor="related-execution">关联执行</label>
     <select id="related-execution" className={`${inputStyle} sm:max-w-xl`} value={targetExecution} onChange={(e) => selectContext(e.target.value)}>
       <option value="">选择已有执行，或从执行详情进入</option>
@@ -146,10 +146,10 @@ export function EvaluationWorkspace({ section, detail = "", executionId = "", ca
           { label: user.role === "developer" ? "待评分执行" : "近期待评分", value: stats?.pending ?? executions.filter((item) => item.status === "open").length, href: "executions" }].map((item) =>
           <Link href={evaluationHref(item.href)} key={item.label} className="flex items-center justify-between gap-2 rounded-xl border bg-white px-3 py-3 transition-shadow hover:shadow-sm"><p className="text-xs text-slate-500">{item.label}</p><p className="text-2xl font-semibold tabular-nums">{item.value}</p></Link>)}
       </section>
-      <div className={`grid items-start gap-3 ${stats ? "lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]" : ""}`}><section className="min-w-0 rounded-xl border bg-white p-3"><h2 className="font-semibold">开始工作</h2><div className="mt-2 grid gap-2 sm:grid-cols-2 2xl:grid-cols-3">
+      <div className={`grid items-start gap-3 ${stats ? "lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]" : ""}`}><section className="min-w-0 wb-panel"><h2 className="font-semibold">开始工作</h2><div className="mt-2 grid gap-2 sm:grid-cols-2 2xl:grid-cols-3">
         {evaluationModules.filter((item) => item.key !== "overview" && canViewModule(item.key, user.role)).map((item) => <Link key={item.key} href={evaluationHref(item.key)} className="group min-w-0 rounded-lg border px-3 py-2 hover:border-emerald-300 hover:bg-emerald-50/40"><span className="flex items-center justify-between text-sm font-medium">{item.title}<ArrowRight size={16} className="shrink-0 text-slate-400 group-hover:text-emerald-700" /></span></Link>)}
       </div></section>
-        {stats && <div className="min-w-0 space-y-2 rounded-xl border bg-white p-3">
+        {stats && <div className="min-w-0 space-y-2 wb-panel">
           <h2 className="font-semibold">评分概况</h2>
           <p className="text-xs text-slate-600">执行 {stats.executions} 次 · 已评分 {stats.reviewed} 次 · 待评分 {stats.pending} 次</p>
           {stats.assessment_counts && <p className="text-xs text-slate-600">独立审核记录：AI 辅助 {stats.assessment_counts.ai_assisted} · 领域专家 {stats.assessment_counts.domain_expert}</p>}
@@ -173,24 +173,24 @@ export function EvaluationWorkspace({ section, detail = "", executionId = "", ca
 
     {section === "cases" && <>
       {detail && detail !== "drafts" && !currentCase ? <p role="alert" className="rounded border bg-white p-5">未找到此用例版本。</p> : <>
-        {currentCase && <section className="space-y-4 rounded-xl border bg-white p-5"><div><h2 className="font-semibold">{currentCase.case.case_id} v{currentCase.case.version} · {currentCase.case.title}</h2><p className="mt-2 text-sm">{currentCase.case.preconditions}</p></div>
+        {currentCase && <section className="space-y-4 wb-panel"><div><h2 className="font-semibold">{currentCase.case.case_id} v{currentCase.case.version} · {currentCase.case.title}</h2><p className="mt-2 text-sm">{currentCase.case.preconditions}</p></div>
           <ol className="list-decimal space-y-2 pl-5 text-sm">{currentCase.case.steps.map((step, i) => <li key={i}>{step.instruction}{step.input && <p className="mt-1 text-slate-500">{step.input}</p>}</li>)}</ol>
           <h3 className="text-sm font-medium">通过标准</h3><ul className="list-disc space-y-1 pl-5 text-sm">{currentCase.case.expected.map((value, i) => <li key={i}>{value}</li>)}</ul>
-          <Link className="inline-flex rounded-lg bg-emerald-700 px-4 py-2 text-sm text-white" href={`${evaluationHref("executions", "new")}?case=${encodeURIComponent(selectedCase)}`}>使用此版本新建执行</Link>
+          {user.role !== "tester" && <Link className="inline-flex rounded-lg bg-emerald-700 px-4 py-2 text-sm text-white" href={`${evaluationHref("executions", "new")}?case=${encodeURIComponent(selectedCase)}`}>使用此版本新建执行</Link>}
         </section>}
         {(!currentCase || user.role === "developer") && <EvaluationCatalog token={token} role={user.role} showDrafts={detail === "drafts" || !!currentCase} cases={cases} currentCase={currentCase}
           onSelectCase={(id) => router.push(evaluationHref("cases", id))} onPublished={() => refresh()} />}
       </>}
     </>}
 
-    {section === "executions" && !detail && <section className="space-y-3 rounded-xl border bg-white p-3">
-      <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-semibold">{user.role === "developer" ? "执行列表" : "可见执行"}</h2><Link href={evaluationHref("executions", "new")} className="inline-flex items-center gap-2 rounded-lg bg-emerald-700 px-4 py-2 text-sm text-white"><Plus size={16} />新建执行</Link></div>
+    {section === "executions" && !detail && <section className="space-y-3 wb-panel">
+      <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-semibold">{user.role === "developer" ? "执行列表" : "可见执行"}</h2>{user.role !== "tester" && <Link href={evaluationHref("executions", "new")} className="inline-flex items-center gap-2 rounded-lg bg-emerald-700 px-4 py-2 text-sm text-white"><Plus size={16} />新建执行</Link>}</div>
       <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="bg-slate-50 text-xs text-slate-500"><tr>{["用例版本", "测试者", "状态", "创建时间", "操作"].map((label) => <th key={label} className="whitespace-nowrap px-3 py-2 font-medium">{label}</th>)}</tr></thead>
         <tbody>{executions.map((item) => <tr key={item.execution_id} className="border-t"><td className="px-3 py-2 font-medium">{item.case_id} v{item.case_version}</td><td className="px-3 py-2">{item.tester_id}</td><td className="px-3 py-2"><span className={`whitespace-nowrap rounded-full px-2 py-1 text-xs ${item.status === "reviewed" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800"}`}>{item.status === "reviewed" ? "已评分" : "待评分"}</span></td><td className="whitespace-nowrap px-3 py-2 text-xs text-slate-500">{new Date(item.created_at).toLocaleString()}</td><td className="px-3 py-2"><Link className="whitespace-nowrap text-emerald-700 underline" href={evaluationHref("executions", item.execution_id)}>打开执行</Link></td></tr>)}</tbody></table></div>
       {!executions.length && <p className="py-8 text-center text-sm text-muted-foreground">暂无执行，选择用例新建一次测试。</p>}
       <div className="flex items-center gap-3"><span className="text-xs text-muted-foreground">第 {executionOffset / 50 + 1} 页</span>{[-50, 50].map((delta) => <button key={delta} className={buttonStyle} disabled={busy || (delta < 0 ? executionOffset === 0 : executions.length < 50)} onClick={() => void perform(async () => { const offset = Math.max(0, executionOffset + delta); setExecutions(await request<ExecutionSummary[]>(token, `/executions?offset=${offset}`)); setExecutionOffset(offset); })}>{delta < 0 ? "上一页" : "下一页"}</button>)}</div>
     </section>}
-    {section === "executions" && detail === "new" && <section className="max-w-3xl space-y-4 rounded-xl border bg-white p-6">
+    {section === "executions" && detail === "new" && user.role !== "tester" && <section className="max-w-3xl space-y-4 wb-panel">
       <h2 className="font-semibold">选择用例与任务</h2>
       <label className="block space-y-2 text-sm"><span>用例版本</span><select aria-label="用例版本" className={inputStyle} value={selectedCase} onChange={(e) => { setSelectedCase(e.target.value); setSelectedTask(""); }}><option value="">请选择</option>{cases.map(({ case: item }) => <option key={`${item.case_id}@${item.version}`} value={`${item.case_id}@${item.version}`}>{item.case_id} · v{item.version} · {item.title}</option>)}</select></label>
       <label className="block space-y-2 text-sm"><span>所属任务</span><select aria-label="测评任务" className={inputStyle} value={selectedTask} onChange={(e) => setSelectedTask(e.target.value)}><option value="">独立执行（无任务）</option>{tasks.filter((task) => task.case_versions.some((item) => `${item.case_id}@${item.case_version}` === selectedCase)).map((task) => <option key={task.task_id} value={task.task_id}>{task.title}</option>)}</select></label>

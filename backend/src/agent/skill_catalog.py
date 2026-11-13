@@ -26,6 +26,7 @@ class SkillSummary(Contract):
     title: str
     description: str
     registered: bool = True
+    alias_of: str | None = None
     generation: Literal["llm", "local", "program", "unknown"]
     availability: Availability
     availability_note: str
@@ -50,6 +51,22 @@ class SkillDetail(SkillSummary):
 
 
 DESCRIPTIONS = {
+    "case_assistant": {
+        "title": "案例与措施助手", "generation": "llm",
+        "description": "统一查找案例、解释材料、比较对象和核对效果证据，追问承接实际展示的对象。",
+        "scenarios": ["查找相关案例", "解释案例或粘贴文字、表格", "比较指定对象", "核对效果证据与结论边界"],
+        "examples": ["有哪些水氮管理案例？", "上面案例的关键措施是什么，为什么这样做？", "效果有哪些证据，还不能得出哪些结论？"],
+        "inputs": ["问题与可选模式：search / explain / compare / evidence", "指定案例或用户粘贴材料"],
+        "outputs": ["回答、实际任务模式和实际采用的案例来源"],
+        "limitations": ["只读取已开放且未删除的案例，每次重新核对正文和版本。", "解释粘贴材料无需案例库；查找库内案例仍需案例资料可用。", "做法记录不等于效果证据，不编造增产、节肥效果或具体田块处方。", "历史 case_reference / case_explanation 入口继续兼容，新运行记录实际统一能力与模式。"],
+    },
+    "concept_explanation": {
+        "title": "概念解释与入门", "generation": "llm",
+        "description": "解释农业及相关基础知识，先介绍概念或用途，再按需引导。",
+        "scenarios": ["名词与模型介绍", "新手应用场景"], "examples": ["WHCNS模型", "氮素淋失是什么意思？"],
+        "inputs": ["问题与相关文字历史"], "outputs": ["概念解释、来源与适用边界"],
+        "limitations": ["一般知识不冒充检索证据。", "联网取证取决于服务端配置和实际来源支持；不执行农业模拟或预测就业结果。"],
+    },
     "knowledge_search": {
         "title": "文献检索问答", "generation": "llm",
         "description": "从本地文献和当前会话材料中查找依据，回答专业问题或解释可能机理。",
@@ -57,7 +74,7 @@ DESCRIPTIONS = {
         "examples": ["玉米农田氮淋失主要受哪些因素影响？"],
         "inputs": ["问题、可用的对话历史和会话材料", "可选检索数量与机理解释模式"],
         "outputs": ["带引用的回答、实际检索片段和用量记录"],
-        "limitations": ["检索本地资料，不提供联网搜索。", "当前入口须已初始化文献服务；仅有附件不代表该入口可用。", "引用校验不等于专业因果判断已经审核。"],
+        "limitations": ["优先检索本地资料，按需调用已配置的外部取证能力。", "当前入口须已初始化文献服务；仅有附件不代表该入口可用。", "引用校验不等于专业因果判断已经审核。"],
     },
     "case_reference": {
         "title": "案例与措施参考", "generation": "llm",
@@ -151,7 +168,7 @@ async def _unused_report(file_id: str) -> dict:
     raise RuntimeError("Catalog inspection never executes attachment processing")
 
 
-def describe_skills(*, service=None, llm=None, case_store=None, runtime=None) -> list[SkillDetail]:
+def describe_skills(*, service=None, llm=None, case_store=None, runtime=None, include_aliases=False) -> list[SkillDetail]:
     registry = build_registry(service, _unused_report, llm=llm, case_store=case_store)
     checked_at = datetime.now(timezone.utc).isoformat()
     manifest = getattr(runtime, "config_manifest", {}) or {}
@@ -160,13 +177,17 @@ def describe_skills(*, service=None, llm=None, case_store=None, runtime=None) ->
     case_dependency = _case_dependency(case_store)
     parser_dependencies = [_workbook_dependency("xlrd", "XLS"), _workbook_dependency("openpyxl", "XLSX")]
     result = []
-    for registered in registry.describe():
+    for registered in registry.describe(include_aliases=include_aliases):
         name = registered["name"]
         metadata = DESCRIPTIONS.get(name, {"title": registered["description"], "description": "能力说明待补充。", "generation": "unknown"})
-        if name == "knowledge_search":
+        if name == "concept_explanation":
+            dependencies = [_llm_dependency(llm or getattr(service, "_llm", None))]
+        elif name == "knowledge_search":
             dependencies = [Dependency(name="本地文献服务", status="available" if service is not None else "unavailable",
                                        message="已初始化；本次未重新执行索引检索。" if service is not None else "文献服务未启用或初始化失败。"),
                             _llm_dependency(getattr(service, "_llm", None))]
+        elif name == "case_assistant":
+            dependencies = [_llm_dependency(llm), case_dependency.model_copy(update={"required": False})]
         elif name == "case_reference":
             dependencies = [_llm_dependency(llm), case_dependency]
         elif name == "case_explanation":
@@ -177,6 +198,10 @@ def describe_skills(*, service=None, llm=None, case_store=None, runtime=None) ->
             dependencies = [Dependency(name="本地执行入口", status="available", message="程序入口已加载，不需要远程模型服务。")]
         else:
             dependencies = [Dependency(name="依赖检查", status="unknown", message="此能力的依赖状态尚未采集。")]
+        if name in {"knowledge_search", "concept_explanation"}:
+            web = getattr(runtime, "web", None)
+            dependencies.append(Dependency(name="相关领域联网取证", status="unknown" if web is not None and web.ready else "unavailable",
+                required=False, message="已配置搜索入口，未执行在线连通性和来源支持检查。" if web is not None and web.ready else "未配置或未启用外部检索；不发送联网请求。"))
         required = [dependency.status for dependency in dependencies if dependency.required]
         availability = "unavailable" if "unavailable" in required else "unknown" if "unknown" in required else "available"
         note = {"available": "本地执行所需依赖可用，具体输入仍需校验。", "unavailable": "存在尚不可用的必要依赖，详见下方说明。", "unknown": "必要依赖尚未全部验证，不保证本次任务可执行。"}[availability]
@@ -186,7 +211,8 @@ def describe_skills(*, service=None, llm=None, case_store=None, runtime=None) ->
             note = (f"检查入口可用；新表格首次解析可用格式：{'、'.join(formats)}，实际内容仍需校验。" if formats else
                     "检查入口已加载，但未确认可用的表格解析依赖；已缓存摘要须按实际附件判断。")
         result.append(SkillDetail(**metadata, name=name, registry_description=registered["description"], dependencies=dependencies, availability=availability,
-                                  configuration="limited" if name == "case_explanation" else "read_only",
+                                  configuration="limited" if name in {"case_explanation", "case_assistant"} else "read_only",
+                                  alias_of="case_assistant" if name in {"case_reference", "case_explanation"} else None,
                                   availability_note=note, input_schema=registered["input_schema"], output_schema=registered["output_schema"],
                                   runtime_config_version=version, code_sha256=manifest.get("agent_code_sha256"), checked_at=checked_at))
     return result

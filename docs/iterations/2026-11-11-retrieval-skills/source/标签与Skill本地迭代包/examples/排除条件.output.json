@@ -1,0 +1,97 @@
+{
+  "schema_version": "local-prematch-v1",
+  "input_keywords": [
+    {
+      "term": "玉米",
+      "polarity": "exclude",
+      "source": "current_user"
+    },
+    {
+      "term": "小麦",
+      "polarity": "include",
+      "source": "current_user"
+    },
+    "氮淋失"
+  ],
+  "input_intents": [
+    "knowledge"
+  ],
+  "mappings": [
+    {
+      "term": "玉米",
+      "polarity": "exclude",
+      "source": "current_user",
+      "condition_id": null,
+      "object_group": "subject",
+      "status": "matched",
+      "usage": "ranking_signal",
+      "requires_resolution": false,
+      "candidates": [
+        {
+          "id": "T-74ce41cce69c",
+          "dimension_key": "crop",
+          "path": "粮食作物 / 玉米",
+          "method": "exact_name_or_path",
+          "review_status": null,
+          "descendant_ids": []
+        }
+      ]
+    },
+    {
+      "term": "小麦",
+      "polarity": "include",
+      "source": "current_user",
+      "condition_id": null,
+      "object_group": "subject",
+      "status": "matched",
+      "usage": "ranking_signal",
+      "requires_resolution": false,
+      "candidates": [
+        {
+          "id": "T-9daff4a90de4",
+          "dimension_key": "crop",
+          "path": "粮食作物 / 小麦",
+          "method": "exact_name_or_path",
+          "review_status": null,
+          "descendant_ids": []
+        }
+      ]
+    },
+    {
+      "term": "氮淋失",
+      "polarity": "include",
+      "source": "current_user",
+      "condition_id": null,
+      "object_group": "subject",
+      "status": "matched",
+      "usage": "ranking_signal",
+      "requires_resolution": false,
+      "candidates": [
+        {
+          "id": "T-5e6cb0404324",
+          "dimension_key": "topic",
+          "path": "氮淋溶",
+          "method": "alias_candidate",
+          "review_status": "pending",
+          "descendant_ids": []
+        }
+      ]
+    }
+  ],
+  "unmatched_keywords": [],
+  "unresolved_intents": [],
+  "skill_candidates": [
+    {
+      "id": "knowledge_search",
+      "title": "文献检索问答",
+      "observed_status": "依赖待验证"
+    }
+  ],
+  "fallback": {
+    "keep_original_query": true,
+    "keep_unmatched_keywords": true,
+    "retrieve_untagged_content": true,
+    "runtime_access_checks_required": true
+  },
+  "note": "关键词和意图由上游提供；输出是初步候选，不表示资料符合条件或 skill 已执行。"
+}

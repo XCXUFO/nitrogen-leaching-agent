@@ -11,9 +11,9 @@ test('AI draft adoption, conflict preservation, navigation guard and explicit sa
   await page.route('**/api/**', async (route) => {
     const path = new URL(route.request().url()).pathname;
     let json: unknown;
-    if (path === '/api/eval/me') json = { tester_id: 'tester', role: 'tester' };
+    if (path === '/api/eval/me') json = { tester_id: 'tester', role: 'developer' };
     else if (path === '/api/case-library/taxonomy') json = { dimensions: [], tags: [] };
-    else if (path === '/api/eval/login') json = { token: 'mock-session-token', user: { tester_id: 'tester', role: 'tester' } };
+    else if (path === '/api/eval/login') json = { token: 'mock-session-token', user: { tester_id: 'tester', role: 'developer' } };
     else if (path === '/api/case-library/explanation-draft') {
       expect(route.request().postDataJSON().body).toBe('<p>更新的原文</p>');
       json = { draft: 'AI 生成的新解释' };
@@ -69,9 +69,9 @@ test('minimum fields save after draft failure with Agent closed by default', asy
   await page.route('**/api/**', async (route) => {
     const path = new URL(route.request().url()).pathname;
     let json: unknown;
-    if (path === '/api/eval/me') json = { tester_id: 'tester', role: 'tester' };
+    if (path === '/api/eval/me') json = { tester_id: 'tester', role: 'developer' };
     else if (path === '/api/case-library/taxonomy') json = { dimensions: [], tags: [] };
-    else if (path === '/api/eval/login') json = { token: 'mock-session-token', user: { tester_id: 'tester', role: 'tester' } };
+    else if (path === '/api/eval/login') json = { token: 'mock-session-token', user: { tester_id: 'tester', role: 'developer' } };
     else if (path === '/api/case-library/explanation-draft') { await route.fulfill({ status: 502, json: { detail: { message: '解释生成失败，请重试或手动填写。' } } }); return; }
     else if (path === '/api/case-library' && route.request().method() === 'POST') { created = route.request().postDataJSON(); json = { ...initial, ...created }; }
     else if (path === `/api/case-library/${initial.id}`) json = { ...initial, ...created };
@@ -91,16 +91,16 @@ test('minimum fields save after draft failure with Agent closed by default', asy
   expect(created).toMatchObject({ enabled: false, source: '', explanation: '', supplementary: '' });
 });
 
-test('title filter, availability changes, deletion and standalone explanation', async ({ page }) => {
+test('title filter, availability changes and deletion', async ({ page }) => {
   let item: typeof initial | null = { ...initial };
   const queries: string[] = [];
   await page.route('**/api/**', async (route) => {
     const url = new URL(route.request().url());
     const path = url.pathname, method = route.request().method();
     let json: unknown;
-    if (path === '/api/eval/me') json = { tester_id: 'tester', role: 'tester' };
+    if (path === '/api/eval/me') json = { tester_id: 'tester', role: 'developer' };
     else if (path === '/api/case-library/taxonomy') json = { dimensions: [], tags: [] };
-    else if (path === '/api/eval/login') json = { token: 'mock-session-token', user: { tester_id: 'tester', role: 'tester' } };
+    else if (path === '/api/eval/login') json = { token: 'mock-session-token', user: { tester_id: 'tester', role: 'developer' } };
     else if (path === '/api/case-library') {
       queries.push(url.search);
       const matches = item && item.title.includes(url.searchParams.get('keyword') || '') && (url.searchParams.get('availability') !== 'disabled' || !item.enabled);
@@ -111,12 +111,6 @@ test('title filter, availability changes, deletion and standalone explanation', 
     } else if (path === `/api/case-library/${initial.id}`) {
       if (method === 'DELETE') { expect(route.request().postDataJSON()).toEqual({ expected_revision: 2 }); item = null; json = { deleted: true }; }
       else json = item;
-    } else if (path === '/api/chat') {
-      const body = route.request().postDataJSON();
-      expect(body.case_skill).toBe('explain');
-      expect(body.case_ids).toEqual([]);
-      expect(body.session_id).toMatch(/^[\w-]{36}$/);
-      json = { answer: '分次施肥是把肥料分几次施入。', citations: [], case_references: [], file_evidence: [], usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 }, retrieved_count: 0, model: 'fixture' };
     } else throw new Error(`Unexpected ${method} ${path}`);
     await route.fulfill({ json });
   });
@@ -141,10 +135,6 @@ test('title filter, availability changes, deletion and standalone explanation', 
   await page.getByRole('button', { name: '删除', exact: true }).click();
   await expect(page).toHaveURL(/\/evaluation\/case-library$/);
   await expect(page.getByText('暂无符合条件的案例')).toBeVisible();
-  await page.getByLabel('选择 Skill').selectOption('explain');
-  await page.getByLabel('验证问题或专业文字').fill('解释分次施肥的含义');
-  await page.getByRole('button', { name: '验证效果', exact: true }).click();
-  await expect(page.getByText('分次施肥是把肥料分几次施入。', { exact: true })).toBeVisible();
 });
 
 test('Word table paste keeps empty cells, edits rows and columns, and survives save and reload', async ({ page }) => {
@@ -153,9 +143,9 @@ test('Word table paste keeps empty cells, edits rows and columns, and survives s
   await page.route('**/api/**', async (route) => {
     const path = new URL(route.request().url()).pathname;
     let json: unknown;
-    if (path === '/api/eval/me') json = { tester_id: 'tester', role: 'tester' };
+    if (path === '/api/eval/me') json = { tester_id: 'tester', role: 'developer' };
     else if (path === '/api/case-library/taxonomy') json = { dimensions: [], tags: [] };
-    else if (path === '/api/eval/login') json = { token: 'mock-session-token', user: { tester_id: 'tester', role: 'tester' } };
+    else if (path === '/api/eval/login') json = { token: 'mock-session-token', user: { tester_id: 'tester', role: 'developer' } };
     else if (path === '/api/case-library/explanation-draft') {
       draftBody = route.request().postDataJSON().body;
       expect(route.request().postDataJSON().body_format).toBe('html');
@@ -217,46 +207,6 @@ test('Word table paste keeps empty cells, edits rows and columns, and survives s
   await expect(page.getByRole('textbox', { name: '解释与说明（选填）', exact: true })).toBeVisible();
 });
 
-test('automatic case routing, visible conversation and explicit skill isolation', async ({ page }) => {
-  const requests: { session_id: string; case_skill: string | null; history: unknown[] }[] = [];
-  await page.route('**/api/**', async (route) => {
-    const path = new URL(route.request().url()).pathname;
-    let json: unknown;
-    if (path === '/api/eval/me') json = { tester_id: 'tester', role: 'tester' };
-    else if (path === '/api/case-library/taxonomy') json = { dimensions: [], tags: [] };
-    else if (path === '/api/eval/login') json = { token: 'mock-session-token', user: { tester_id: 'tester', role: 'tester' } };
-    else if (path === '/api/case-library') json = { items: [], total: 0, page: 1, page_size: 20 };
-    else if (path === '/api/chat') {
-      requests.push(route.request().postDataJSON());
-      json = { answer: `第${requests.length}轮回答`, citations: [], case_route: requests.length === 1 ? ['case_reference', 'case_explanation'] : ['case_explanation'], case_match: 'matched', case_references: [{ id: initial.id, title: '天津番茄案例', source: '试验记录' }], usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 }, model: 'fixture', retrieved_count: 1 };
-    } else throw new Error(`Unexpected ${path}`);
-    await route.fulfill({ json });
-  });
-  await page.goto('/evaluation/case-library');
-  await page.getByLabel('账号', { exact: true }).fill('tester');
-  await page.getByLabel('密码', { exact: true }).fill('test-password');
-  await page.getByRole('button', { name: '进入工作台' }).click();
-  await expect(page.getByLabel('选择 Skill')).toHaveValue('auto');
-  await page.getByLabel('验证问题或专业文字').fill('找两个案例并解释');
-  await page.getByRole('button', { name: '验证效果', exact: true }).click();
-  await expect(page.getByText('本次路由：案例与措施参考 → 案例与措施解释 · 已匹配案例')).toBeVisible();
-  await expect(page.getByText(initial.id)).toHaveCount(0);
-  await page.getByLabel('验证问题或专业文字').fill('这两者有什么区别');
-  await page.getByRole('button', { name: '验证效果', exact: true }).click();
-  await expect(page.getByText('第2轮回答', { exact: true })).toBeVisible();
-  await expect(page.getByText('第1轮回答', { exact: true })).toBeVisible();
-  expect(requests[0].case_skill).toBeNull();
-  expect(requests[1].session_id).toBe(requests[0].session_id);
-  expect(requests[1].history).toHaveLength(2);
-  await page.getByLabel('选择 Skill').selectOption('explain');
-  await page.getByLabel('验证问题或专业文字').fill('解释分次施肥');
-  await page.getByRole('button', { name: '验证效果', exact: true }).click();
-  await expect(page.getByText('第3轮回答', { exact: true })).toBeVisible();
-  expect(requests[2].case_skill).toBe('explain');
-  expect(requests[2].session_id).not.toBe(requests[0].session_id);
-  expect(requests[2].history).toHaveLength(0);
-});
-
 test('shared tags appear on list and detail, edit persists and list filters apply', async ({ page }) => {
   const saved = { ...initial, tag_ids: ['maize'] };
   const catalog = { dimensions: [{ id: 'crop', name: '作物', enabled: 1, selection: 'single', required: true }], tags: [
@@ -269,8 +219,8 @@ test('shared tags appear on list and detail, edit persists and list filters appl
     const url = new URL(route.request().url());
     const path = url.pathname;
     let json: unknown;
-    if (path === '/api/eval/me') json = { tester_id: 'tester', role: 'tester' };
-    else if (path === '/api/eval/login') json = { token: 'mock-session-token', user: { tester_id: 'tester', role: 'tester' } };
+    if (path === '/api/eval/me') json = { tester_id: 'tester', role: 'developer' };
+    else if (path === '/api/eval/login') json = { token: 'mock-session-token', user: { tester_id: 'tester', role: 'developer' } };
     else if (path === '/api/case-library/taxonomy') json = catalog;
     else if (path === '/api/case-library') {
       queries.push(url.searchParams);
