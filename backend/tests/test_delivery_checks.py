@@ -52,6 +52,14 @@ def test_delivery_manifest_includes_retrieval_aliases_and_rejects_their_changes(
     aliases = tmp_path / 'backend/data/retrieval/aliases.json'
     aliases.parent.mkdir(parents=True)
     aliases.write_text('{"aliases": []}')
+    archives = [tmp_path / name for name in (
+        '.gitattributes',
+        'docs/iterations/2026-11-09-prd-handoff/source/snapshot.md',
+        'docs/iterations/2026-11-11-retrieval-skills-v02/source/snapshot.md',
+    )]
+    for path in archives:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text('Original source bytes.\n')
     subprocess.run(['git', 'init', '-q', str(tmp_path)], check=True)
     # The source fingerprint records a base commit; no project Git state is used.
     subprocess.run(['git', '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid',
@@ -60,6 +68,13 @@ def test_delivery_manifest_includes_retrieval_aliases_and_rejects_their_changes(
                    cwd=tmp_path, check=True, capture_output=True, text=True)
     manifest = json.loads((output_dir / 'fixture.json').read_text())
     assert manifest['files']['backend/data/retrieval/aliases.json'] == checks.fingerprint(aliases)
+    for path in archives:
+        assert manifest['files'][path.relative_to(tmp_path).as_posix()] == checks.fingerprint(path)
+        original = path.read_bytes()
+        path.write_text('Changed source bytes.\n')
+        with pytest.raises(ValueError, match='Source changed'):
+            checks.verify(tmp_path, manifest)
+        path.write_bytes(original)
     checks.verify(tmp_path, manifest)
     added = tmp_path / 'backend/src/new_runtime.py'
     added.parent.mkdir(parents=True)

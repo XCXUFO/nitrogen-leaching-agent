@@ -176,5 +176,16 @@
     "b1603775-2d5b-41d1-827e-3b017f695a8c": "delivery-20261113-9a6a1642d860:38efe915a598a544",
     "2ea5b082-040b-4b6d-99e2-4f1144722a13": "delivery-20261113-9a6a1642d860:38efe915a598a544"
   },
-  "delivery_check": "passed after production services started and file smoke completed"
+  "delivery_check": "passed after production services started and file smoke completed",
+  "post_commit_ci": {
+    "run_url": "https://github.com/XCXUFO/nitrogen-leaching-agent/actions/runs/43447074929",
+    "backend": {
+      "passed": 1312,
+      "skipped": 39,
+      "failed": 9,
+      "errors": 8
+    },
+    "frontend": "success"
+  },
+  "follow_up": "docs/releases/2026-11-14-backend-ci-repair.md"
 }

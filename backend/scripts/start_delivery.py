@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def main():
     parser = argparse.ArgumentParser(description='Start a fingerprinted local delivery build.')
-    parser.add_argument('--manifest', default='delivery-source-manifest-2026-11-13-release.json')
+    parser.add_argument('--manifest', default='delivery-source-manifest-2026-11-14-ci-repair.json')
     parser.add_argument('--dist-dir', choices=DIST_DIRS)
     parser.add_argument('--check', action='store_true', help='Verify source and build without starting services')
     args = parser.parse_args()

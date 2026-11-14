@@ -1,0 +1,94 @@
+{
+  "recorded_at": "2026-11-14T04:45:03.527025+00:00",
+  "original_commit": "ca0a5d2444771fd45ab8a340d6538728bd603b60",
+  "original_ci": {
+    "run_url": "https://github.com/XCXUFO/nitrogen-leaching-agent/actions/runs/43447074929",
+    "backend": {
+      "passed": 1312,
+      "skipped": 39,
+      "failed": 9,
+      "errors": 8
+    },
+    "frontend": "success"
+  },
+  "local_validation": {
+    "reproduced": {
+      "tests": "21",
+      "failures": "6",
+      "errors": "0",
+      "skipped": "0",
+      "time": "10.461"
+    },
+    "clean": {
+      "tests": "1370",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "40",
+      "time": "210.834"
+    },
+    "rag-targeted": {
+      "tests": "46",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "17.023"
+    },
+    "delivery": {
+      "tests": "6",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.244"
+    }
+  },
+  "clean_environment": {
+    "source": "git archive plus final changed files",
+    "dependencies": "uv sync --locked --group dev --extra model-tools",
+    "rag_extra_installed": false,
+    "local_env_file_included": false
+  },
+  "manifest": "docs/iterations/2026-09-29-agent-harness/delivery-source-manifest-2026-11-14-ci-repair.json",
+  "build_version": "delivery-20261114-c2b97322f45b",
+  "source_sha256": "c2b97322f45b2b758364008f00c7e613732b9b3ae8aa619f78e9b8282449343b",
+  "file_count": 517,
+  "runtime_source_modified": false,
+  "frontend_source_modified": false,
+  "artifacts": {
+    "backend/var/eval/ci-repair-20261114/github-original.log": {
+      "sha256": "ae7def4a3f0e56ccf23a1c357cebd89a4f56eda5cee3c1300b2dcd58cde52b32",
+      "bytes": 81150
+    },
+    "backend/var/eval/ci-repair-20261114/reproduced.log": {
+      "sha256": "53a1a188fdc78e9349408473dd92cf690997e784bc27689faa6f254e60cfffa5",
+      "bytes": 12363
+    },
+    "backend/var/eval/ci-repair-20261114/reproduced.xml": {
+      "sha256": "dbc2aba8a28d5865742d957474c27fd2bdb7baa60f1091fde7ea7326bfc78667",
+      "bytes": 14527
+    },
+    "backend/var/eval/ci-repair-20261114/clean.log": {
+      "sha256": "939b1a0cb1003eba3b1f9744e4c3b9bc4f1a4d886bc10d1ce573ed5053896282",
+      "bytes": 1645
+    },
+    "backend/var/eval/ci-repair-20261114/clean.xml": {
+      "sha256": "6eb3e5911fdeda583ff918a1c3d1f42bb36af8ca26f2d12675d51d65123b2c98",
+      "bytes": 223131
+    },
+    "backend/var/eval/ci-repair-20261114/rag-targeted.log": {
+      "sha256": "a32f5dc18b7780558aba9e50c2d9e01331e39016bcac2c9bf5275aff0c6fd139",
+      "bytes": 670
+    },
+    "backend/var/eval/ci-repair-20261114/rag-targeted.xml": {
+      "sha256": "f8e86b58fd1377662ba28e08b5704bfcbacf910a21de920c1eefba2c7265654f",
+      "bytes": 6500
+    },
+    "backend/var/eval/ci-repair-20261114/delivery.log": {
+      "sha256": "d0d01de59c5c7e1f92c1ce4304c821a5336a981420918b884138939cbffb7a59",
+      "bytes": 98
+    },
+    "backend/var/eval/ci-repair-20261114/delivery.xml": {
+      "sha256": "c59d2dfbfd1e079b9dd97e279c30ee0999edf7112c72d73629b4656ac3e061bf",
+      "bytes": 1116
+    }
+  }
+}

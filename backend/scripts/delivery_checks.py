@@ -8,12 +8,14 @@ from pathlib import Path
 DIST_DIRS = ('.next', '.next-candidate', '.next-workbench', '.next-demo', '.next-prompts', '.next-prompts-md')
 SOURCE_PREFIXES = ('backend/src/', 'backend/scripts/', 'backend/tests/', 'frontend/src/',
                    'frontend/tests/', 'frontend/public/', 'data/demo/', 'data/eval/',
-                   'data/metadata/', 'data/papers/')
+                   'data/metadata/', 'data/papers/',
+                   'docs/iterations/2026-11-09-prd-handoff/source/',
+                   'docs/iterations/2026-11-11-retrieval-skills-v02/source/')
 SOURCE_SINGLES = {'backend/pyproject.toml', 'backend/uv.lock', 'frontend/package.json',
                   'backend/data/retrieval/aliases.json', 'frontend/pnpm-lock.yaml',
                   'frontend/playwright.config.ts', 'frontend/next.config.ts',
                   'frontend/tsconfig.json', 'frontend/eslint.config.mjs',
-                  'frontend/.env.local.example', '.env.example', '.gitignore',
+                  'frontend/.env.local.example', '.env.example', '.gitignore', '.gitattributes',
                   'frontend/.gitignore', '.github/workflows/ci.yml'}
 
 

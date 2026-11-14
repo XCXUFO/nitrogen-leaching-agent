@@ -51,6 +51,7 @@ def test_sql_scope_excludes_untagged_documents_even_when_they_match_the_query(li
 
 @pytest.mark.asyncio
 async def test_vector_filter_is_applied_before_reranker(library,tmp_path):
+    pytest.importorskip("chromadb", reason="Real vector integration requires the optional rag extra")
     ids=tags(library)
     store=ChromaStore(tmp_path/'vectors','scope-test')
     class Reranker:

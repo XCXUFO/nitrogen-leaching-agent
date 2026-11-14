@@ -1,5 +1,6 @@
 """Startup checks must exercise retrieval without making paid model calls."""
 from types import SimpleNamespace
+import sys
 
 import pytest
 from fastapi.testclient import TestClient
@@ -22,6 +23,10 @@ def test_real_lifespan_readiness_tracks_retrieval(monkeypatch, tmp_path, failure
     monkeypatch.setattr(main, "build_manifest", lambda _: {"manifest_sha256": "test-manifest"})
     llm = RecordingLLM()
     monkeypatch.setattr(main, "DeepSeekClient", lambda **kwargs: llm)
+    # All retrieval components below are fakes. Thread setup must be isolated as
+    # well, so this readiness contract also runs without the optional RAG extra.
+    thread_settings = []
+    monkeypatch.setitem(sys.modules, "torch", SimpleNamespace(set_num_threads=thread_settings.append))
 
     def embed(query):
         if failure == "embedding":
@@ -46,6 +51,7 @@ def test_real_lifespan_readiness_tracks_retrieval(monkeypatch, tmp_path, failure
     with TestClient(main.app) as client:
         assert client.get("/api/health").status_code == 200
         assert client.get("/api/ready").status_code == (503 if failure else 200)
+        assert thread_settings == [main.settings.rag_cpu_threads]
         assert llm.messages == []
         if failure:
             response = client.post("/api/chat", json={"query": "土壤质地影响氮素迁移吗？"})

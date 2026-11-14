@@ -1,0 +1,3 @@
+# Preserve checksummed handoff archives byte for byte, including source spacing.
+docs/iterations/2026-11-09-prd-handoff/source/** -text -whitespace
+docs/iterations/2026-11-11-retrieval-skills-v02/source/** -text -whitespace

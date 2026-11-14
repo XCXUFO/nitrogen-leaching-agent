@@ -170,6 +170,7 @@ for visitor isolation, request budgets, deployment settings and evidence scope.
 - [Frontend setup](frontend/README.md)
 - [Development guide](docs/development.md)
 - [2026-11-13 封版审查与验证](docs/releases/2026-11-13-preseal-review.md)
+- [2026-11-14 GitHub 后端 CI 修复](docs/releases/2026-11-14-backend-ci-repair.md)
 - [1017 PRD 剩余开发交付与验收](docs/iterations/2026-10-17-prd-completion/README.md)
 - [工具能力盘点归档：Skill、MCP 与后续优化候选（2026-10-16）](docs/iterations/2026-10-16-tool-capability-inventory/README.md)
 - [工作台使用说明与文档导航](docs/iterations/2026-09-29-agent-harness/evaluation-guide.md)
